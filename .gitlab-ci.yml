@@ -34,16 +34,16 @@ pages:
     - ln -s /src/.venv .
     - poetry config virtualenvs.in-project true
     - poetry install
-    - poetry run python3 -m pip install -r doc/requirements.txt
+    - poetry run python3 -m pip install -r sphinx/requirements.txt
   script:
-    - poetry run sphinx-apidoc -f -o ./doc femio
-    - poetry run sphinx-build ./doc ./doc/build
+    - poetry run sphinx-apidoc -f -o ./sphinx femio
+    - poetry run sphinx-build ./sphinx ./docs
     - poetry build
-    - cp -r doc/build public
+    - cp -r docs public
     - mv dist/*.whl public/
   artifacts:
     paths:
-      - doc/build
+      - docs
       - public
   only:
     - master
@@ -85,7 +85,7 @@ commit:
     - git remote set-url --push origin git@$CI_SERVER_HOST:$CI_PROJECT_PATH.git
     - git checkout $CI_COMMIT_REF_NAME
     - git pull
-    - git add doc/build
+    - git add docs
     - git status
     - status=$(git status | sed -ne 's|.*\(clean\)|\1|p')
     - if [ -z $status ]; then
