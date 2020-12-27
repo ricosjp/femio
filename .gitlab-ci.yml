@@ -62,9 +62,10 @@ pages:
 deploy:wheel:master:
   extends: .deploy:wheel
   before_script:
-    - export VERSION=0.3.1.dev$(date +"%Y%m%d%H%M")
+    - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
   only:
     - master
+    - update_readme_for_v3.1
 
 deploy:wheel:tag:
   extends: .deploy:wheel
