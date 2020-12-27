@@ -1,0 +1,21 @@
+femio.util package
+==================
+
+Submodules
+----------
+
+femio.util.string\_parser module
+--------------------------------
+
+.. automodule:: femio.util.string_parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: femio.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
