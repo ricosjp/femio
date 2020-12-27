@@ -1,0 +1,10 @@
+femio.formats package
+=====================
+
+Module contents
+---------------
+
+.. automodule:: femio.formats
+   :members:
+   :undoc-members:
+   :show-inheritance:

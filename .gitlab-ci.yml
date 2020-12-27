@@ -1,0 +1,96 @@
+image: registry.ritc.jp/ricos/femio/fistr_ricos
+
+stages:
+  - test
+  - deploy
+  - commit
+
+pylint:
+  stage: test
+  before_script:
+    - pip install --upgrade pip poetry
+    - ln -s /src/.venv .
+    - poetry config virtualenvs.in-project true
+    - poetry install
+  script:
+    - pip install pycodestyle
+    - find femio -name '*.py' -exec pycodestyle {} +
+    - poetry run pylint -E $(find femio/__main__ -name "*.py")
+
+pytest:
+  stage: test
+  before_script:
+    - pip install --upgrade pip poetry
+    - ln -s /src/.venv .
+    - poetry config virtualenvs.in-project true
+    - poetry install
+  script:
+    - poetry run pytest tests
+
+pages:
+  stage: deploy
+  before_script:
+    - pip install --upgrade pip poetry
+    - ln -s /src/.venv .
+    - poetry config virtualenvs.in-project true
+    - poetry install
+    - poetry run python3 -m pip install -r doc/requirements.txt
+  script:
+    - poetry run sphinx-apidoc -f -o ./doc femio
+    - poetry run sphinx-build ./doc ./doc/build
+    - poetry build
+    - cp -r doc/build public
+    - mv dist/*.whl public/
+  artifacts:
+    paths:
+      - doc/build
+      - public
+  only:
+    - master
+
+.deploy:wheel:
+  stage: deploy
+  script:
+    - pip install --upgrade pip poetry
+    - poetry version $VERSION
+    - poetry config repositories.ricos https://pypi.ritc.jp
+    - poetry build -f wheel
+    - poetry publish --username ricos --password ${RICOS_PYPI_KEY} -r ricos --no-ansi -n -v
+  retry: 2
+
+deploy:wheel:master:
+  extends: .deploy:wheel
+  before_script:
+    - export VERSION=0.3.0.dev$(date +"%Y%m%d%H%M")
+  only:
+    - master
+
+deploy:wheel:tag:
+  extends: .deploy:wheel
+  before_script:
+    - export VERSION=$CI_COMMIT_REF_NAME
+  only:
+    - tags
+
+commit:
+  stage: commit
+  script:
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - ssh-keyscan -H "$CI_SERVER_HOST" >> ~/.ssh/known_hosts
+    - eval "$(ssh-agent -s)"
+    - echo "$SSH_PRIVATE_KEY" | ssh-add - > /dev/null
+    - git config --global user.name "runner@gitlab.ritc.jp"
+    - git config --global user.email "runner@gitlab.ritc.jp"
+    - git remote set-url --push origin git@$CI_SERVER_HOST:$CI_PROJECT_PATH.git
+    - git checkout $CI_COMMIT_REF_NAME
+    - git pull
+    - git add doc/build
+    - git status
+    - status=$(git status | sed -ne 's|.*\(clean\)|\1|p')
+    - if [ -z $status ]; then
+    -   git commit -m '[ci skip] push document by GitLab runner'
+    -   git push
+    - fi
+  only:
+    - master

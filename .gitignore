@@ -1,0 +1,38 @@
+# General
+*~
+.DS_Store
+
+# Data directory
+data/*
+tests/data
+tests/data/fistr/write_*
+tests/data/ucd/write_*
+docker
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+femio.egg-info
+dist/
+
+# pyenv
+.python-version
+
+# dotenv
+.env
+
+# virtualenv
+.venv/
+venv/
+ENV/
+
+# FrontISTR files
+*.msg
+0.log
+FSTR.*
+hecmw_vis.ini
+
+# Poetry
+poetry.lock
+poetry.toml
