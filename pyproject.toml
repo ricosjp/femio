@@ -2,7 +2,10 @@
 name = "femio"
 version = "0.3.0"
 description = "FEM I/O Tool"
-authors = []
+authors = ["RICOS Co. Ltd."]
+readme = "README.md"
+repository = "https://github.com/ricosjp/femio"
+documentation = "https://ricosjp.github.io/femio/"
 
 [tool.poetry.dependencies]
 python = "^3.6.1"
