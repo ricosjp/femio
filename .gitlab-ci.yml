@@ -47,7 +47,6 @@ pages:
       - public
   only:
     - master
-    - add_pypi_org_publish
 
 .deploy:wheel:
   stage: deploy
@@ -66,7 +65,6 @@ deploy:wheel:master:
     - export VERSION=0.3.0.dev$(date +"%Y%m%d%H%M")
   only:
     - master
-    - add_pypi_org_publish
 
 deploy:wheel:tag:
   extends: .deploy:wheel
