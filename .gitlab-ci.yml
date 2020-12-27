@@ -1,4 +1,4 @@
-image: registry.ritc.jp/ricos/femio/fistr_ricos
+image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos
 
 stages:
   - test
