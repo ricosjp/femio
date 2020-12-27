@@ -56,6 +56,7 @@ pages:
     - poetry config repositories.ricos https://pypi.ritc.jp
     - poetry build -f wheel
     - poetry publish --username ricos --password ${RICOS_PYPI_KEY} -r ricos --no-ansi -n -v
+    - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
   retry: 2
 
 deploy:wheel:master:
