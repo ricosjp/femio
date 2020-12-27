@@ -9,8 +9,7 @@ Femio can:
 
 ## How to install
 ```bash
-pip install poetry
-poetry install
+pip install femio
 ```
 
 
@@ -21,9 +20,9 @@ Usage could be something similar to this:
 import femio
 
 # Read FEM data of files
-fem_data = femio.FEMData.read_files('input_type', ['mesh_file', 'results_file'])
-# Read FEM data in a directory (all files excluding include files shoud be in the same directory)
-fem_data = femio.FEMData.read_directory('input_type', 'directory/name')
+fem_data = femio.FEMData.read_files(file_type='ucd', file_names=['mesh.inp'])
+# Read FEM data in a directory
+fem_data = femio.FEMData.read_directory(file_type='ucd', 'directory/name')
 
 # Access FEM data
 print(fem_data.nodes.ids, fem_data.entity.nodes.data)  # data means node position here
@@ -31,39 +30,17 @@ print(fem_data.elements.ids, fem_data.entity.elements.data)  # data means node i
 print(fem_data.nodal_data['DISPLACEMENT'].ids, fem_data.entity.nodal_data['DISPLACEMENT']).data
 
 # Output FEM data to a file format different from the input
-fem_data.write('output_type')
+fem_data.write(file_type='stl')
 ```
 
-Parameters:
-- input_type: Type of input file format
-- list_files: List of file names (can be arbitrary order)
-  - mesh_file: file containing mesh information
-  - results_file: file containig results information (can be omitted)
-- output_type: type of output file format
-
-Currently, the following types are supported.
-
-Input type:
-- FrontISTR: 'fistr'
-- AVS UCD old format: 'ucd'
-
-Output type:
-- FrontISTR: 'fistr'
-- AVS UCD old format: 'ucd'
+Supported file types:
+- 'fistr': FrontISTR file format
+- 'obj': Wavefront .obj file format
+- 'stl': STereoLithography file format
+- 'ucd': AVS UCD old format
+- 'vtk': VTK format
 
 
-## Examples
+## License
 
-```bash
-# FrontISTR to UCD
-python3 fistr2ucd.py frontistr/files/directory
-```
-
-
-## How to test
-In the top directory,
-
-```bash
-./run_test.sh
-```
-
+[Apache License 2.0](./LICENSE).
