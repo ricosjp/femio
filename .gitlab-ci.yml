@@ -47,7 +47,6 @@ pages:
       - public
   only:
     - master
-    - chenge_docs_location
 
 .deploy:wheel:
   stage: deploy
@@ -95,4 +94,3 @@ commit:
     - fi
   only:
     - master
-    - chenge_docs_location
