@@ -1,0 +1,11 @@
+#
+# for solver
+#
+!MESH, NAME=fstrMSH, TYPE=HECMW-ENTIRE
+ plane.msh
+!CONTROL, NAME=fstrCNT
+ plane.cnt
+!RESULT, NAME=fstrRES, IO=OUT
+ plane.res
+!RESULT, NAME=vis_out, IO=OUT
+ plane_vis

@@ -1,0 +1,36 @@
+#  Control File for FISTR
+## Analysis Control
+!VERSION
+ 3
+!SOLUTION, TYPE=STATIC
+!WRITE,RESULT
+!WRITE,VISUAL
+!OUTPUT_RES
+NSTRAIN, ON
+ESTRAIN, ON
+!OUTPUT_VIS
+NSTRAIN, ON
+ESTRAIN, ON
+ESTRESS, ON
+## Solver Control
+### Boundary Conditon
+!BOUNDARY
+ 1, 1, 3, 0.0
+ 2, 1, 2, 0.0
+ 4, 2, 3, 0.0
+!CLOAD
+ BND0, 1, 1.
+ BND0, 2, 1.
+ BND1, 1, -1.
+ BND1, 2, -1.
+#
+### Solver Setting
+!SOLVER,METHOD=CG,PRECOND=1,ITERLOG=YES,TIMELOG=YES
+ 10000, 1
+ 1.0e-08, 1.0, 0.0
+## Post Control
+!VISUAL, method=PSR
+!surface_num = 1
+!surface 1
+!output_type = COMPLETE_REORDER_AVS
+!END

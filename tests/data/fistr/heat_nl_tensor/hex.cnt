@@ -1,0 +1,23 @@
+#  Control File for FISTR
+## Analysis Control
+!VERSION
+ 3
+!SOLUTION, TYPE=HEAT
+!HEAT
+ 0.1, 10.0
+!WRITE,RESULT, FREQUENCY=10
+!WRITE,VISUAL, FREQUENCY=10
+!MATERIAL, NAME=STEEL
+!CONDUCTIVITY, TYPE=FULL, DEPENDENCIES=1
+0.2, 0.2, 0.2, 0.1, 0.0, 0.0, -1.0
+0.1, 0.1, 0.1, 0.05, 0.0, 0.0, 1.0
+### Solver Setting
+!SOLVER,METHOD=MUMPS,PRECOND=1,ITERLOG=YES,TIMELOG=YES
+ 10000, 1
+ 1.0e-08, 1.0, 0.0
+## Post Control
+!VISUAL, method=PSR
+!surface_num = 1
+!surface 1
+!output_type = COMPLETE_REORDER_AVS
+!END

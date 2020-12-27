@@ -1,0 +1,11 @@
+#
+# for solver
+#
+!MESH, NAME=fstrMSH, TYPE=HECMW-ENTIRE
+ tet2.msh
+!CONTROL, NAME=fstrCNT
+ tet2.cnt
+!RESULT, NAME=fstrRES, IO=OUT
+ tet2.res
+!RESULT, NAME=vis_out, IO=OUT
+ tet2_vis

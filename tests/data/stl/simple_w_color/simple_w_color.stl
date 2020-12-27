@@ -1,0 +1,17 @@
+solid Square
+   color       0.95294 0.87451 0.10588
+  facet normal 0.0 0.0 1.0
+    outer loop
+      vertex 0.0 0.0 0.0
+      vertex 2.0 0.1 0.0
+      vertex 0.2 3.0 0.0
+    endloop
+  endfacet
+  facet normal 0.0 0.0 1.0
+    outer loop
+      vertex 4.0 5.0 0.0
+      vertex 0.2 3.0 0.0
+      vertex 2.0 0.1 0.0
+    endloop
+  endfacet
+endsolid Square
