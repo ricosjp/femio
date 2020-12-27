@@ -1,6 +1,8 @@
 # Femio
 The FEM I/O + mesh processing tool.
 
+- Documentation: https://ricosjp.github.io/femio/
+
 Femio can:
 - Read FEM data including analysis results from various formats
 - Perform mesh processing
