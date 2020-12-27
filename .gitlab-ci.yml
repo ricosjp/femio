@@ -47,7 +47,6 @@ pages:
       - public
   only:
     - master
-    - fix_ci
 
 .deploy:wheel:
   stage: deploy
@@ -97,4 +96,3 @@ commit:
     - fi
   only:
     - master
-    - fix_ci
