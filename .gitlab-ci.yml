@@ -84,15 +84,14 @@ commit:
     - git config --global user.name "runner@gitlab.ritc.jp"
     - git config --global user.email "runner@gitlab.ritc.jp"
     - git remote set-url --push origin git@$CI_SERVER_HOST:$CI_PROJECT_PATH.git
+    - git stash
     - git checkout $CI_COMMIT_REF_NAME
+    - git stash pop
     - git add docs
     - status=$(git status | sed -ne 's|.*\(clean\)|\1|p')
     - if [ -z $status ]; then
     -   git commit -m '[ci skip] push document by GitLab runner'
-    - fi
-    - git pull
-    - status=$(git status | sed -ne 's|.*\(clean\)|\1|p')
-    - if [ -z $status ]; then
+    -   git pull
     -   git push
     - fi
   only:
