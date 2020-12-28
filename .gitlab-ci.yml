@@ -86,10 +86,17 @@ commit:
     - git remote set-url --push origin git@$CI_SERVER_HOST:$CI_PROJECT_PATH.git
     - git add docs
     - git stash
+    - git checkout $CI_COMMIT_REF_NAME
+    - git pull
+    - git stash pop
+    - status=$(git status | sed -ne 's|.*\(clean\)|\1|p')
+    - if [ -z $status ]; then
+    -   git add docs
+    -   git commit -m '[ci skip] push document by GitLab runner'
+    - fi
     - git fetch
     - git checkout gh-pages
-    - git merge origin/$CI_COMMIT_REF_NAME
-    - git stash pop
+    - git merge $CI_COMMIT_REF_NAME
     - status=$(git status | sed -ne 's|.*\(clean\)|\1|p')
     - if [ -z $status ]; then
     -   git add docs
