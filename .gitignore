@@ -8,6 +8,7 @@ tests/data
 tests/data/fistr/write_*
 tests/data/ucd/write_*
 docker
+public
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
