@@ -1,7 +1,0 @@
-femio
-=====
-
-.. toctree::
-   :maxdepth: 4
-
-   femio
