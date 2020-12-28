@@ -101,7 +101,8 @@ commit:
     - if [ -z $status ]; then
     -   git add docs
     -   git commit -m '[ci skip] push document by GitLab runner'
-    -   git push
     - fi
+    - git pull
+    - git push
   only:
     - master
