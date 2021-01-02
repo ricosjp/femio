@@ -1190,38 +1190,38 @@ class TestSignalProcessor(unittest.TestCase):
             lte[0, :],
             np.array([.01, .001, .0001]))
         np.testing.assert_almost_equal(
-                directions[0],
-                np.array([1., 0., 0., 0., 1., 0., 0., 0., 1.]))
+            directions[0],
+            np.array([1., 0., 0., 0., 1., 0., 0., 0., 1.]))
         np.testing.assert_almost_equal(
-                lte_vec[0],
-                np.array([.01, 0., 0., 0., .001, 0., 0., 0., .0001]))
+            lte_vec[0],
+            np.array([.01, 0., 0., 0., .001, 0., 0., 0., .0001]))
 
         np.testing.assert_almost_equal(
             lte[1, :],
             np.array([0.01, 0.001, 0.0001]))
         np.testing.assert_almost_equal(
-                directions[1],
-                np.array([0., 0., 1., 0., 1., 0., -1., 0., 0.]))
+            directions[1],
+            np.array([0., 0., 1., 0., 1., 0., -1., 0., 0.]))
         # raise ValueError(lte[1, :], directions[1], lte_vec[1])
         np.testing.assert_almost_equal(
-                lte_vec[1],
-                np.array([0., 0., .01, 0., .001, 0., -.0001, 0., 0.]))
+            lte_vec[1],
+            np.array([0., 0., .01, 0., .001, 0., -.0001, 0., 0.]))
 
         np.testing.assert_almost_equal(
             lte[2, :],
             np.array([0.003, 0.002, 0.001]))
         np.testing.assert_almost_equal(
-                directions[2],
-                np.array([
-                    0., 0., 1.,
-                    -1 / 2**.5, 1 / 2**.5, 0.,
-                    -1 / 2**.5, -1 / 2**.5, 0.]))
+            directions[2],
+            np.array([
+                0., 0., 1.,
+                -1 / 2**.5, 1 / 2**.5, 0.,
+                -1 / 2**.5, -1 / 2**.5, 0.]))
         np.testing.assert_almost_equal(
-                lte_vec[2],
-                np.array([
-                    0., 0., .003,
-                    -.002 / 2**.5, .002 / 2**.5, 0.,
-                    -.001 / 2**.5, -.001 / 2**.5, 0.]))
+            lte_vec[2],
+            np.array([
+                0., 0., .003,
+                -.002 / 2**.5, .002 / 2**.5, 0.,
+                -.001 / 2**.5, -.001 / 2**.5, 0.]))
 
     def test_add_principal_vectors(self):
         fem_data = FEMData.read_directory(
@@ -1468,7 +1468,7 @@ class TestSignalProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/tet_orthogonal_double',
             read_npy=False, save=False)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
-                mode='nodal', n_hop=1, moment_matrix=True)
+            mode='nodal', n_hop=1, moment_matrix=True)
 
         x_grad = np.concatenate(
             [g.dot(fem_data.nodes.data[:, [0]]) for g in grads], axis=-1)
@@ -1497,7 +1497,7 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/tet2_cube',
             read_npy=False, save=False)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
-                mode='nodal', n_hop=1, moment_matrix=True)
+            mode='nodal', n_hop=1, moment_matrix=True)
         sp.save_npz('gx.npz', grads[0])
         sp.save_npz('gy.npz', grads[1])
         sp.save_npz('gz.npz', grads[2])
@@ -1524,7 +1524,7 @@ class TestSignalProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/cube',
             read_npy=False, save=False)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
-                mode='nodal', n_hop=1, moment_matrix=True)
+            mode='nodal', n_hop=1, moment_matrix=True)
         sp.save_npz('gx.npz', grads[0])
         sp.save_npz('gy.npz', grads[1])
         sp.save_npz('gz.npz', grads[2])

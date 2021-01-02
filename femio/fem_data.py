@@ -579,7 +579,7 @@ class FEMData(
             self.nodes.data[useful_indices])
         for key, value in self.nodal_data.items():
             self.nodal_data[key] = FEMAttribute(
-              value.name, self.nodes.ids, value.data[useful_indices])
+                value.name, self.nodes.ids, value.data[useful_indices])
         return
 
     def to_first_order(self):

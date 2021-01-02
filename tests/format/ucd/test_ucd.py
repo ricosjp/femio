@@ -13,7 +13,7 @@ class TestFEMDataFISTR(unittest.TestCase):
             'ucd', data_directory, read_npy=False)
 
         desired_node_ids = np.array(
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
         np.testing.assert_array_equal(
             fem_data.nodes.ids, desired_node_ids)
 
@@ -78,7 +78,7 @@ class TestFEMDataFISTR(unittest.TestCase):
             'ucd', data_directory, read_npy=False)
 
         desired_node_ids = np.array(
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
         np.testing.assert_array_equal(
             fem_data.nodes.ids, desired_node_ids)
 

@@ -21,29 +21,29 @@ class TestFEMDataFISTR(unittest.TestCase):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         desired_node_ids = np.array(
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
         np.testing.assert_equal(
-                fem_data.nodes.ids, desired_node_ids)
+            fem_data.nodes.ids, desired_node_ids)
 
     def test_fistr_node_positions(self):
         """Node positions should be correctly stored."""
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         desired_node_positions = np.array([
-                [0.0, 0.0, 0.0],
-                [1.0, 0.0, 0.0],
-                [1.0, 1.0, 0.0],
-                [0.0, 1.0, 0.0],
-                [0.0, 0.0, 1.0],
-                [1.0, 0.0, 1.0],
-                [1.0, 1.0, 1.0],
-                [0.0, 1.0, 1.0],
-                [0.0, 0.0, 2.0],
-                [1.0, 0.0, 2.0],
-                [1.0, 1.0, 2.0],
-                [0.0, 1.0, 2.0]])
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [1.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [1.0, 0.0, 1.0],
+            [1.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0],
+            [0.0, 0.0, 2.0],
+            [1.0, 0.0, 2.0],
+            [1.0, 1.0, 2.0],
+            [0.0, 1.0, 2.0]])
         np.testing.assert_almost_equal(
-                fem_data.nodes.data, desired_node_positions)
+            fem_data.nodes.data, desired_node_positions)
 
     def test_fistr_initial_temperature(self):
         """Initial temperature should be correctly stored."""
@@ -62,7 +62,7 @@ class TestFEMDataFISTR(unittest.TestCase):
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         desired_element_ids = np.array([1, 2])
         np.testing.assert_equal(
-                fem_data.elements.ids, desired_element_ids)
+            fem_data.elements.ids, desired_element_ids)
 
     def test_fistr_element_components(self):
         """Element compoments should be correctly stored."""
@@ -73,7 +73,7 @@ class TestFEMDataFISTR(unittest.TestCase):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         np.testing.assert_equal(
-                fem_data.elements.data, desired_element_components)
+            fem_data.elements.data, desired_element_components)
 
     def test_fistr_material(self):
         fem_data = FEMData.read_files(
@@ -103,12 +103,12 @@ class TestFEMDataFISTR(unittest.TestCase):
     def test_fistr_displacement_ids(self):
         """Displacement IDs should be correctly stored."""
         desired_displacement_ids = np.array(
-                [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12])
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         np.testing.assert_equal(
-                fem_data.nodal_data['DISPLACEMENT'].ids,
-                desired_displacement_ids)
+            fem_data.nodal_data['DISPLACEMENT'].ids,
+            desired_displacement_ids)
 
     def test_fistr_displacement_data(self):
         """Displacement data should be correctly stored."""
@@ -129,8 +129,8 @@ class TestFEMDataFISTR(unittest.TestCase):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         np.testing.assert_almost_equal(
-                fem_data.nodal_data['DISPLACEMENT'].data,
-                desired_displacement_data, decimal=3)
+            fem_data.nodal_data['DISPLACEMENT'].data,
+            desired_displacement_data, decimal=3)
 
     def test_fistr_elemental_mises_ids(self):
         """Elemental MISES IDs should be correctly stored."""
@@ -138,8 +138,8 @@ class TestFEMDataFISTR(unittest.TestCase):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         np.testing.assert_almost_equal(
-                fem_data.elemental_data['ElementalMISES'].ids,
-                desired_nodal_mises_ids)
+            fem_data.elemental_data['ElementalMISES'].ids,
+            desired_nodal_mises_ids)
 
     def test_fistr_elemental_mises_data(self):
         """Elemental MISES data should be correctly stored."""
@@ -150,8 +150,8 @@ class TestFEMDataFISTR(unittest.TestCase):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_CNT_FILE, FISTR_RES_FILE])
         np.testing.assert_almost_equal(
-                fem_data.elemental_data['ElementalMISES'].data,
-                desired_nodal_mises_data, decimal=3)
+            fem_data.elemental_data['ElementalMISES'].data,
+            desired_nodal_mises_data, decimal=3)
 
     def test_file_extension_error(self):
         """ValueError should be raised when wrong file is passed."""

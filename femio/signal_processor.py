@@ -218,7 +218,7 @@ class SignalProcessorMixin:
                 FEMAttribute(
                     f"principal_{name_variable}_value_3",
                     self.elements.ids, values[:, 2]),
-             }
+            }
         )
 
     def calculate_principal_components(

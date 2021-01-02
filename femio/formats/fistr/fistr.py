@@ -131,7 +131,7 @@ class FrontISTRData(FEMData):
         base_name = os.path.dirname(
             self.file_names.find_match(r'\.' + ext, convert_values=True)[0])
         str_data[ext] = str_data[ext].expand_include(
-                r'!INCLUDE\s*,\s*INPUT\s*=\s*([\w\/\.]+)', base_name)
+            r'!INCLUDE\s*,\s*INPUT\s*=\s*([\w\/\.]+)', base_name)
         return str_data
 
     def _read_msh(self, string_series):
@@ -442,8 +442,8 @@ class FrontISTRData(FEMData):
             n_filled_temp = len(self.nodal_data['INITIAL_TEMPERATURE'].data)
             if (n_node != n_filled_temp):
                 initial_temperatures = np.concatenate(
-                        [self.nodal_data['INITIAL_TEMPERATURE'].data,
-                         np.zeros([n_node - n_filled_temp, 1])])
+                    [self.nodal_data['INITIAL_TEMPERATURE'].data,
+                     np.zeros([n_node - n_filled_temp, 1])])
                 self.nodal_data['INITIAL_TEMPERATURE'] = FEMAttribute(
                     'INITIAL_TEMPERATURE', self.nodes.ids,
                     initial_temperatures)
@@ -680,15 +680,14 @@ class FrontISTRData(FEMData):
                 i_go_back += 1
             elemental_data_start = ind_clusters[1][0] - i_go_back + 1
             elemental_data = st.StringSeries.read_array(
-                    res_contents[elemental_data_start:])
+                res_contents[elemental_data_start:])
             nodal_data = st.StringSeries.read_array(
                 res_contents[:elemental_data_start])
 
         else:
             # Only nodal data exists
             elemental_data = None
-            nodal_data = st.StringSeries.read_array(
-                    res_contents)
+            nodal_data = st.StringSeries.read_array(res_contents)
 
         return nodal_data, elemental_data
 
@@ -718,7 +717,7 @@ class FrontISTRData(FEMData):
             [raw_data[s::stride] for s in range(1, stride)], delimiter=' ')
         formatted_data = ids.connect(data, delimiter=' ')
         dict_fem_attribute = formatted_data.to_dict_fem_attributes(
-                variable_names, component_nums, delimiter=' ')
+            variable_names, component_nums, delimiter=' ')
         if is_elemental:
             return {
                 fem_attribute.name:
