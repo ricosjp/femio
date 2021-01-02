@@ -1498,9 +1498,6 @@ class TestSignalProcessor(unittest.TestCase):
             read_npy=False, save=False)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
             mode='nodal', n_hop=1, moment_matrix=True)
-        sp.save_npz('gx.npz', grads[0])
-        sp.save_npz('gy.npz', grads[1])
-        sp.save_npz('gz.npz', grads[2])
 
         filter_ = fem_data.filter_first_order_nodes()
         n = np.sum(filter_)
@@ -1525,9 +1522,6 @@ class TestSignalProcessor(unittest.TestCase):
             read_npy=False, save=False)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
             mode='nodal', n_hop=1, moment_matrix=True)
-        sp.save_npz('gx.npz', grads[0])
-        sp.save_npz('gy.npz', grads[1])
-        sp.save_npz('gz.npz', grads[2])
 
         filter_ = fem_data.filter_first_order_nodes()
         n = np.sum(filter_)
