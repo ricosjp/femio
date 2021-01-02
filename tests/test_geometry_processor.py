@@ -118,9 +118,10 @@ class TestFEMData(unittest.TestCase):
             [np.sqrt(2), 1.0, 1.0],
             [1.0, 1.0, np.sqrt(2)],
         ])
-        x = fem_data.calculate_edge_lengths()
+        fem_data.calculate_edge_lengths()
         np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('edge_lengths'), desired_edge_lengths, decimal=5)
+            fem_data.elemental_data.get_attribute_data('edge_lengths'),
+            desired_edge_lengths, decimal=5)
 
     def test_calculate_edge_lengths_quad(self):
         data_directory = 'tests/data/obj/quad'
@@ -134,7 +135,8 @@ class TestFEMData(unittest.TestCase):
         ])
         fem_data.calculate_edge_lengths()
         np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('edge_lengths'), desired_edge_lengths, decimal=5)
+            fem_data.elemental_data.get_attribute_data('edge_lengths'),
+            desired_edge_lengths, decimal=5)
 
     def test_calculate_angles_tri(self):
         data_directory = 'tests/data/obj/tri'
@@ -147,6 +149,10 @@ class TestFEMData(unittest.TestCase):
             [np.pi / 4, np.pi / 4, np.pi / 2],
             [np.pi / 4, np.pi / 2, np.pi / 4],
         ])
+        fem_data.calculate_angles()
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('angles'),
+            desired_angles)
 
     def test_calculate_angles_quad(self):
         data_directory = 'tests/data/obj/quad'
@@ -160,7 +166,8 @@ class TestFEMData(unittest.TestCase):
         ])
         fem_data.calculate_angles()
         np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('angles'), desired_angles)
+            fem_data.elemental_data.get_attribute_data('angles'),
+            desired_angles)
 
     def test_calculate_jacobians_tri(self):
         data_directory = 'tests/data/obj/tri'
@@ -175,7 +182,8 @@ class TestFEMData(unittest.TestCase):
         ])
         fem_data.calculate_jacobians()
         np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('jacobian'), desired_jacobians)
+            fem_data.elemental_data.get_attribute_data('jacobian'),
+            desired_jacobians)
 
     def test_calculate_jacobians_quad(self):
         data_directory = 'tests/data/obj/quad'
@@ -189,7 +197,8 @@ class TestFEMData(unittest.TestCase):
         ])
         fem_data.calculate_jacobians()
         np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('jacobian'), desired_jacobians)
+            fem_data.elemental_data.get_attribute_data('jacobian'),
+            desired_jacobians)
 
     def test_extract_direction_feature(self):
         data_directory = 'tests/data/stl/multiple'
