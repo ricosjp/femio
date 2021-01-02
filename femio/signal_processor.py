@@ -50,11 +50,11 @@ class SignalProcessorMixin:
         Args:
             elemental_data: numpy.ndarray
                 Elemental data to be converted.
-            mode: str, optional (['effective'], 'mean')
+            mode: str, optional
                 The way haw to convert. 'effective' means weighted integration
                 which results in consistent volume. 'mean' means weighted
                 mean which results in smoother field at the boundary but
-                not necessarily consistent volume.
+                not necessarily consistent volume. The default is 'mean'.
             order1_only: bool, optional [True]
                 If True, convert data only for order 1 nodes.
             raise_negative_volume: bool, optional [True]
@@ -75,11 +75,11 @@ class SignalProcessorMixin:
                 1 / incidence_matrix.sum(axis=0))
 
         elif mode == 'mean':
-            volumes = self.calculate_element_volumes(
-                raise_negative_volume=raise_negative_volume)
-            volume_incidence_matrix = incidence_matrix.multiply(volumes.T)
-            weighted_incidence_matrix = volume_incidence_matrix.multiply(
-                1 / volume_incidence_matrix.sum(axis=1))
+            metrics = self.calculate_element_metrics(
+                raise_negative_metric=raise_negative_volume)
+            metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
+            weighted_incidence_matrix = metric_incidence_matrix.multiply(
+                1 / metric_incidence_matrix.sum(axis=1))
 
         else:
             raise ValueError(f"Invalid mode: {mode}")

@@ -583,7 +583,13 @@ class FEMData(
         return
 
     def to_first_order(self):
-        """Convert to first order data"""
+        """Convert the FEMData object to the first order data.
+
+        Returns
+        -------
+        FEMData:
+            First order FEMData object.
+        """
         filter_ = self.filter_first_order_nodes()
         nodes = FEMAttribute(
             'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_])
@@ -595,6 +601,28 @@ class FEMData(
         return FEMData(
             nodes, elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+
+    def to_surface(self):
+        """Convert the FEMData object to the surface data.
+
+        Returns
+        -------
+        FEMData:
+            Surface FEMData object.
+        """
+        surface_indices, _ = self.extract_surface()
+        unique_indices = np.unique(surface_indices)
+        node_ids = self.nodes.ids[unique_indices]
+        surface_ids = self.nodes.ids[surface_indices]
+        nodes = FEMAttribute(
+            'NODE', node_ids, self.nodes.iloc[unique_indices])
+        elements = self.elements.to_surface(surface_ids)
+        nodal_data = FEMAttributes({
+            k: FEMAttribute(k, node_ids, v.iloc[unique_indices])
+            for k, v in self.nodal_data.items()})
+        return FEMData(
+            nodes=nodes, elements=elements, nodal_data=nodal_data,
+            elemental_data={})
 
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([

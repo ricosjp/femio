@@ -107,6 +107,69 @@ class TestFEMData(unittest.TestCase):
                 fem_data.elemental_data.get_attribute_data('normal')),
             fem_data.extract_direction_feature(desired_normals), decimal=5)
 
+    def test_calculate_surface_normals(self):
+        data_directory = 'tests/data/vtk/tet2_cube'
+        fem_data = FEMData.read_directory(
+            'vtk', data_directory, read_npy=False, save=False).to_first_order()
+        effective_normals = fem_data.calculate_surface_normals(
+            mode='effective')
+        mean_normals = fem_data.calculate_surface_normals(mode='mean')
+
+        nodes = fem_data.nodes.data
+        epsilon = 1e-5
+        filter_x_low = np.abs(nodes[:, 0] - 0.0) < epsilon
+        filter_x_high = np.abs(nodes[:, 0] - 0.1) < epsilon
+        filter_y_low = np.abs(nodes[:, 1] - 0.0) < epsilon
+        filter_y_high = np.abs(nodes[:, 1] - 0.1) < epsilon
+        filter_z_low = np.abs(nodes[:, 2] - 0.0) < epsilon
+        filter_z_high = np.abs(nodes[:, 2] - 0.1) < epsilon
+        filter_edge = (
+            filter_x_low.astype(int) + filter_x_high.astype(int)
+            + filter_y_low.astype(int) + filter_y_high.astype(int)
+            + filter_z_low.astype(int) + filter_z_high.astype(int)) >= 2
+
+        def assert_almost_equal_broadcast(array, desired):
+            np.testing.assert_almost_equal(
+                array, np.ones((len(array), len(desired))) * desired)
+
+        assert_almost_equal_broadcast(
+            effective_normals[filter_x_low & ~filter_edge], [-1., 0., 0.])
+        assert_almost_equal_broadcast(
+            mean_normals[filter_x_low & ~filter_edge], [-1., 0., 0.])
+        assert_almost_equal_broadcast(
+            effective_normals[filter_x_high & ~filter_edge], [1., 0., 0.])
+        assert_almost_equal_broadcast(
+            mean_normals[filter_x_high & ~filter_edge], [1., 0., 0.])
+
+        assert_almost_equal_broadcast(
+            effective_normals[filter_y_low & ~filter_edge], [0., -1., 0.])
+        assert_almost_equal_broadcast(
+            mean_normals[filter_y_low & ~filter_edge], [0., -1., 0.])
+        assert_almost_equal_broadcast(
+            effective_normals[filter_y_high & ~filter_edge], [0., 1., 0.])
+        assert_almost_equal_broadcast(
+            mean_normals[filter_y_high & ~filter_edge], [0., 1., 0.])
+
+        assert_almost_equal_broadcast(
+            effective_normals[filter_z_low & ~filter_edge], [0., 0., -1.])
+        assert_almost_equal_broadcast(
+            mean_normals[filter_z_low & ~filter_edge], [0., 0., -1.])
+        assert_almost_equal_broadcast(
+            effective_normals[filter_z_high & ~filter_edge], [0., 0., 1.])
+        assert_almost_equal_broadcast(
+            mean_normals[filter_z_high & ~filter_edge], [0., 0., 1.])
+
+        assert_almost_equal_broadcast(
+            effective_normals[
+                ~filter_x_low & ~filter_x_high
+                & ~filter_y_low & ~filter_y_high
+                & ~filter_z_low & ~filter_z_high], [0., 0., 0.])
+        assert_almost_equal_broadcast(
+            mean_normals[
+                ~filter_x_low & ~filter_x_high
+                & ~filter_y_low & ~filter_y_high
+                & ~filter_z_low & ~filter_z_high], [0., 0., 0.])
+
     def test_calculate_edge_lengths_tri(self):
         data_directory = 'tests/data/obj/tri'
         fem_data = FEMData.read_directory(
