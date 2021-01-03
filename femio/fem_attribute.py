@@ -64,7 +64,7 @@ class FEMAttribute():
     def __init__(
             self, name, ids, data, *,
             data_unit='unit_unknown', silent=False, generate_id2index=False,
-            time_series=False, original_shape=None):
+            time_series=False, original_shape=None, parent=None):
         """Initialize FEMAttribute object.
 
         Parameters
@@ -86,10 +86,13 @@ class FEMAttribute():
             direction.
         original_shape: List[int], optional [None]
             The original shape of the data.
+        parent: FEMAttribute, optional [None]
+            If fed, update parent also.
         """
         self.name = name
         self.time_series = time_series
         self.original_shape = original_shape
+        self.parent = parent
 
         if isinstance(data, pd.DataFrame):
             data = data.values
@@ -103,11 +106,9 @@ class FEMAttribute():
         if not silent:
             print("Creating data: {}".format(name))
 
-        self._data_frame = self._generate_data_frame(ids, data)
-        if len(data.shape) == 1:
-            self._data = data[:, None]
-        else:
-            self._data = data
+        self._data_frame, self.original_shape = self._generate_data_frame(
+            ids, data)
+        self._data = data
         self.data_unit = data_unit
 
         self.generate_id2index = generate_id2index
@@ -126,20 +127,26 @@ class FEMAttribute():
         if len(ids) != data_length:
             raise ValueError(
                 'Lengths of IDs and data are different: '
-                + f"{len(ids)} vs {data_length} for {self.name}")
+                + f"{len(ids)} vs {data.shape} for {self.name}")
         return
 
     def _generate_data_frame(self, ids, data):
+        data = np.asarray(data)
         if self.time_series:
             data_frame = TimeSeriesDataFrame([
                 pd.DataFrame(data=d, index=ids) for d in data])
-            self.original_shape = data.shape
+            original_shape = data.shape
         else:
             data_length = len(data)
-            self.original_shape = data.shape
+            original_shape = data.shape
             data_frame = pd.DataFrame(
                 data=np.reshape(data, (data_length, -1)), index=ids)
-        return data_frame
+
+        # NOTE: To be determined the shape is at least 2D or not
+        # if len(original_shape) == 1:
+        #     original_shape = (original_shape[0], 1)  # At least 2D
+
+        return data_frame, original_shape
 
     def __len__(self):
         return len(self.ids)
@@ -166,7 +173,7 @@ class FEMAttribute():
 
     @property
     def data(self):
-        return self._data
+        return np.reshape(self._data, self.original_shape)
 
     @property
     def data_frame(self):
@@ -174,13 +181,15 @@ class FEMAttribute():
 
     @property
     def values(self):
-        return self._data
+        return self.data
 
     @data.setter
     def data(self, value):
         self._validate_data_length(self.ids, value)
-        self._data_frame = self._generate_data_frame(ids=self.ids, data=value)
+        self._data_frame, self.original_shape = self._generate_data_frame(
+            ids=self.ids, data=value)
         self._data = value
+        self._update_parent()
         return
 
     @data_frame.setter
@@ -194,6 +203,13 @@ class FEMAttribute():
         else:
             raise ValueError(
                 f"Unsupported new_data_frame type for: {new_data_frame}")
+        self._update_parent()
+        return
+
+    def _update_parent(self):
+        if self.parent is None:
+            return
+        self.parent._data_frame.loc[self._data_frame.index] = self._data_frame
         return
 
     def update_data(self, values):
@@ -216,13 +232,19 @@ class FEMAttribute():
             values = [values]
         if not isinstance(ids, (np.ndarray, list, tuple)):
             ids = [ids]
-        new_data_frame = pd.DataFrame(values, index=ids)
+        new_data_frame, new_shape = self._generate_data_frame(ids, values)
 
         if allow_overwrite:
             updated_data_frame = new_data_frame.combine_first(self._data_frame)
         else:
+            # Append data if possible
             updated_data_frame = self._data_frame.append(
                 new_data_frame, verify_integrity=True)
+        if self.time_series:
+            raise NotImplementedError
+        else:
+            new_length = len(updated_data_frame)
+            self.original_shape = [new_length] + list(new_shape[1:])
         self.data_frame = updated_data_frame
         return
 
@@ -335,4 +357,4 @@ class _Indexer():
             ids=ids, data=sliced_df.values, silent=True,
             generate_id2index=self.original_fem_attribute.generate_id2index,
             time_series=self.original_fem_attribute.time_series,
-            original_shape=new_shape)
+            original_shape=new_shape, parent=self.original_fem_attribute)

@@ -62,7 +62,7 @@ class FEMElementalAttribute(dict):
         """
         split_dict_data = cls._split_dict_data(dict_data)
         return cls(name, {
-            element_type: FEMAttribute.from_dict(name, v)
+            element_type: FEMAttribute.from_dict(name, v, **kwargs)
             for element_type, v in split_dict_data.items()}, **kwargs)
 
     @classmethod
@@ -108,7 +108,8 @@ class FEMElementalAttribute(dict):
 
     def __init__(
             self, name, data=None, *,
-            ids=None, use_object=False, silent=False):
+            ids=None, use_object=False, silent=False, time_series=False,
+            **kwargs):
         """Create elements data from FEMAttribute object or dict of
         FEMAttribute objects.
 
@@ -120,7 +121,11 @@ class FEMElementalAttribute(dict):
             (n_element, )-shaped ndarray of element IDs.
         use_object: bool, optional [False]
             If True, use object for values.
+        time_series: bool, optional [False]
+            If True, consider the first index represents the temporal
+            direction.
         """
+        self.time_series = time_series
         if isinstance(data, FEMAttribute):
             element_type = self.detect_element_type(data.data)
             self.update({element_type: data})
@@ -129,7 +134,8 @@ class FEMElementalAttribute(dict):
         elif isinstance(data, dict):
             self.update(data)
         elif isinstance(data, np.ndarray):
-            self.update({'unknown': FEMAttribute(name, ids=ids, data=data)})
+            self.update({'unknown': FEMAttribute(
+                name, ids=ids, data=data, time_series=self.time_series)})
         else:
             raise ValueError(f"Invalid input type: {data.__class__}")
 

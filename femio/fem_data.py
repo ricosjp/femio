@@ -592,11 +592,13 @@ class FEMData(
         """
         filter_ = self.filter_first_order_nodes()
         nodes = FEMAttribute(
-            'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_])
+            'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_].values)
         elements = self.elements.to_first_order()
         nodal_data = FEMAttributes({
-            k: FEMAttribute(k, v.ids[filter_], v.loc[filter_])
-            for k, v in self.nodal_data.items()})
+            k: FEMAttribute(
+                k, v.ids[filter_], v.loc[filter_].values,
+                time_series=v.time_series)
+            for k, v in self.nodal_data.items() if len(filter_) == len(v.ids)})
         elemental_data = self.elemental_data
         return FEMData(
             nodes, elements, nodal_data=nodal_data,
@@ -615,10 +617,12 @@ class FEMData(
         node_ids = self.nodes.ids[unique_indices]
         surface_ids = self.nodes.ids[surface_indices]
         nodes = FEMAttribute(
-            'NODE', node_ids, self.nodes.iloc[unique_indices])
+            'NODE', node_ids, self.nodes.iloc[unique_indices].values)
         elements = self.elements.to_surface(surface_ids)
         nodal_data = FEMAttributes({
-            k: FEMAttribute(k, node_ids, v.iloc[unique_indices])
+            k: FEMAttribute(
+                k, node_ids, v.iloc[unique_indices].values,
+                time_series=v.time_series)
             for k, v in self.nodal_data.items()})
         return FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,

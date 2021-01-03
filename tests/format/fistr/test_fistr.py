@@ -87,7 +87,7 @@ class TestFEMDataFISTR(unittest.TestCase):
             fem_data.materials['density'].loc['M1'].values, 1.074e-9)
         np.testing.assert_almost_equal(
             fem_data.materials[
-                'linear_thermal_expansion_coefficient'].loc['M1'].values,
+                'linear_thermal_expansion_coefficient'].loc['M1'].values[0],
             [0.001, 0.002, 0.003])
         np.testing.assert_almost_equal(
             fem_data.materials['Young_modulus'].loc['M2'].values, 100.0)
@@ -97,7 +97,7 @@ class TestFEMDataFISTR(unittest.TestCase):
             fem_data.materials['density'].loc['M2'].values, 5.0e-9)
         np.testing.assert_almost_equal(
             fem_data.materials[
-                'linear_thermal_expansion_coefficient'].loc['M2'].values,
+                'linear_thermal_expansion_coefficient'].loc['M2'].values[0],
             [-0.001, 0.004, 0.019])
 
     def test_fistr_displacement_ids(self):
@@ -201,51 +201,51 @@ class TestFEMDataFISTR(unittest.TestCase):
         desired_specific_heat = np.array([[2.0, 0.]])
         desired_thermal_conductivity = np.array([[8.0, 0.]])
         np.testing.assert_almost_equal(
-            heat_data.materials['density'].loc['TEST'][0],
+            heat_data.materials['density'].loc['TEST'].data[0],
             desired_density)
         np.testing.assert_almost_equal(
-            heat_data.materials['specific_heat'].loc['TEST'][0],
+            heat_data.materials['specific_heat'].loc['TEST'].data[0],
             desired_specific_heat)
         np.testing.assert_almost_equal(
-            heat_data.materials['thermal_conductivity'].loc['TEST'][0],
+            heat_data.materials['thermal_conductivity'].loc['TEST'].data[0],
             desired_thermal_conductivity)
 
     def test_read_heat_nl_material(self):
         heat_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/heat_nl', read_npy=False, save=False)
         np.testing.assert_almost_equal(
-            heat_data.materials['density'].loc['STEEL'][0],
+            heat_data.materials['density'].loc['STEEL'].data[0],
             np.array([
                 [1.0, 0.0],
                 [2.0, 4.0],
                 [5.0, 10.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['specific_heat'].loc['STEEL'][0],
+            heat_data.materials['specific_heat'].loc['STEEL'].data[0],
             np.array([
                 [1.0, 0.0],
                 [3.0, 4.0],
                 [4.0, 10.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['thermal_conductivity'].loc['STEEL'][0],
+            heat_data.materials['thermal_conductivity'].loc['STEEL'].data[0],
             np.array([
                 [1.0, 0.0],
                 [5.0, 4.0],
                 [10.0, 10.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['density'].loc['TEST'][0],
+            heat_data.materials['density'].loc['TEST'].data[0],
             np.array([
                 [10.0, 0.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['specific_heat'].loc['TEST'][0],
+            heat_data.materials['specific_heat'].loc['TEST'].data[0],
             np.array([
                 [100.0, 0.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['thermal_conductivity'].loc['TEST'][0],
+            heat_data.materials['thermal_conductivity'].loc['TEST'].data[0],
             np.array([
                 [1000.0, 0.0],
             ]))
@@ -255,21 +255,22 @@ class TestFEMDataFISTR(unittest.TestCase):
             'fistr', 'tests/data/fistr/heat_nl_tensor',
             read_npy=False, save=False)
         np.testing.assert_almost_equal(
-            heat_data.materials['density'].loc['STEEL'][0],
+            heat_data.materials['density'].loc['STEEL'].data[0],
             np.array([
                 [1.0, 0.0],
                 [2.0, 4.0],
                 [5.0, 10.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['specific_heat'].loc['STEEL'][0],
+            heat_data.materials['specific_heat'].loc['STEEL'].data[0],
             np.array([
                 [1.0, 0.0],
                 [3.0, 4.0],
                 [4.0, 10.0],
             ]))
         np.testing.assert_almost_equal(
-            heat_data.materials['thermal_conductivity_full'].loc['STEEL'][0],
+            heat_data.materials['thermal_conductivity_full'].loc[
+                'STEEL'].data[0, 0],
             np.array([
                 [0.2, 0.2, 0.2, 0.1, 0.0, 0.0, -1.0],
                 [0.1, 0.1, 0.1, 0.05, 0.0, 0.0, 1.0]
@@ -337,12 +338,12 @@ class TestFEMDataFISTR(unittest.TestCase):
             462,
         ])
         np.testing.assert_almost_equal(data, [
-            [10.],
-            [10.],
-            [10.],
-            [10.],
-            [1.],
-            [0.],
+            10.,
+            10.,
+            10.,
+            10.,
+            1.,
+            0.,
         ])
 
     def test_fistr_cload(self):

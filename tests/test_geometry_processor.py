@@ -254,9 +254,9 @@ class TestFEMData(unittest.TestCase):
             'obj', data_directory, read_npy=False, save=False)
 
         desired_jacobians = np.array([
-            [0.25],
-            [0.375],
-            [0.25 * np.sqrt(2)]
+            0.25,
+            0.375,
+            0.25 * np.sqrt(2),
         ])
         fem_data.calculate_jacobians()
         np.testing.assert_almost_equal(

@@ -635,8 +635,8 @@ class TestWriteFistr(unittest.TestCase):
         written_fem_data = FEMData.read_directory(
             'fistr',  write_dir_name, read_npy=False, save=False)
         np.testing.assert_almost_equal(
-            written_fem_data.materials['thermal_conductivity'].values[0, 0],
-            fem_data.materials['thermal_conductivity'].values[0, 0])
+            written_fem_data.materials['thermal_conductivity'].values[0],
+            fem_data.materials['thermal_conductivity'].values[0])
 
         if RUN_FISTR:
             subprocess.check_call(

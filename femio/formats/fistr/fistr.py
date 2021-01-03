@@ -259,7 +259,7 @@ class FrontISTRData(FEMData):
             list_ids = [
                 self.element_groups[section_value]
                 for section_value
-                in self.sections.get_attribute_data('EGRP')[:, 0]]
+                in self.sections.get_attribute_data('EGRP')]
         return np.concatenate(list_ids)
 
     def _extract_material_values(self, property_name):
@@ -269,7 +269,7 @@ class FrontISTRData(FEMData):
                 np.atleast_2d(material.loc[material_name].values),
                 len(self.element_groups[element_group_name]), axis=0)
             for material_name, element_group_name
-            in zip(self.sections['EGRP'].ids, self.sections['EGRP'].data[:, 0])
+            in zip(self.sections['EGRP'].ids, self.sections['EGRP'].data)
         ])
 
     def _extract_setting_value_unit(self, item_name):

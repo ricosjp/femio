@@ -6,7 +6,7 @@ import numpy as np
 from femio.fem_data import FEMData
 
 
-class TestWriteUCD(unittest.TestCase):
+class TestWriteVTK(unittest.TestCase):
 
     def test_fistr_to_vtk(self):
         fem_data = FEMData.read_directory(
@@ -22,8 +22,8 @@ class TestWriteUCD(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.nodes.data, vtk_fem_data.nodes.data)
         np.testing.assert_almost_equal(
-            fem_data.nodal_data.get_attribute_data('t_init'),
-            vtk_fem_data.nodal_data.get_attribute_data('t_init'))
+            np.ravel(fem_data.nodal_data.get_attribute_data('t_init')),
+            np.ravel(vtk_fem_data.nodal_data.get_attribute_data('t_init')))
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('lte'),
             vtk_fem_data.elemental_data.get_attribute_data('lte'))

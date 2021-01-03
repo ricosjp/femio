@@ -143,7 +143,7 @@ class TestFEMData(unittest.TestCase):
             surface_fem_data.nodal_data.get_attribute_data(
                 'INITIAL_TEMPERATURE'), desired_initial_temperature)
 
-    def test_to_first_irder_time_series(self):
+    def test_to_first_order_time_series(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/heat_tet2_3', read_npy=False,
             save=False, time_series=True)
@@ -155,7 +155,7 @@ class TestFEMData(unittest.TestCase):
             first_order_fem_data.elements.data, fem_data.elements.data[:, :4])
         np.testing.assert_almost_equal(
             first_order_fem_data.nodal_data.get_attribute_data('TEMPERATURE'),
-            fem_data.nodal_data['TEMPERATURE'].loc[filter_])
+            fem_data.nodal_data['TEMPERATURE'].loc[filter_].data)
 
     def test_read_saved_npy_mixed_elements(self):
         fem_data = FEMData.read_directory(
