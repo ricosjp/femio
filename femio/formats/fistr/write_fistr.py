@@ -290,10 +290,11 @@ class FistrWriter():
             not_nan_indices = [
                 np.where(~np.isnan(boundary))[0]
                 for boundary in self.fem_data.constraints['boundary'].data]
-            start_end = [[
-                np.min(not_nan_index) + 1,
-                np.min(not_nan_index) + len(not_nan_index)]
-                         for not_nan_index in not_nan_indices]
+            start_end = [
+                [
+                    np.min(not_nan_index) + 1,
+                    np.min(not_nan_index) + len(not_nan_index)]
+                for not_nan_index in not_nan_indices]
             # Take mean for the case like [1., 1., nan]
             data = [np.mean(d[~np.isnan(d)])
                     for d in self.fem_data.constraints['boundary'].data]

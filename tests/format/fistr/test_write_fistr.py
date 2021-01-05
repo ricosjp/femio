@@ -597,9 +597,9 @@ class TestWriteFistr(unittest.TestCase):
         mean_pos = fem_data.convert_nodal2elemental(
             fem_data.nodal_data.get_attribute_data('node'), calc_average=True)
         new_lte_full = np.einsum(
-                'ij,i->ij',
-                fem_data.elemental_data.get_attribute_data('lte_full'),
-                mean_pos[:, 0] + mean_pos[:, 1])
+            'ij,i->ij',
+            fem_data.elemental_data.get_attribute_data('lte_full'),
+            mean_pos[:, 0] + mean_pos[:, 1])
         fem_data.elemental_data.overwrite('lte_full', new_lte_full)
 
         write_dir_name = Path('tests/data/fistr/write_overtewrite')
@@ -635,8 +635,8 @@ class TestWriteFistr(unittest.TestCase):
         written_fem_data = FEMData.read_directory(
             'fistr',  write_dir_name, read_npy=False, save=False)
         np.testing.assert_almost_equal(
-            written_fem_data.materials['thermal_conductivity'].values[0, 0],
-            fem_data.materials['thermal_conductivity'].values[0, 0])
+            written_fem_data.materials['thermal_conductivity'].values[0],
+            fem_data.materials['thermal_conductivity'].values[0])
 
         if RUN_FISTR:
             subprocess.check_call(

@@ -109,7 +109,41 @@ class TestFEMData(unittest.TestCase):
             first_order_fem_data.nodal_data.get_attribute_data('NodalSTRESS'),
             fem_data.nodal_data.get_attribute_data('NodalSTRESS')[filter_])
 
-    def test_to_first_irder_time_series(self):
+    def test_to_surface(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/tet_w_node_inside',
+            read_npy=False, save=False)
+        surface_fem_data = fem_data.to_surface()
+        desired_nodes = np.array([
+            [0., 0., 0.],
+            [4., 0., 0.],
+            [0., 4., 0.],
+            [0., 0., 4.],
+        ])
+        desired_elements = np.array([
+            [1, 3, 2],
+            [1, 2, 4],
+            [1, 4, 3],
+            [2, 3, 4],
+        ])
+        desired_normals = np.array([
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            [1/3**.5, 1/3**.5, 1/3**.5],
+        ])
+        desired_initial_temperature = np.array([[10., 20., 30., 40.]]).T
+        np.testing.assert_almost_equal(
+            surface_fem_data.nodes.data, desired_nodes)
+        np.testing.assert_array_equal(
+            surface_fem_data.elements.data, desired_elements)
+        np.testing.assert_almost_equal(
+            surface_fem_data.calculate_element_normals(), desired_normals)
+        np.testing.assert_almost_equal(
+            surface_fem_data.nodal_data.get_attribute_data(
+                'INITIAL_TEMPERATURE'), desired_initial_temperature)
+
+    def test_to_first_order_time_series(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/heat_tet2_3', read_npy=False,
             save=False, time_series=True)
@@ -121,7 +155,7 @@ class TestFEMData(unittest.TestCase):
             first_order_fem_data.elements.data, fem_data.elements.data[:, :4])
         np.testing.assert_almost_equal(
             first_order_fem_data.nodal_data.get_attribute_data('TEMPERATURE'),
-            fem_data.nodal_data['TEMPERATURE'].loc[filter_])
+            fem_data.nodal_data['TEMPERATURE'].loc[filter_].data)
 
     def test_read_saved_npy_mixed_elements(self):
         fem_data = FEMData.read_directory(

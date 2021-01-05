@@ -3,6 +3,7 @@ import functools
 import numpy as np
 
 from .fem_attribute import FEMAttribute
+from . import functions
 
 
 class GeometryProcessorMixin:
@@ -170,6 +171,32 @@ class GeometryProcessorMixin:
         cross = np.cross(vector1, vector2)
         return np.linalg.norm(cross, axis=1)
 
+    @functools.lru_cache(maxsize=2)
+    def calculate_surface_normals(self, mode='mean'):
+        """Calculate elemental normal vectors of the surface of a solid mesh.
+        If an element is not on the surface, the vector will be zero.
+
+        Args:
+            mode: str, optional
+                If 'mean', use mean metric to weight.
+                If 'effective', use effective metric to weight.
+                The default is 'mean'.
+        Returns:
+            normals: numpy.ndarray
+                (n_element, 3)-shaped array.
+        """
+        surface_fem_data = self.to_surface()
+        surface_normals = surface_fem_data.calculate_element_normals()
+        surface_nodal_normals = functions.normalize(
+            surface_fem_data.convert_elemental2nodal(
+                surface_normals, mode=mode), keep_zeros=True)
+        nodal_normals = FEMAttribute(
+            'normal', self.nodes.ids, np.zeros((len(self.nodes.ids), 3)))
+        nodal_normals.loc[surface_fem_data.nodes.ids].data \
+            = surface_nodal_normals
+        self.nodal_data.update({'normal': nodal_normals})
+        return nodal_normals.data
+
     @functools.lru_cache(maxsize=1)
     def calculate_element_normals(self):
         """Calculate normal vectors of each shell elements. Please note that
@@ -179,6 +206,7 @@ class GeometryProcessorMixin:
         Args:
         Returns:
             normals: numpy.ndarray
+                (n_element, 3)-shaped array.
         """
         if self.elements.element_type in ['tri']:
             crosses = self._calculate_tri_crosses()
@@ -189,7 +217,7 @@ class GeometryProcessorMixin:
             raise NotImplementedError
 
         self.elemental_data.update({
-            'normal': FEMAttribute('Normal', self.elements.ids, normals)})
+            'normal': FEMAttribute('normal', self.elements.ids, normals)})
         return normals
 
     def extract_direction_feature(self, vectors, *, skip_normalization=False):
@@ -255,6 +283,36 @@ class GeometryProcessorMixin:
         vectors = crosses1 + crosses2
         vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
         return vectors
+
+    @functools.lru_cache(maxsize=1)
+    def calculate_element_metrics(
+            self, *, raise_negative_metric=True, return_abs_metric=False):
+        """Calculate metric (area or volume depending on the mesh dimension)
+        of each element assuming that the geometry of
+        higher order elements is the same as that of order 1 elements.
+        Calculated metrics are returned and also stored in
+        the fem_data.elemental_data dict with key = 'metric'.
+
+        Args:
+            raise_negative_metric: bool, optional [True]
+                If True, raise ValueError when negative metric exists.
+            return_abs_metric: bool, optional [False]
+                If True, return absolute volume instead of signed metric.
+        Returns:
+            metrics: numpy.ndarray
+        """
+        if self.elements.element_type in ['tri', 'tri2', 'quad', 'quad2']:
+            metrics = self.calculate_element_areas(
+                raise_negative_area=raise_negative_metric,
+                return_abs_area=return_abs_metric)
+        elif self.elements.element_type in ['tet', 'tet2', 'hex']:
+            metrics = self.calculate_element_volumes(
+                raise_negative_volume=raise_negative_metric,
+                return_abs_volume=return_abs_metric)
+        else:
+            raise NotImplementedError(
+                f"Unsupported element type: {self.elements.element_type}")
+        return metrics
 
     @functools.lru_cache(maxsize=1)
     def calculate_element_volumes(

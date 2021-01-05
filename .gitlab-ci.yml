@@ -1,5 +1,12 @@
 image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos
 
+default:
+  before_script:
+    - pip install --upgrade pip poetry
+    - ln -s /src/.venv .
+    - poetry config virtualenvs.in-project true
+    - poetry install
+
 stages:
   - test
   - deploy
@@ -7,35 +14,25 @@ stages:
 
 pylint:
   stage: test
-  before_script:
-    - pip install --upgrade pip poetry
-    - ln -s /src/.venv .
-    - poetry config virtualenvs.in-project true
-    - poetry install
   script:
     - pip install pycodestyle
-    - find femio -name '*.py' -exec pycodestyle {} +
+    - find femio tests -name '*.py' -exec pycodestyle {} +
     - poetry run pylint -E $(find femio/__main__ -name "*.py")
+
+autopep8:
+  stage: test
+  script:
+    - poetry run autopep8 --diff --exit-code $(find femio tests -name "*.py")
 
 pytest:
   stage: test
-  before_script:
-    - pip install --upgrade pip poetry
-    - ln -s /src/.venv .
-    - poetry config virtualenvs.in-project true
-    - poetry install
   script:
     - poetry run pytest tests
 
 pages:
   stage: deploy
-  before_script:
-    - pip install --upgrade pip poetry
-    - ln -s /src/.venv .
-    - poetry config virtualenvs.in-project true
-    - poetry install
-    - poetry run python3 -m pip install -r sphinx/requirements.txt
   script:
+    - poetry run python3 -m pip install -r sphinx/requirements.txt
     - poetry run sphinx-apidoc -f -o ./sphinx femio
     - poetry run sphinx-build ./sphinx ./docs
     - poetry build
@@ -61,6 +58,8 @@ pages:
 
 deploy:wheel:master:
   extends: .deploy:wheel
+  inherit:
+    default: false
   before_script:
     - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
   only:
@@ -68,6 +67,8 @@ deploy:wheel:master:
 
 deploy:wheel:tag:
   extends: .deploy:wheel
+  inherit:
+    default: false
   before_script:
     - export VERSION=$CI_COMMIT_REF_NAME
   only:

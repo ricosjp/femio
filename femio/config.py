@@ -1,3 +1,4 @@
+EPSILON = 1e-5
 
 DICT_ALIASES_CORE = {
     'node': 'NODE',

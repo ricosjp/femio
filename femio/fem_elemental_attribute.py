@@ -62,7 +62,7 @@ class FEMElementalAttribute(dict):
         """
         split_dict_data = cls._split_dict_data(dict_data)
         return cls(name, {
-            element_type: FEMAttribute.from_dict(name, v)
+            element_type: FEMAttribute.from_dict(name, v, **kwargs)
             for element_type, v in split_dict_data.items()}, **kwargs)
 
     @classmethod
@@ -108,7 +108,8 @@ class FEMElementalAttribute(dict):
 
     def __init__(
             self, name, data=None, *,
-            ids=None, use_object=False, silent=False):
+            ids=None, use_object=False, silent=False, time_series=False,
+            **kwargs):
         """Create elements data from FEMAttribute object or dict of
         FEMAttribute objects.
 
@@ -120,7 +121,11 @@ class FEMElementalAttribute(dict):
             (n_element, )-shaped ndarray of element IDs.
         use_object: bool, optional [False]
             If True, use object for values.
+        time_series: bool, optional [False]
+            If True, consider the first index represents the temporal
+            direction.
         """
+        self.time_series = time_series
         if isinstance(data, FEMAttribute):
             element_type = self.detect_element_type(data.data)
             self.update({element_type: data})
@@ -129,7 +134,8 @@ class FEMElementalAttribute(dict):
         elif isinstance(data, dict):
             self.update(data)
         elif isinstance(data, np.ndarray):
-            self.update({'unknown': FEMAttribute(name, ids=ids, data=data)})
+            self.update({'unknown': FEMAttribute(
+                name, ids=ids, data=data, time_series=self.time_series)})
         else:
             raise ValueError(f"Invalid input type: {data.__class__}")
 
@@ -198,6 +204,31 @@ class FEMElementalAttribute(dict):
             return element_data[:, :8]
         else:
             raise ValueError(f"Unsupported type: {element_type}")
+
+    def to_surface(self, surface_ids):
+        """Convert the FEMElementalAttribute object to surface.
+
+        Parameters
+        ----------
+        surface_ids: numpy.ndarray
+            [n_facet, n_node_per_facet]-shaped array of surface IDs.
+        Returns
+        -------
+        FEMElementalAttribute:
+            FEMElementalAttribute object of the surface.
+        """
+        n_node_per_element = surface_ids.shape[1]
+        if n_node_per_element == 3:
+            element_type = 'tri'
+        elif n_node_per_element == 4:
+            element_type = 'quad'
+        else:
+            raise NotImplementedError(
+                'Unsupported # of nodes per elements: '
+                f"{self.elements.data.shape[1]}")
+        return FEMElementalAttribute('ELEMENT', {
+            element_type: FEMAttribute(
+                element_type, np.arange(len(surface_ids))+1, surface_ids)})
 
     def detect_element_type(self, element_data):
         n_node_per_element = element_data.shape[1]

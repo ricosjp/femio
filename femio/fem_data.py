@@ -579,22 +579,56 @@ class FEMData(
             self.nodes.data[useful_indices])
         for key, value in self.nodal_data.items():
             self.nodal_data[key] = FEMAttribute(
-              value.name, self.nodes.ids, value.data[useful_indices])
+                value.name, self.nodes.ids, value.data[useful_indices])
         return
 
     def to_first_order(self):
-        """Convert to first order data"""
+        """Convert the FEMData object to the first order data.
+
+        Returns
+        -------
+        FEMData:
+            First order FEMData object.
+        """
         filter_ = self.filter_first_order_nodes()
         nodes = FEMAttribute(
-            'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_])
+            'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_].values)
         elements = self.elements.to_first_order()
         nodal_data = FEMAttributes({
-            k: FEMAttribute(k, v.ids[filter_], v.loc[filter_])
-            for k, v in self.nodal_data.items()})
+            k: FEMAttribute(
+                k, v.ids[filter_], v.loc[filter_].values,
+                time_series=v.time_series)
+            for k, v in self.nodal_data.items() if len(filter_) == len(v.ids)})
         elemental_data = self.elemental_data
         return FEMData(
             nodes, elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+
+    def to_surface(self):
+        """Convert the FEMData object to the surface data.
+
+        Returns
+        -------
+        FEMData:
+            Surface FEMData object.
+        """
+        surface_indices, _ = self.extract_surface()
+        unique_indices = np.unique(surface_indices)
+        node_ids = self.nodes.ids[unique_indices]
+        surface_ids = self.nodes.ids[surface_indices]
+        nodes = FEMAttribute(
+            'NODE', node_ids, self.nodes.iloc[unique_indices].values)
+        elements = self.elements.to_surface(surface_ids)
+        n_node = len(self.nodes)
+        nodal_data = FEMAttributes({
+            k: FEMAttribute(
+                k, node_ids, v.iloc[unique_indices].values,
+                time_series=v.time_series)
+            for k, v in self.nodal_data.items() if len(v) == n_node})
+
+        return FEMData(
+            nodes=nodes, elements=elements, nodal_data=nodal_data,
+            elemental_data={})
 
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([

@@ -372,7 +372,7 @@ class FEMAttributes:
         dict_attributes = {
             name: self.attribute_class(
                 name, ids=dict_attribute_ids[name],
-                data=dict_attribute_data[name], silent=True)
+                data=dict_attribute_data[name], silent=True, time_series=True)
             for name in attribute_names}
         self.update(dict_attributes)
         return

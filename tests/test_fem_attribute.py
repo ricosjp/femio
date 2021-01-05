@@ -72,36 +72,53 @@ class TestFemAttribute(unittest.TestCase):
     def test_time_series_interfaces(self):
         data = np.reshape(np.arange(10.*5*3), (10, 5, 3))
         time_series = FEMAttribute(
-            'TIME_SERIES', ids=np.arange(5)+1, data=data)
+            'TIME_SERIES', ids=np.arange(5)+1, data=data, time_series=True)
         np.testing.assert_array_equal(time_series.ids, [1, 2, 3, 4, 5])
 
         np.testing.assert_almost_equal(
-            time_series.iloc[2], data[:, 2, :])
+            time_series.iloc[2].values, data[:, [2], :])
         np.testing.assert_almost_equal(
-            time_series.iloc[[1, 3]], data[:, [1, 3], :])
+            time_series.iloc[[1, 3]].values, data[:, [1, 3], :])
         np.testing.assert_almost_equal(
-            time_series.iloc[1:3], data[:, 1:3, :])
+            time_series.iloc[1:3].values, data[:, 1:3, :])
 
         np.testing.assert_almost_equal(
-            time_series.loc[2], data[:, 1, :])
+            time_series.loc[2].values, data[:, [1], :])
         np.testing.assert_almost_equal(
-            time_series.loc[[1, 3]], data[:, [0, 2], :])
+            time_series.loc[[1, 3]].values, data[:, [0, 2], :])
         np.testing.assert_almost_equal(
-            time_series.loc[1:3], data[:, 0:3, :])
+            time_series.loc[1:3].values, data[:, 0:3, :])
 
         twice_data = data * 2
         time_series.data = twice_data
 
         np.testing.assert_almost_equal(
-            time_series.iloc[2], twice_data[:, 2, :])
+            time_series.iloc[2].values, twice_data[:, [2], :])
         np.testing.assert_almost_equal(
-            time_series.iloc[[1, 3]], twice_data[:, [1, 3], :])
+            time_series.iloc[[1, 3]].values, twice_data[:, [1, 3], :])
         np.testing.assert_almost_equal(
-            time_series.iloc[1:3], twice_data[:, 1:3, :])
+            time_series.iloc[1:3].values, twice_data[:, 1:3, :])
 
         np.testing.assert_almost_equal(
-            time_series.loc[2], twice_data[:, 1, :])
+            time_series.loc[2].values, twice_data[:, [1], :])
         np.testing.assert_almost_equal(
-            time_series.loc[[1, 3]], twice_data[:, [0, 2], :])
+            time_series.loc[[1, 3]].values, twice_data[:, [0, 2], :])
         np.testing.assert_almost_equal(
-            time_series.loc[1:3], twice_data[:, 0:3, :])
+            time_series.loc[1:3].values, twice_data[:, 0:3, :])
+
+    def test_fem_attribute_multidimension(self):
+        a = np.reshape(np.arange(5 * 3 * 3), (5, 3, 3))
+        ids = ['A', 'B', 'C', 'D', 'E']
+        fem_attribute = FEMAttribute('data', ids=ids, data=a)
+        np.testing.assert_array_equal(
+            fem_attribute.loc[['B', 'D']].data, a[[1, 3]])
+        np.testing.assert_array_equal(
+            fem_attribute.loc['C'].data, a[[2]])
+        np.testing.assert_array_equal(
+            fem_attribute.iloc[[1, 3]].data, a[[1, 3]])
+        np.testing.assert_array_equal(
+            fem_attribute.iloc[2].data, a[[2]])
+
+        fem_attribute.loc[['E']].data = 100 * np.ones((1, 3, 3))
+        np.testing.assert_array_equal(
+            fem_attribute.loc['E'].data, 100 * np.ones((1, 3, 3)))

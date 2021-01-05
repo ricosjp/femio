@@ -50,11 +50,11 @@ class SignalProcessorMixin:
         Args:
             elemental_data: numpy.ndarray
                 Elemental data to be converted.
-            mode: str, optional (['effective'], 'mean')
+            mode: str, optional
                 The way haw to convert. 'effective' means weighted integration
                 which results in consistent volume. 'mean' means weighted
                 mean which results in smoother field at the boundary but
-                not necessarily consistent volume.
+                not necessarily consistent volume. The default is 'mean'.
             order1_only: bool, optional [True]
                 If True, convert data only for order 1 nodes.
             raise_negative_volume: bool, optional [True]
@@ -75,11 +75,11 @@ class SignalProcessorMixin:
                 1 / incidence_matrix.sum(axis=0))
 
         elif mode == 'mean':
-            volumes = self.calculate_element_volumes(
-                raise_negative_volume=raise_negative_volume)
-            volume_incidence_matrix = incidence_matrix.multiply(volumes.T)
-            weighted_incidence_matrix = volume_incidence_matrix.multiply(
-                1 / volume_incidence_matrix.sum(axis=1))
+            metrics = self.calculate_element_metrics(
+                raise_negative_metric=raise_negative_volume)
+            metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
+            weighted_incidence_matrix = metric_incidence_matrix.multiply(
+                1 / metric_incidence_matrix.sum(axis=1))
 
         else:
             raise ValueError(f"Invalid mode: {mode}")
@@ -218,7 +218,7 @@ class SignalProcessorMixin:
                 FEMAttribute(
                     f"principal_{name_variable}_value_3",
                     self.elements.ids, values[:, 2]),
-             }
+            }
         )
 
     def calculate_principal_components(
@@ -787,7 +787,7 @@ class SignalProcessorMixin:
 
     def calculate_nodal_spatial_gradients(
             self, nodal_data, n_hop=1, kernel=None, order1_only=True,
-            **kwargs):
+            neumann=False, **kwargs):
         """Calculate spatial gradient (not graph gradient) w.r.t nodal
         data.
 
@@ -802,6 +802,9 @@ class SignalProcessorMixin:
             Kernel function type.
         order1_only: bool, optional [True]
             If True, consider only order 1 nodes.
+        neumann: bool, optional [False]
+            If True, take into account surface normal vectors to consider
+            Neumann boundary condition.
 
         Returns
         -------
@@ -823,7 +826,7 @@ class SignalProcessorMixin:
     def calculate_spatial_gradient_adjacency_matrices(
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
-            consider_volume=True, **kwargs):
+            consider_volume=True, neumann=False, **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
         Parameters
@@ -842,6 +845,9 @@ class SignalProcessorMixin:
             tensor products of relative position tensors.
         consider_volume: bool, optional [True]
             If True, consider effective volume of each vertex.
+        neumann: bool, optional [False]
+            If True, take into account surface normal vectors to consider
+            Neumann boundary condition.
 
         Returns
         -------
@@ -852,6 +858,7 @@ class SignalProcessorMixin:
         if mode == 'elemental':
             positions = self.convert_nodal2elemental(
                 'NODE', calc_average=True)
+            ids = self.elements.ids
             if consider_volume:
                 volumes = self.calculate_element_volumes()
 
@@ -860,6 +867,7 @@ class SignalProcessorMixin:
                 filter_ = self.filter_first_order_nodes()
             else:
                 filter_ = np.ones(len(self.nodes.ids), dtype=bool)
+            ids = self.nodes.ids[filter_]
             positions = self.nodal_data.get_attribute_data('NODE')[filter_]
 
             if consider_volume:
@@ -897,9 +905,6 @@ class SignalProcessorMixin:
         if moment_matrix:
             weight_by_squarenorm_adj = distance_adj.power(-2).multiply(
                 weight_adj)
-            # normalized_diff_position_adjs = [
-            #     distance_adj.power(-1).multiply(diff_position_adj)
-            #     for diff_position_adj in diff_position_adjs]
 
             def sum_axis_1_with_weight(x):
                 return np.array(np.sum(x.multiply(
@@ -908,11 +913,32 @@ class SignalProcessorMixin:
                 self.calculate_tensor_power(
                     diff_position_adjs, power=2),
                 sum_axis_1_with_weight), [-1, 0, 1])
+
+            if neumann:
+                surface_normals = self.calculate_surface_normals()[filter_]
+                self.nodal_data.update_data(
+                    ids, {'filtered_surface_normals': surface_normals},
+                    allow_overwrite=True)
+                normal_moment_tensors = np.einsum(
+                    'ij,ik->ijk', surface_normals, surface_normals)
+                moment_tensors = moment_tensors + normal_moment_tensors
+
             inversed_moment_tensors = self._inverse_tensors(moment_tensors)
             grad_adj_wo_selfs = self._dot_ndarray_sparse(
                 inversed_moment_tensors, [
                     diff_position_adj.multiply(weight_by_squarenorm_adj)
                     for diff_position_adj in diff_position_adjs])
+
+            if mode == 'elemental':
+                self.elemental_data.update_data(
+                    ids, {'inversed_moment_tensors': inversed_moment_tensors},
+                    allow_overwrite=True)
+            elif mode == 'nodal':
+                self.nodal_data.update_data(
+                    ids, {'inversed_moment_tensors': inversed_moment_tensors},
+                    allow_overwrite=True)
+            else:
+                raise ValueError(f"Unknown mode: {mode}")
 
         else:
             summed_weight = np.array(weight_adj.sum(axis=1))
@@ -926,6 +952,7 @@ class SignalProcessorMixin:
                     diff_position_adj).multiply(
                         weight_adj).multiply(summed_weight**-1)
                 for diff_position_adj in diff_position_adjs]
+
         grad_adjs = [
             sp.coo_matrix(
                 grad_adj_wo_self - sp.eye(*grad_adj_wo_self.shape).multiply(
