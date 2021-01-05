@@ -619,11 +619,13 @@ class FEMData(
         nodes = FEMAttribute(
             'NODE', node_ids, self.nodes.iloc[unique_indices].values)
         elements = self.elements.to_surface(surface_ids)
+        n_node = len(self.nodes)
         nodal_data = FEMAttributes({
             k: FEMAttribute(
                 k, node_ids, v.iloc[unique_indices].values,
                 time_series=v.time_series)
-            for k, v in self.nodal_data.items()})
+            for k, v in self.nodal_data.items() if len(v) == n_node})
+
         return FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
             elemental_data={})

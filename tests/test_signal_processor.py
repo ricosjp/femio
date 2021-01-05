@@ -1518,8 +1518,7 @@ class TestSignalProcessor(unittest.TestCase):
 
     def test_calculate_gradient_adjecency_matrix_neumann(self):
         fem_data = FEMData.read_directory(
-            'vtk', 'tests/data/vtk/tet2_cube',
-            read_npy=False, save=False)
+            'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
             = fem_data.calculate_spatial_gradient_adjacency_matrices(
                 mode='nodal', n_hop=1, moment_matrix=True, neumann=False)
@@ -1548,25 +1547,27 @@ class TestSignalProcessor(unittest.TestCase):
         phi_grad = np.stack(
             [g.dot(phi) for g in grads], axis=-1) + np.einsum(
                 'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
-        raise ValueError(neumann_normas, normals)
-        raise ValueError(phi_grad_wo_neumann, phi_grad)
         np.testing.assert_almost_equal(
             phi_grad, desired_phi_grad, decimal=1)
 
-        # z_grad = np.stack(
-        #     [g.dot(fem_data.nodes.data[filter_, [2]]) for g in grads], axis=-1)
-        # desired_z_grad = np.stack([
-        #     np.zeros(n), np.zeros(n), np.ones(n)], axis=-1)
-        # np.testing.assert_almost_equal(z_grad, desired_z_grad)
-        fd = fem_data.to_first_order()
+        error_phi_grad = phi_grad - desired_phi_grad
+        error_phi_grad_wo_neumann = phi_grad_wo_neumann - desired_phi_grad
+        error_norm = np.mean(
+            np.linalg.norm(error_phi_grad, axis=1))
+        error_norm_wo_phi = np.mean(
+            np.linalg.norm(error_phi_grad_wo_neumann, axis=1))
+        self.assertLess(error_norm, error_norm_wo_phi)
+
+        # fd = fem_data.to_first_order()
         # fd.nodal_data.update_data(
-        #     fd.nodes.ids, {'phi_grad': phi_grad, 'z_grad': z_grad})
-        fd.nodal_data.update_data(
-            fd.nodes.ids, {
-                'phi_grad': phi_grad,
-                'phi_grad_wo_neumann': phi_grad_wo_neumann, 'phi': phi,
-                'desired_phi_grad': desired_phi_grad})
-        fd.write('ucd', 'neumann.inp', overwrite=True)
+        #     fd.nodes.ids, {
+        #         'phi_grad': phi_grad,
+        #         'phi_grad_wo_neumann': phi_grad_wo_neumann, 'phi': phi,
+        #         'desired_phi_grad': desired_phi_grad,
+        #         'error_phi_grad': error_phi_grad,
+        #         'error_phi_grad_wo_neumann': error_phi_grad_wo_neumann,
+        #     })
+        # fd.write('ucd', 'neumann.inp', overwrite=True)
 
     def test_calculate_gradient_adjecency_matrix_with_moment_matrix_hex(self):
         fem_data = FEMData.read_directory(
@@ -1580,6 +1581,8 @@ class TestSignalProcessor(unittest.TestCase):
         x_grad = np.stack(
             [g.dot(fem_data.nodes.data[filter_, [0]]) for g in grads],
             axis=-1)
+        desired_x_grad = np.stack([
+            np.ones(n), np.zeros(n), np.zeros(n)], axis=-1)
         np.testing.assert_almost_equal(x_grad, desired_x_grad)
 
         z_grad = np.stack(

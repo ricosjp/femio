@@ -916,7 +916,6 @@ class SignalProcessorMixin:
 
             if neumann:
                 surface_normals = self.calculate_surface_normals()[filter_]
-                raise ValueError(self.calculate_surface_normals())
                 self.nodal_data.update_data(
                     ids, {'filtered_surface_normals': surface_normals},
                     allow_overwrite=True)
