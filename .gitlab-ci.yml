@@ -44,19 +44,18 @@ pages:
       - public
   only:
     - master
+    - develop
 
-.deploy:wheel:
+.deploy:pypi:
   stage: deploy
   script:
     - pip install --upgrade pip poetry
     - poetry version $VERSION
-    - poetry config repositories.ricos https://pypi.ritc.jp
     - poetry build -f wheel
-    - poetry publish --username ricos --password ${RICOS_PYPI_KEY} -r ricos --no-ansi -n -v
     - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
   retry: 2
 
-deploy:wheel:master:
+deploy:pypi:master:
   extends: .deploy:wheel
   inherit:
     default: false
@@ -65,7 +64,7 @@ deploy:wheel:master:
   only:
     - master
 
-deploy:wheel:tag:
+deploy:pypi:tag:
   extends: .deploy:wheel
   inherit:
     default: false
@@ -73,6 +72,21 @@ deploy:wheel:tag:
     - export VERSION=$CI_COMMIT_REF_NAME
   only:
     - tags
+
+deploy:ricos:
+  stage: deploy
+  before_script:
+    - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
+  script:
+    - pip install --upgrade pip poetry
+    - poetry version $VERSION
+    - poetry config repositories.ricos https://pypi.ritc.jp
+    - poetry build -f wheel
+    - poetry publish --username ricos --password ${RICOS_PYPI_KEY} -r ricos --no-ansi -n -v
+  only:
+    - develop
+  retry: 2
+
 
 commit:
   stage: commit
