@@ -56,7 +56,7 @@ pages:
   retry: 2
 
 deploy:pypi:master:
-  extends: .deploy:wheel
+  extends: .deploy:pypi
   inherit:
     default: false
   before_script:
@@ -65,7 +65,7 @@ deploy:pypi:master:
     - master
 
 deploy:pypi:tag:
-  extends: .deploy:wheel
+  extends: .deploy:pypi
   inherit:
     default: false
   before_script:
