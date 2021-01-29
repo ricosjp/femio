@@ -287,22 +287,24 @@ class FistrWriter():
         if 'boundary' in self.fem_data.constraints:
             print('Start boundary')
             print(dt.now())
-            not_nan_indices = [
-                np.where(~np.isnan(boundary))[0]
-                for boundary in self.fem_data.constraints['boundary'].data]
-            start_end = [
-                [
-                    np.min(not_nan_index) + 1,
-                    np.min(not_nan_index) + len(not_nan_index)]
-                for not_nan_index in not_nan_indices]
-            # Take mean for the case like [1., 1., nan]
-            data = [np.mean(d[~np.isnan(d)])
-                    for d in self.fem_data.constraints['boundary'].data]
+            data = self.fem_data.constraints['boundary'].data
+            ids = self.fem_data.constraints['boundary'].ids
+            write_ids = []
+            write_dof = []
+            write_data = []
+            for index in (0, 1, 2):
+                not_nan = ~np.isnan(data[:, index])
+                write_ids.append(ids[not_nan])
+                write_dof.append(
+                    np.stack([[index + 1, index + 1]] * np.sum(not_nan)))
+                write_data.append(data[not_nan, index])
+
             self.write_data(
                 self.write_cnt_file,
                 '!BOUNDARY\n',
-                self.fem_data.constraints['boundary'].ids,
-                start_end, data, str_format=['%d', '%.5E'])
+                np.concatenate(write_ids),
+                np.concatenate(write_dof), np.concatenate(write_data),
+                str_format=['%d', '%.5E'])
 
         # Write cprings
         if 'spring' in self.fem_data.constraints:

@@ -9,6 +9,7 @@ import numpy as np
 
 from femio.fem_attribute import FEMAttribute
 # from femio.fem_attributes import FEMAttributes
+from femio.fem_elemental_attribute import FEMElementalAttribute
 from femio.fem_data import FEMData
 
 
@@ -734,7 +735,6 @@ class TestWriteFistr(unittest.TestCase):
                 written_fem_data_with_res.nodal_data['DISPLACEMENT'].data,
                 fem_data.nodal_data['DISPLACEMENT'].data, decimal=5)
 
-    # TODO: Update for new spring truss element type
     def test_write_spring_boundary(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/spring_boundary',
@@ -758,3 +758,54 @@ class TestWriteFistr(unittest.TestCase):
             np.testing.assert_almost_equal(
                 written_fem_data_with_res.nodal_data['DISPLACEMENT'].data,
                 fem_data.nodal_data['DISPLACEMENT'].data, decimal=5)
+
+    def test_write_static_with_hand_created_data(self):
+        write_fem_data = FEMData(
+            nodes=FEMAttribute(
+                'NODE',
+                ids=[1, 2, 3, 4, 5],
+                data=np.array([
+                    [0., 0., 0.],
+                    [1., 0., 0.],
+                    [0., 1., 0.],
+                    [0., 0., 1.],
+                    [0., 0., 1.],
+                ])),
+            elements=FEMElementalAttribute(
+                'ELEMENT', {
+                    'tet': FEMAttribute('TET', ids=[1], data=[[1, 2, 3, 4]]),
+                    'spring': FEMAttribute('SPRING', ids=[2], data=[[4, 5]])}))
+
+        write_fem_data.settings['solution_type'] = 'STATIC'
+        write_fem_data.constraints['boundary'] = FEMAttribute(
+            'boundary', ids=[1, 2, 3, 5], data=np.array([
+                [0., 0., 0.],
+                [np.nan, 0., 0.],
+                [np.nan, np.nan, 0.],
+                [0., 0., .1],
+            ]))
+        write_fem_data.element_groups.update({'E_SOLID': [1], 'E_LINE': [2]})
+        write_fem_data.materials.update_data(
+            'M_SOLID', {
+                'Young_modulus': np.array([[10.0]]),
+                'Poisson_ratio': np.array([[0.4]])})
+        write_fem_data.materials.update_data(
+            'M_LINE', {
+                'Young_modulus': np.array([[10000.0]]),
+                'Poisson_ratio': np.array([[0.45]])})
+        write_fem_data.sections.update_data(
+            'M_SOLID', {'TYPE': 'SOLID', 'EGRP': 'E_SOLID'})
+        write_fem_data.sections.update_data(
+            'M_LINE', {'TYPE': 'SOLID', 'EGRP': 'E_LINE'})
+
+        write_dir_name = Path('tests/data/fistr/write_hand_created')
+        if write_dir_name.exists():
+            shutil.rmtree(write_dir_name)
+        write_fem_data.write('fistr', write_dir_name / 'mesh')
+        if RUN_FISTR:
+            subprocess.check_call("fistr1", cwd=write_dir_name, shell=True)
+            written_fem_data_with_res = FEMData.read_directory(
+                'fistr', write_dir_name, read_npy=False, save=False)
+            np.testing.assert_almost_equal(
+                written_fem_data_with_res.nodal_data[
+                    'DISPLACEMENT'].data[3, -1], .1, decimal=3)
