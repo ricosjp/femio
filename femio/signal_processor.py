@@ -5,12 +5,14 @@ import numpy as np
 import scipy.sparse as sp
 
 from .fem_attribute import FEMAttribute
+from . import functions
 
 
 class SignalProcessorMixin:
 
-    def convert_nodal2elemental(self, data, *,
-                                calc_average=False, ravel=False):
+    def convert_nodal2elemental(
+            self, data, *,
+            calc_average=False, ravel=False):
         """Convert nodal data to elemental data.
 
         Args:
@@ -764,7 +766,8 @@ class SignalProcessorMixin:
                 for i in range(dim)]
 
     def calculate_elemental_spatial_gradients(
-            self, elemental_data, n_hop=1, kernel=None, **kwargs):
+            self, elemental_data, n_hop=1, kernel=None, normals=None,
+            **kwargs):
         """Calculate spatial gradient (not graph gradient) w.r.t elemental
         data.
 
@@ -773,6 +776,10 @@ class SignalProcessorMixin:
         elemental_data : numpy.ndarray
             Data to calculate gradient over. It should be
             (n_element, n_feature)-shaped array.
+        normals: bool or numpy.ndarray, optional [False]
+            If True, take into account surface normal vectors to consider
+            Neumann boundary condition. If numpy.ndarray is fed,
+            use them as normal vectors.
 
         Returns
         -------
@@ -781,13 +788,14 @@ class SignalProcessorMixin:
             of the space.
         """
         grad_adjs = self.calculate_spatial_gradient_adjacency_matrices(
-            mode='elemental', n_hop=n_hop, kernel=kernel, **kwargs)
+            mode='elemental', n_hop=n_hop, kernel=kernel, normals=normals,
+            **kwargs)
         return np.stack([
             grad_adj.dot(elemental_data) for grad_adj in grad_adjs], axis=1)
 
     def calculate_nodal_spatial_gradients(
             self, nodal_data, n_hop=1, kernel=None, order1_only=True,
-            neumann=False, **kwargs):
+            normals=None, **kwargs):
         """Calculate spatial gradient (not graph gradient) w.r.t nodal
         data.
 
@@ -802,9 +810,10 @@ class SignalProcessorMixin:
             Kernel function type.
         order1_only: bool, optional [True]
             If True, consider only order 1 nodes.
-        neumann: bool, optional [False]
+        normals: bool or numpy.ndarray, optional [False]
             If True, take into account surface normal vectors to consider
-            Neumann boundary condition.
+            Neumann boundary condition. If numpy.ndarray is fed,
+            use them as normal vectors.
 
         Returns
         -------
@@ -814,7 +823,7 @@ class SignalProcessorMixin:
         """
         grad_adjs = self.calculate_spatial_gradient_adjacency_matrices(
             mode='nodal', n_hop=n_hop, kernel=kernel, order1_only=order1_only,
-            **kwargs)
+            normals=normals, **kwargs)
         if order1_only:
             filter_ = self.filter_first_order_nodes()
         else:
@@ -826,7 +835,7 @@ class SignalProcessorMixin:
     def calculate_spatial_gradient_adjacency_matrices(
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
-            consider_volume=True, neumann=False, **kwargs):
+            consider_volume=True, normals=None, **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
         Parameters
@@ -845,9 +854,10 @@ class SignalProcessorMixin:
             tensor products of relative position tensors.
         consider_volume: bool, optional [True]
             If True, consider effective volume of each vertex.
-        neumann: bool, optional [False]
+        normals: bool or numpy.ndarray, optional [False]
             If True, take into account surface normal vectors to consider
-            Neumann boundary condition.
+            Neumann boundary condition. If numpy.ndarray is fed,
+            use them as normal vectors.
 
         Returns
         -------
@@ -914,11 +924,33 @@ class SignalProcessorMixin:
                     diff_position_adjs, power=2),
                 sum_axis_1_with_weight), [-1, 0, 1])
 
-            if neumann:
-                surface_normals = self.calculate_surface_normals()[filter_]
-                self.nodal_data.update_data(
-                    ids, {'filtered_surface_normals': surface_normals},
-                    allow_overwrite=True)
+            if not (normals is None or normals is False):
+                if mode == 'elemental':
+                    if normals is True:
+                        surface_normals = functions.normalize(
+                            self.convert_nodal2elemental(
+                                self.calculate_surface_normals()),
+                            keep_zeros=True)
+                    elif isinstance(normals, np.ndarray):
+                        surface_normals = normals
+                    else:
+                        raise ValueError(
+                            f"Unexpected normals' format: {normals}")
+                    self.elemental_data.update_data(
+                        ids, {'elemental_normals': surface_normals},
+                        allow_overwrite=True)
+                else:
+                    if normals is True:
+                        surface_normals = self.calculate_surface_normals()[
+                            filter_]
+                    elif isinstance(normals, np.ndarray):
+                        surface_normals = normals
+                    else:
+                        raise ValueError(
+                            f"Unexpected normals' format: {normals}")
+                    self.nodal_data.update_data(
+                        ids, {'filtered_surface_normals': surface_normals},
+                        allow_overwrite=True)
                 normal_moment_tensors = np.einsum(
                     'ij,ik->ijk', surface_normals, surface_normals)
                 moment_tensors = moment_tensors + normal_moment_tensors
