@@ -1521,9 +1521,9 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
             = fem_data.calculate_spatial_gradient_adjacency_matrices(
-                mode='nodal', n_hop=1, moment_matrix=True, neumann=False)
+                mode='nodal', n_hop=1, moment_matrix=True, normals=None)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
-            mode='nodal', n_hop=1, moment_matrix=True, neumann=True)
+            mode='nodal', n_hop=1, moment_matrix=True, normals=True)
 
         inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
             'inversed_moment_tensors')
@@ -1558,16 +1558,79 @@ class TestSignalProcessor(unittest.TestCase):
             np.linalg.norm(error_phi_grad_wo_neumann, axis=1))
         self.assertLess(error_norm, error_norm_wo_phi)
 
-        # fd = fem_data.to_first_order()
-        # fd.nodal_data.update_data(
-        #     fd.nodes.ids, {
-        #         'phi_grad': phi_grad,
-        #         'phi_grad_wo_neumann': phi_grad_wo_neumann, 'phi': phi,
-        #         'desired_phi_grad': desired_phi_grad,
-        #         'error_phi_grad': error_phi_grad,
-        #         'error_phi_grad_wo_neumann': error_phi_grad_wo_neumann,
-        #     })
-        # fd.write('ucd', 'neumann.inp', overwrite=True)
+        fd = fem_data.to_first_order()
+        fd.nodal_data.update_data(
+            fd.nodes.ids, {
+                'phi_grad': phi_grad,
+                'phi_grad_wo_neumann': phi_grad_wo_neumann, 'phi': phi,
+                'desired_phi_grad': desired_phi_grad,
+                'error_phi_grad': error_phi_grad,
+                'error_phi_grad_wo_neumann': error_phi_grad_wo_neumann,
+            })
+        fd.write(
+            'ucd', 'tests/data/ucd/write_neumann/neumann.inp', overwrite=True)
+
+    def test_calculate_gradient_adjecency_matrix_normals(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/hex_plane', read_npy=False, save=False)
+        normals = np.array([
+            [0., 0., 1.],
+            [0., 0., 1.],
+            [0., 0., 1.],
+            [0., 0., 1.],
+        ])
+        with self.assertRaises(np.linalg.LinAlgError):
+            fem_data.calculate_spatial_gradient_adjacency_matrices(
+                mode='elemental', n_hop=1, moment_matrix=True, normals=None)
+        grads_w_normals \
+            = fem_data.calculate_spatial_gradient_adjacency_matrices(
+                mode='elemental', n_hop=1, moment_matrix=True, normals=normals)
+
+        pos = np.array([
+            [0., 0., 0.],
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [1., 1., 0.],
+        ])
+
+        np.testing.assert_almost_equal(
+            grads_w_normals[0].toarray(),
+            np.array([
+                [-0.75,  0.75, -0.25,  0.25],
+                [-0.75,  0.75, -0.25,  0.25],
+                [-0.25,  0.25, -0.75,  0.75],
+                [-0.25,  0.25, -0.75,  0.75]]))
+        np.testing.assert_almost_equal(
+            grads_w_normals[1].toarray(),
+            np.array([
+                [-0.75, -0.25,  0.75,  0.25],
+                [-0.25, -0.75,  0.25,  0.75],
+                [-0.75, -0.25,  0.75,  0.25],
+                [-0.25, -0.75,  0.25,  0.75]]))
+        np.testing.assert_almost_equal(
+            grads_w_normals[2].toarray(),
+            np.array([
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.],
+                [0., 0., 0., 0.]]))
+
+        x_grad = np.stack(
+            [g.dot(pos[:, 0]) for g in grads_w_normals], axis=-1)
+        y_grad = np.stack(
+            [g.dot(pos[:, 1]) for g in grads_w_normals], axis=-1)
+        np.testing.assert_almost_equal(x_grad, np.array([
+            [1., 0., 0.],
+            [1., 0., 0.],
+            [1., 0., 0.],
+            [1., 0., 0.],
+        ]))
+        np.testing.assert_almost_equal(y_grad, np.array([
+            [0., 1., 0.],
+            [0., 1., 0.],
+            [0., 1., 0.],
+            [0., 1., 0.],
+        ]))
 
     def test_calculate_gradient_adjecency_matrix_with_moment_matrix_hex(self):
         fem_data = FEMData.read_directory(
