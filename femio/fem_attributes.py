@@ -417,10 +417,10 @@ class FEMAttributes:
         """
         for attribute_name, attribute_value in data_dict.items():
             if attribute_name in self:
-                self.data[attribute_name].update(
+                self.data[self._get_key(attribute_name)].update(
                     ids, attribute_value, allow_overwrite=allow_overwrite)
             else:
-                self.data[attribute_name] = FEMAttribute(
+                self.data[self._get_key(attribute_name)] = FEMAttribute(
                     attribute_name, ids, attribute_value)
         if self.has_material(data_dict):
             self.material_overwritten = True
