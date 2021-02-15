@@ -417,12 +417,8 @@ class FEMAttributes:
         """
         for attribute_name, attribute_value in data_dict.items():
             if attribute_name in self:
-                try:
-                    self.data[self._get_key(attribute_name)].update(
-                        ids, attribute_value, allow_overwrite=allow_overwrite)
-                except:
-                    raise ValueError(
-                        self[attribute_name].__class__, self._get_key(attribute_name).__class__)
+                self.data[self._get_key(attribute_name)].update(
+                    ids, attribute_value, allow_overwrite=allow_overwrite)
             else:
                 self.data[self._get_key(attribute_name)] = FEMAttribute(
                     attribute_name, ids, attribute_value)
