@@ -178,6 +178,31 @@ class FEMElementalAttribute(dict):
 
         return
 
+    def update(self, *args, **kwargs):
+        if isinstance(args[0], dict):
+            super().update(*args, **kwargs)
+        else:
+            self._update(*args, **kwargs)
+
+    def _update(self, ids, values, *, allow_overwrite=False):
+        """Update FEMElementalAttribute with new ids and values.
+
+        Parameters
+        ----------
+        ids: List[str], List[int], or int
+            IDs of new rows.
+        values: numpy.ndarray, float, or int
+            Values of new rows.
+        allow_overwrite: bool, optional
+            If True, allow overwrite existing rows. The default is False.
+        """
+        if self.get_n_element_type() == 1:
+            self.ids = ids
+            self.data = values
+        else:
+            raise NotImplementedError
+        return
+
     def get_n_element_type(self):
         return len(self.keys())
 
