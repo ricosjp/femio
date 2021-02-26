@@ -432,7 +432,7 @@ class FistrWriter():
         self.write_formatted_strings(
             self.write_cnt_file, (
                 '!MATERIAL, NAME={}\n',
-                f"!CONDUCTIVITY, TYPE=FULL, DEPENDENCIES=1\n" + '{}'
+                "!CONDUCTIVITY, TYPE=FULL, DEPENDENCIES=1\n" + '{}'
             ), (material_names, material_data))
 
     def _write_expansion(self, lte_type, attribute_name):
@@ -545,7 +545,7 @@ class FistrWriter():
 
         if len(format_strings) != len(list_data):
             raise ValueError(
-                f"Lengths of format_strings and list_data should be the same.")
+                "Lengths of format_strings and list_data should be the same.")
         i = 0
         data_frame = pd.DataFrame(st.StringSeries.read_array(list_data[0]))
         for d in list_data[1:]:
