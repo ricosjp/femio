@@ -395,7 +395,7 @@ class FEMAttributes:
         if name not in self:
             raise ValueError(f"{name} not in the data {self.keys()}")
         if ids is None:
-            self[name].data = data
+            self[name]._data = data
         else:
             fem_attribute = FEMAttribute(name, ids=ids, data=data)
             self[name] = fem_attribute
