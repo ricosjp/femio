@@ -109,7 +109,7 @@ class FEMElementalAttribute(dict):
     def __init__(
             self, name, data=None, *,
             ids=None, use_object=False, silent=False, time_series=False,
-            **kwargs):
+            element_type=None, **kwargs):
         """Create elements data from FEMAttribute object or dict of
         FEMAttribute objects.
 
@@ -124,6 +124,8 @@ class FEMElementalAttribute(dict):
         time_series: bool, optional [False]
             If True, consider the first index represents the temporal
             direction.
+        element_type: str, optional [None]
+            The type of element. Is is used when the input data is np.array.
         """
         self.time_series = time_series
         if isinstance(data, FEMAttribute):
@@ -134,7 +136,11 @@ class FEMElementalAttribute(dict):
         elif isinstance(data, dict):
             self.update(data)
         elif isinstance(data, np.ndarray):
-            self.update({'unknown': FEMAttribute(
+            if ids is None:
+                ids = np.arange(len(data)) + 1
+            if element_type is None:
+                element_type = self._infer_type(data)
+            self.update({element_type: FEMAttribute(
                 name, ids=ids, data=data, time_series=self.time_series)})
         else:
             raise ValueError(f"Invalid input type: {data.__class__}")
@@ -208,6 +214,26 @@ class FEMElementalAttribute(dict):
 
     def __len__(self):
         return len(self.ids)
+
+    def _infer_type(self, data):
+        n_node_per_element = data.shape[-1]
+        if n_node_per_element == 1:
+            return 'pt'
+        elif n_node_per_element == 2:
+            return 'line'
+        elif n_node_per_element == 3:
+            return 'tri'
+        elif n_node_per_element == 4:
+            raise ValueError(
+                'When # of nodes per element is 4, explicitly input '
+                'element_type.')
+        elif n_node_per_element == 8:
+            return 'hex'
+        elif n_node_per_element == 10:
+            return 'tet2'
+        else:
+            raise ValueError(
+                f"Unexpected # of nodes per element: {n_node_per_element}")
 
     def get_attribute_ids(self):
         return self.ids
