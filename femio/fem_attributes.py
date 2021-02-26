@@ -238,7 +238,7 @@ class FEMAttributes:
                 f"Cannot overwrite the existing attribute: {key}.")
         if not self.are_same_lengths():
             raise ValueError(
-                f"Attributes have various lengths. Specify IDs.")
+                "Attributes have various lengths. Specify IDs.")
 
         if name is None:
             name = key
@@ -395,7 +395,7 @@ class FEMAttributes:
         if name not in self:
             raise ValueError(f"{name} not in the data {self.keys()}")
         if ids is None:
-            self[name].data = data
+            self[name]._data = data
         else:
             fem_attribute = FEMAttribute(name, ids=ids, data=data)
             self[name] = fem_attribute
@@ -417,10 +417,10 @@ class FEMAttributes:
         """
         for attribute_name, attribute_value in data_dict.items():
             if attribute_name in self:
-                self.data[self._get_key(attribute_name)].update(
+                self[attribute_name].update(
                     ids, attribute_value, allow_overwrite=allow_overwrite)
             else:
-                self.data[self._get_key(attribute_name)] = FEMAttribute(
+                self[attribute_name] = FEMAttribute(
                     attribute_name, ids, attribute_value)
         if self.has_material(data_dict):
             self.material_overwritten = True

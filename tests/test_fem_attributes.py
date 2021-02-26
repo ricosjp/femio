@@ -27,6 +27,28 @@ class TestFEMAttributes(unittest.TestCase):
             fem_attributes.get_attribute_data('data_1'),
             fem_attributes.data['data_1'].data)
 
+    def test_overwrite_alias_nodal_data(self):
+        fem_data = FEMData.read_files(
+            'fistr', [FISTR_MSH_FILE, FISTR_RES_FILE])
+        fem_data.nodal_data.update_data(
+            [3], {'t_init': 1000.}, allow_overwrite=True)
+        np.testing.assert_almost_equal(
+            fem_data.nodal_data['t_init'].loc[3].values, 1000.)
+
+    def test_overwrite_alias_elemental_data(self):
+        fem_data = FEMData.read_files(
+            'fistr', [FISTR_MSH_FILE, FISTR_RES_FILE])
+        fem_data.elemental_data.update_data(
+            [1], {'elemental_strain': np.arange(6)[None, :]},
+            allow_overwrite=True)
+
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('elemental_strain')[0],
+            np.arange(6))
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data['elemental_strain']['hex'].loc[1].data[0],
+            np.arange(6))
+
     def test_add_material(self):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_RES_FILE])

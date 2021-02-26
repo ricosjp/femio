@@ -140,14 +140,19 @@ class FEMElementalAttribute(dict):
             raise ValueError(f"Invalid input type: {data.__class__}")
 
         self.name = name
+        self._update_self()
+
+        return
+
+    def _update_self(self):
         if self.get_n_element_type() == 1:
             for k, v in self.items():
-                self.ids = v.ids
-                self.data = v.data
-                self.element_type = k
-                self.types = np.array([k] * len(self.ids))
+                self._ids = v.ids
+                self._data = v.data
+                self._element_type = k
+                self._types = np.array([k] * len(self.ids))
         else:
-            self.element_type = 'mix'
+            self._element_type = 'mix'
             ids = np.array([
                 i
                 for t in self.ELEMENT_TYPES if t in self
@@ -162,21 +167,62 @@ class FEMElementalAttribute(dict):
                 for _ in self[t].ids])
             sorted_indices = np.argsort(ids)
 
-            self.ids = ids[sorted_indices]
-            self.data = data[sorted_indices]
-            self.types = types[sorted_indices]
+            self._ids = ids[sorted_indices]
+            self._data = data[sorted_indices]
+            self._types = types[sorted_indices]
             if len(np.unique(self.ids)) != len(self.data):
                 raise ValueError('Element ID is not unique')
 
-        self.unique_types = np.unique(self.types)
-        self.id2index = pd.DataFrame(
+        self._unique_types = np.unique(self.types)
+        self._id2index = pd.DataFrame(
             data=np.arange(len(self.ids)), index=self.ids)
-        self.ids_types = pd.DataFrame(
+        self._ids_types = pd.DataFrame(
             data=self.types, index=self.ids)
-        self.dict_type_ids = {
+        self._dict_type_ids = {
             key: value.ids for key, value in self.items()}
 
         return
+
+    @property
+    def ids(self):
+        return self._ids
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        if self.get_n_element_type() == 1:
+            self[list(self.keys())[0]].data = value
+        else:
+            raise NotImplementedError
+        self._update_self()
+        return
+
+    @property
+    def element_type(self):
+        return self._element_type
+
+    @property
+    def types(self):
+        return self._types
+
+    @property
+    def unique_types(self):
+        return self._unique_types
+
+    @property
+    def id2index(self):
+        return self._id2index
+
+    @property
+    def ids_types(self):
+        return self._ids_types
+
+    @property
+    def dict_type_ids(self):
+        return self._dict_type_ids
 
     def update(self, *args, **kwargs):
         if isinstance(args[0], dict):
@@ -197,10 +243,11 @@ class FEMElementalAttribute(dict):
             If True, allow overwrite existing rows. The default is False.
         """
         if self.get_n_element_type() == 1:
-            self.ids = ids
-            self.data = values
+            self[list(self.keys())[0]].update(
+                ids, values, allow_overwrite=allow_overwrite)
         else:
             raise NotImplementedError
+        self._update_self()
         return
 
     def get_n_element_type(self):
