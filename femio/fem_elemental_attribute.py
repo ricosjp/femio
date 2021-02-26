@@ -139,7 +139,7 @@ class FEMElementalAttribute(dict):
             if ids is None:
                 ids = np.arange(len(data)) + 1
             if element_type is None:
-                element_type = self._infer_type(data)
+                element_type = 'Unknown'
             self.update({element_type: FEMAttribute(
                 name, ids=ids, data=data, time_series=self.time_series)})
         else:
