@@ -191,6 +191,15 @@ class FEMElementalAttribute(dict):
     def data(self):
         return self._data
 
+    @data.setter
+    def data(self, value):
+        if self.get_n_element_type() == 1:
+            self[list(self.keys())[0]].data = value
+        else:
+            raise NotImplementedError
+        self._update_self()
+        return
+
     @property
     def element_type(self):
         return self._element_type
@@ -234,10 +243,11 @@ class FEMElementalAttribute(dict):
             If True, allow overwrite existing rows. The default is False.
         """
         if self.get_n_element_type() == 1:
-            self._ids = ids
-            self._data = values
+            self[list(self.keys())[0]].update(
+                ids, values, allow_overwrite=allow_overwrite)
         else:
             raise NotImplementedError
+        self._update_self()
         return
 
     def get_n_element_type(self):

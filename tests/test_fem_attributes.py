@@ -39,10 +39,11 @@ class TestFEMAttributes(unittest.TestCase):
         fem_data = FEMData.read_files(
             'fistr', [FISTR_MSH_FILE, FISTR_RES_FILE])
         fem_data.elemental_data.update_data(
-            [1], {'elemental_strain': np.arange(6)})
+            [1], {'elemental_strain': np.arange(6)[None, :]},
+            allow_overwrite=True)
 
         np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('elemental_strain'),
+            fem_data.elemental_data.get_attribute_data('elemental_strain')[0],
             np.arange(6))
         np.testing.assert_almost_equal(
             fem_data.elemental_data['elemental_strain']['hex'].loc[1].data[0],
