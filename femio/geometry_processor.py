@@ -392,3 +392,31 @@ class GeometryProcessorMixin:
             + np.linalg.det(np.stack([p7 - p3, p4 - p3, p6 - p3], axis=1))
             + np.linalg.det(np.stack([p1 - p5, p4 - p5, p6 - p5], axis=1))
         )[:, None]
+
+    def make_elements_positive(self):
+        """Perfmute element connectivity order when it has negative volume."""
+        metric = self.calculate_element_metrics(
+            raise_negative_metric=False)[:, 0]
+        cond = metric < 0
+        if np.sum(cond) == 0:
+            return
+
+        elements = self.elements.data
+        elements[cond] = self._permute(self.elements.data[cond])
+        self.elements.data = elements
+        return
+
+    def _permute(self, elements):
+        if self.elements.element_type == 'mix':
+            raise NotImplementedError
+        if len(elements) == 0:
+            return elements
+
+        if self.elements.element_type == 'tri':
+            raise ValueError('Should not reach here')
+        elif self.elements.element_type == 'tet':
+            return np.stack([
+                elements[:, 0], elements[:, 2],
+                elements[:, 1], elements[:, 3]], axis=-1)
+        else:
+            raise NotImplementedError

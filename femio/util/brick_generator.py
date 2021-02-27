@@ -6,9 +6,6 @@ from .. import fem_elemental_attribute
 from .. import fem_data
 
 
-EPSILON = 1.e-5
-
-
 def generate_brick(
         element_type, n_x_element, n_y_element, n_z_element=None,
         *, x_length=1., y_length=1., z_length=1.):
