@@ -5,7 +5,7 @@ import numpy as np
 from femio.fem_data import FEMData
 
 
-class TestFEMDataFISTR(unittest.TestCase):
+class TestFEMDataUCD(unittest.TestCase):
 
     def test_ucd_nodes(self):
         data_directory = 'tests/data/ucd/thermal'
