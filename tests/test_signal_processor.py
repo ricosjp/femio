@@ -584,8 +584,8 @@ class TestSignalProcessor(unittest.TestCase):
             read_npy=False, read_mesh_only=True, save=False)
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
         fem_data.elemental_data.update_data(
-                fem_data.elements.ids, {'spatial_elemental_data': np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)}
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)}
         )
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
