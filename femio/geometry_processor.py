@@ -339,6 +339,8 @@ class GeometryProcessorMixin:
         if elements is None:
             element_type = self.elements.element_type
             elements = self.elements
+        else:
+            element_type = elements.name
 
         if element_type in ['tet', 'tet2']:
             volumes = self._calculate_element_volumes_tet_like(
@@ -352,13 +354,16 @@ class GeometryProcessorMixin:
         elif element_type == 'mix':
             volumes = np.concatenate([
                 self.calculate_element_volumes(elements=e)
-                for e in self.elements.element_items])
+                for e in self.elements.values()])
+            raise ValueError(volumes)
         else:
             raise NotImplementedError
 
         # Handle negative volumes according to the settings
         if raise_negative_volume and np.any(volumes < 0.):
-            raise ValueError('Negative volume found.')
+            raise ValueError(
+                'Negative volume found for element IDs: '
+                f"{elements.ids[volumes[:, 0] < 0]}")
         if return_abs_volume:
             volumes = np.abs(volumes)
 
