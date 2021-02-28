@@ -173,8 +173,7 @@ class GraphProcessorMixin:
         """
         adj = self.calculate_adjacency_matrix()
         degrees = adj.sum(axis=1) - 1
-        self.elemental_data.update({
-            'degree': FEMAttribute('Degree', self.elements.ids, degrees)})
+        self.elemental_data.update_data(self.elements.ids, {'degree': degrees})
         return degrees
 
     @functools.lru_cache(maxsize=2)
