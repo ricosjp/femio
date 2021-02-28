@@ -91,7 +91,7 @@ class FEMElementalAttribute(dict):
             config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[k]:
             cls._from_meshio(k, v)
             for k, v in cell_data.items()
-            if k in ['tetra', 'tetra10', 'hexa_prism']})
+            if k in ['tetra', 'tetra10', 'hexahedron', 'hexa_prism']})
 
     @classmethod
     def _from_meshio(cls, cell_type, data):
@@ -162,24 +162,23 @@ class FEMElementalAttribute(dict):
         else:
             self._element_type = 'mix'
             ids = np.array([
-                i
-                for t in self.ELEMENT_TYPES if t in self
-                for i in self[t].ids])
+                i for t in self.element_types for i in self[t].ids])
             data = np.array([
-                d
-                for t in self.ELEMENT_TYPES if t in self
+                d for t in self.element_types
                 for d in self[t].data], dtype=object)
             types = np.array([
                 t
-                for t in self.ELEMENT_TYPES if t in self
-                for _ in self[t].ids])
+                for t in self.element_types for _ in self[t].ids])
             sorted_indices = np.argsort(ids)
 
             self._ids = ids[sorted_indices]
             self._data = data[sorted_indices]
             self._types = types[sorted_indices]
             if len(np.unique(self.ids)) != len(self.data):
-                raise ValueError('Element ID is not unique')
+                print('Making element IDs unique')
+                self._unique_element_ids()
+                self._update_self()
+                return
 
         self._unique_types = np.unique(self.types)
         self._id2index = pd.DataFrame(
@@ -189,6 +188,17 @@ class FEMElementalAttribute(dict):
         self._dict_type_ids = {
             key: value.ids for key, value in self.items()}
 
+        return
+
+    @property
+    def element_types(self):
+        return [t for t in self.ELEMENT_TYPES if t in self]
+
+    def _unique_element_ids(self):
+        offset = 0
+        for element_type in self.element_types:
+            self[element_type].ids += offset
+            offset += len(self[element_type])
         return
 
     @property

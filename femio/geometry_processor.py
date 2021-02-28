@@ -334,6 +334,8 @@ class GeometryProcessorMixin:
             volumes = self._calculate_element_volumes_tet_like()
         elif self.elements.element_type in ['hex']:
             volumes = self._calculate_element_volumes_hex()
+        elif self.elements.element_type in ['hexcol']:
+            volumes = self._calculate_element_volumes_hexcol()
         else:
             raise NotImplementedError
 
@@ -385,6 +387,11 @@ class GeometryProcessorMixin:
         p5 = self.collect_node_positions_by_ids(elements[:, 5])
         p6 = self.collect_node_positions_by_ids(elements[:, 6])
         p7 = self.collect_node_positions_by_ids(elements[:, 7])
+        return self._calculate_element_volumes_hex_with_nodes(
+            p0, p1, p2, p3, p4, p5, p6, p7)
+
+    def _calculate_element_volumes_hex_with_nodes(
+            self, p0, p1, p2, p3, p4, p5, p6, p7):
         return 1. / 6. * (
             + np.linalg.det(np.stack([p1 - p4, p0 - p4, p3 - p4], axis=1))
             + np.linalg.det(np.stack([p2 - p6, p1 - p6, p3 - p6], axis=1))
@@ -392,6 +399,34 @@ class GeometryProcessorMixin:
             + np.linalg.det(np.stack([p7 - p3, p4 - p3, p6 - p3], axis=1))
             + np.linalg.det(np.stack([p1 - p5, p4 - p5, p6 - p5], axis=1))
         )[:, None]
+
+    def _calculate_element_volumes_hexcol(self):
+        """Calculate volume of each hexcol elements.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+            volumes: numpy.ndarray
+        """
+        elements = self.elements.data
+        p0 = self.collect_node_positions_by_ids(elements[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements[:, 5])
+        p6 = self.collect_node_positions_by_ids(elements[:, 6])
+        p7 = self.collect_node_positions_by_ids(elements[:, 7])
+        p8 = self.collect_node_positions_by_ids(elements[:, 8])
+        p9 = self.collect_node_positions_by_ids(elements[:, 9])
+        p10 = self.collect_node_positions_by_ids(elements[:, 10])
+        p11 = self.collect_node_positions_by_ids(elements[:, 11])
+        return self._calculate_element_volumes_hex_with_nodes(
+            p0, p1, p2, p3, p6, p7, p8, p9) \
+            + self._calculate_element_volumes_hex_with_nodes(
+                p0, p3, p4, p5, p6, p9, p10, p11)
 
     def make_elements_positive(self):
         """Perfmute element connectivity order when it has negative volume."""

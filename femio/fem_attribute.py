@@ -163,6 +163,11 @@ class FEMAttribute():
     def ids(self):
         return self._data_frame.index.values
 
+    @ids.setter
+    def ids(self, value):
+        self._data_frame.index = value
+        return
+
     @property
     def iloc(self):
         return _Indexer(self, self._data_frame.iloc)
