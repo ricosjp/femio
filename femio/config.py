@@ -177,6 +177,7 @@ DICT_FEMIO_ELEMENT_TO_MESHIO_ELEMENT = {
     'prism2': 'wedge15',
     'hex': 'hexahedron',
     'hex2': 'hexahedron27',
+    'hexcol': 'hexa_prism',
 }
 DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT = {
     v: k for k, v in DICT_FEMIO_ELEMENT_TO_MESHIO_ELEMENT.items()}

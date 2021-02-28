@@ -72,3 +72,38 @@ class TestVTK(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(
             fem_data.elements.data, desired_elements)
+
+    def test_read_hexcol(self):
+        file_name = Path('tests/data/vtk/hexcol/mesh.vtk')
+
+        fem_data = FEMData.read_files('vtk', [file_name])
+        desired_nodes = np.array([
+            [0.0, 0, 0],
+            [0.1, 0, 0],
+            [0.1, 0.1, 0],
+            [0.06, 0.1, 0],
+            [0.03, 0.1, 0],
+            [0.0, 0.1, 0],
+            [0.0, 0, 0.005],
+            [0.1, 0, 0.005],
+            [0.1, 0.1, 0.005],
+            [0.06, 0.1, 0.005],
+            [0.03, 0.1, 0.005],
+            [0.0, 0.1, 0.005],
+            [0.0, 0, 0.01],
+            [0.1, 0, 0.01],
+            [0.1, 0.1, 0.01],
+            [0.06, 0.1, 0.01],
+            [0.03, 0.1, 0.01],
+            [0.0, 0.1, 0.01],
+        ])
+        np.testing.assert_almost_equal(
+            fem_data.nodes.data, desired_nodes)
+
+        desired_elements = np.array([
+            [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18],
+        ])
+        np.testing.assert_almost_equal(
+            fem_data.elements.data, desired_elements)
+        self.assertEqual(fem_data.elements.element_type, 'hexcol')

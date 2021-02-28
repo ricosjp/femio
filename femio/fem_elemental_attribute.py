@@ -25,6 +25,7 @@ class FEMElementalAttribute(dict):
         'prism2',
         'hex',
         'hex2',
+        'hexcol',
     ]
 
     @classmethod
@@ -89,7 +90,8 @@ class FEMElementalAttribute(dict):
         return FEMElementalAttribute('ELEMENT', {
             config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[k]:
             cls._from_meshio(k, v)
-            for k, v in cell_data.items() if k in ['tetra', 'tetra10']})
+            for k, v in cell_data.items()
+            if k in ['tetra', 'tetra10', 'hexa_prism']})
 
     @classmethod
     def _from_meshio(cls, cell_type, data):

@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import unittest
 
 import numpy as np
@@ -40,3 +41,19 @@ class TestWriteVTK(unittest.TestCase):
             'vtk', write_file_name)
         np.testing.assert_almost_equal(
             fem_data.nodes.data, vtk_fem_data.nodes.data)
+
+    def test_read_hexcol(self):
+        file_name = Path('tests/data/vtk/hexcol/mesh.vtk')
+
+        fem_data = FEMData.read_files('vtk', [file_name])
+        write_file_name = Path('tests/data/vtk/write_hexcol/mesh.vtk')
+
+        if os.path.exists(write_file_name):
+            os.remove(write_file_name)
+        fem_data.write('vtk', write_file_name)
+        written_fem_data = FEMData.read_files('vtk', file_name)
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+        np.testing.assert_almost_equal(
+            written_fem_data.elements.data,
+            fem_data.elements.data)
