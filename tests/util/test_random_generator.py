@@ -1,7 +1,11 @@
+import pathlib
+import shutil
+import subprocess
 import unittest
 
 import numpy as np
 
+from femio.fem_data import FEMData
 from femio.util import random_generator
 
 
@@ -81,6 +85,26 @@ class TestBrickGenerator(unittest.TestCase):
             'tet', n_point,
             x_length=x_length, y_length=y_length, z_length=z_length,
             noise_scale=1., strip_epsilon=.01)
+
+        fistr_write_directory = pathlib.Path(
+            'tests/data/fistr/write_random_tet_strip')
+        if fistr_write_directory.exists():
+            shutil.rmtree(fistr_write_directory)
+        fem_data.add_static_material()
+        fem_data.constraints.update_data(
+            fem_data.nodes.ids,
+            {'boundary': np.zeros((len(fem_data.nodes), 3))})
+        fem_data.constraints['boundary'].data[-1] = np.ones(3) * 1.e-3
+
+        fem_data.write('fistr', fistr_write_directory / 'mesh')
+
+        subprocess.check_call("fistr1", cwd=fistr_write_directory, shell=True)
+        written_fem_data_with_res = FEMData.read_directory(
+            'fistr', fistr_write_directory, read_npy=False, save=False)
+
+        np.testing.assert_almost_equal(
+            written_fem_data_with_res.nodal_data['DISPLACEMENT'].data,
+            fem_data.constraints['boundary'].data)
 
         if WRITE_TEST_DATA:
             fem_data.write(

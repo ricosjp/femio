@@ -725,3 +725,12 @@ class FEMData(
                 raise ValueError(
                     f"Unknown data block number: {str_data_block_number}")
         return
+
+    def add_static_material(self):
+        """Add simple material data for static analysis."""
+        self.materials.update_data(
+            'M1',
+            {'Young_modulus': np.array([1.]), 'Poisson_ratio': np.array([.3])})
+        self.sections.update_data(
+            'M1', {'TYPE': 'SOLID', 'EGRP': 'ALL'})
+        return
