@@ -55,9 +55,9 @@ class FEMAttributes:
             attribute_class = FEMAttribute
 
         split_dict_data = cls._split_dict_data(dict_data)
-        return cls([
-            attribute_class.from_dict(k, v)
-            for k, v in split_dict_data.items()], **kwargs)
+        return cls({
+            k: attribute_class.from_dict(k, v)
+            for k, v in split_dict_data.items()}, **kwargs)
 
     @classmethod
     def _split_dict_data(cls, dict_data):

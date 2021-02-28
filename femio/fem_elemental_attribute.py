@@ -138,7 +138,17 @@ class FEMElementalAttribute(dict):
         elif isinstance(data, FEMElementalAttribute):
             self.update(data)
         elif isinstance(data, dict):
-            self.update(data)
+            unknown_element_type = False
+            for k in data.keys():
+                if k not in self.ELEMENT_TYPES:
+                    if len(data) > 1:
+                        raise ValueError(f"Unsupported element type: {k}")
+                    else:
+                        unknown_element_type = True
+            if unknown_element_type:
+                self.update({'unknown': list(data.values())[0]})
+            else:
+                self.update(data)
         elif isinstance(data, np.ndarray):
             if ids is None:
                 ids = np.arange(len(data)) + 1
