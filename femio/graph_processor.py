@@ -26,12 +26,28 @@ class GraphProcessorMixin:
             surface_positions: Positions of each nodes on the surface.
         """
         dict_facets = self.extract_facets()
-        facet_shapes = np.array([f.shape[-1] for f in dict_facets.values()])
-        if not np.all(facet_shapes == facet_shapes[0]):
-            raise NotImplementedError
-        else:
-            facets = np.concatenate([f for f in dict_facets.values()])
+        dict_facet_shapes = {'tri': [], 'quad': []}
+        for facet in dict_facets.values():
+            n_node_per_element = facet.shape[-1]
+            if n_node_per_element == 3:
+                dict_facet_shapes['tri'].append(facet)
+            elif n_node_per_element == 4:
+                dict_facet_shapes['quad'].append(facet)
+            else:
+                raise ValueError(
+                    f"Unsupported element shape: {n_node_per_element}")
 
+        extracted_surface_info = {
+            k: self._extract_surface(np.concatenate(v, axis=0))
+            for k, v in dict_facet_shapes.items() if len(v) > 0}
+        if len(extracted_surface_info) == 1:
+            s = list(extracted_surface_info.values())[0]
+            return s[0], s[1]
+        else:
+            return {k: v[0] for k, v in extracted_surface_info.items()}, \
+                {k: v[1] for k, v in extracted_surface_info.items()}
+
+    def _extract_surface(self, facets):
         sorted_facets = np.array([np.sort(f) for f in facets])
         unique_sorted_facets, unique_indices, unique_counts = np.unique(
             sorted_facets, return_index=True, return_counts=True, axis=0)
