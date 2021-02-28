@@ -55,9 +55,9 @@ class FEMAttributes:
             attribute_class = FEMAttribute
 
         split_dict_data = cls._split_dict_data(dict_data)
-        return cls([
-            attribute_class.from_dict(k, v)
-            for k, v in split_dict_data.items()], **kwargs)
+        return cls({
+            k: attribute_class.from_dict(k, v)
+            for k, v in split_dict_data.items()}, **kwargs)
 
     @classmethod
     def _split_dict_data(cls, dict_data):
@@ -80,7 +80,7 @@ class FEMAttributes:
                     if attribute_name not in elemental_data:
                         elemental_data[attribute_name] = {}
                     elemental_data[attribute_name].update({
-                        cell_type:
+                        config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[cell_type]:
                         FEMAttribute(attribute_name, ids, attribute_data)})
             attributes = {
                 attribute_name:
@@ -341,9 +341,13 @@ class FEMAttributes:
         None
         """
         if isinstance(dict_attributes, dict):
+            for v in dict_attributes.values():
+                if not isinstance(v, self.attribute_class):
+                    raise ValueError(
+                        f"{v} is not an instance of {self.attribute_class}")
             self.data.update(dict_attributes)
         elif isinstance(dict_attributes, FEMAttributes):
-            self.data.update(dict_attributes.data)
+            self.update(dict_attributes.data)
         else:
             raise ValueError(f"Unknown dict type for: {dict_attributes}")
         if self.has_material(dict_attributes):
@@ -420,8 +424,8 @@ class FEMAttributes:
                 self[attribute_name].update(
                     ids, attribute_value, allow_overwrite=allow_overwrite)
             else:
-                self[attribute_name] = FEMAttribute(
-                    attribute_name, ids, attribute_value)
+                self[attribute_name] = self.attribute_class(
+                    name=attribute_name, ids=ids, data=attribute_value)
         if self.has_material(data_dict):
             self.material_overwritten = True
         return

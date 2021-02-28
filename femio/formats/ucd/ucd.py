@@ -40,8 +40,8 @@ class UCDData(FEMData):
             return obj
 
         obj.nodal_data.update(obj.read_nodal_data(string_series, headers))
-        obj.elemental_data.update(
-            obj.read_elemental_data(string_series, headers))
+        obj.elemental_data.update_data(
+            *obj.read_elemental_data(string_series, headers))
         return obj
 
     def read_headers(self, string_series):
@@ -141,7 +141,7 @@ class UCDData(FEMData):
 
     def read_elemental_data(self, string_series, headers):
         if headers['all_dim_elemental_data'] == 0:
-            return {}
+            return [], {}
 
         node_shift = min(1, headers['all_dim_nodal_data']) * (
             headers['n_nodal_data'] + headers['n_node'] + 1)
@@ -154,9 +154,11 @@ class UCDData(FEMData):
         start = name_end
         end = start + headers['n_element']
 
-        return self._read_associated_data(
+        associated_data = self._read_associated_data(
             string_series[start:end],
             names, units, headers['elemental_data_dims'])
+        return list(associated_data.values())[0].ids, {
+            k: v.data for k, v in associated_data.items()}
 
     def _read_associated_data(self, string_series, names, units, dims):
         cum_dim = 1

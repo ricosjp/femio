@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import unittest
 
 import numpy as np
@@ -24,6 +25,7 @@ class TestWriteVTK(unittest.TestCase):
         np.testing.assert_almost_equal(
             np.ravel(fem_data.nodal_data.get_attribute_data('t_init')),
             np.ravel(vtk_fem_data.nodal_data.get_attribute_data('t_init')))
+        # raise ValueError(vtk_fem_data.elemental_data['lte']['tetra10'].data)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('lte'),
             vtk_fem_data.elemental_data.get_attribute_data('lte'))
@@ -40,3 +42,35 @@ class TestWriteVTK(unittest.TestCase):
             'vtk', write_file_name)
         np.testing.assert_almost_equal(
             fem_data.nodes.data, vtk_fem_data.nodes.data)
+
+    def test_read_hex(self):
+        file_name = Path('tests/data/vtk/hex/mesh.vtk')
+
+        fem_data = FEMData.read_files('vtk', [file_name])
+        write_file_name = Path('tests/data/vtk/write_hex/mesh.vtk')
+
+        if os.path.exists(write_file_name):
+            os.remove(write_file_name)
+        fem_data.write('vtk', write_file_name)
+        written_fem_data = FEMData.read_files('vtk', file_name)
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+        np.testing.assert_almost_equal(
+            written_fem_data.elements.data,
+            fem_data.elements.data)
+
+    def test_read_hexprism(self):
+        file_name = Path('tests/data/vtk/hexprism/mesh.vtk')
+
+        fem_data = FEMData.read_files('vtk', [file_name])
+        write_file_name = Path('tests/data/vtk/write_hexprism/mesh.vtk')
+
+        if os.path.exists(write_file_name):
+            os.remove(write_file_name)
+        fem_data.write('vtk', write_file_name)
+        written_fem_data = FEMData.read_files('vtk', file_name)
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+        np.testing.assert_almost_equal(
+            written_fem_data.elements.data,
+            fem_data.elements.data)

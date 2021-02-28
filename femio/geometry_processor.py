@@ -37,8 +37,8 @@ class GeometryProcessorMixin:
         if return_abs_area:
             areas = np.abs(areas)
 
-        self.elemental_data.update({
-            'area': FEMAttribute('Area', self.elements.ids, areas)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'area': areas}, allow_overwrite=True)
         return areas
 
     def _calculate_element_areas_tri(self):
@@ -76,9 +76,9 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'edge_lengths':
-            FEMAttribute('EdgeLengths', self.elements.ids, edge_lengths)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'edge_lengths': edge_lengths},
+            allow_overwrite=True)
         return edge_lengths
 
     def _calculate_edge_lengths_polygon(self):
@@ -109,8 +109,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'angles': FEMAttribute('Angles', self.elements.ids, angles)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'angles': angles}, allow_overwrite=True)
         return angles
 
     def _calculate_angles_polygon(self):
@@ -147,9 +147,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'jacobian':
-            FEMAttribute('Jacobian', self.elements.ids, jacobians)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'jacobian': jacobians}, allow_overwrite=True)
         return jacobians
 
     def _calculate_jacobians_quad(self):
@@ -216,8 +215,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'normal': FEMAttribute('normal', self.elements.ids, normals)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'normal': normals}, allow_overwrite=True)
         return normals
 
     def extract_direction_feature(self, vectors, *, skip_normalization=False):
@@ -316,47 +315,73 @@ class GeometryProcessorMixin:
 
     @functools.lru_cache(maxsize=1)
     def calculate_element_volumes(
-            self, *, raise_negative_volume=True, return_abs_volume=False):
+            self, *, raise_negative_volume=True, return_abs_volume=False,
+            elements=None):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated volumes are returned and also stored in
         the fem_data.elemental_data dict with key = 'volume' .
 
-        Args:
-            raise_negative_volume: bool, optional [True]
-                If True, raise ValueError when negative volume exists.
-            return_abs_volume: bool, optional [False]
-                If True, return absolute volume instead of signed volume.
-        Returns:
-            volumes: numpy.ndarray
+        Parameters
+        ----------
+        raise_negative_volume: bool, optional [True]
+            If True, raise ValueError when negative volume exists.
+        return_abs_volume: bool, optional [False]
+            If True, return absolute volume instead of signed volume.
+        elements: femio.FEMAttribute
+            If fed, compute volumes for the fed one.
+
+        Returns
+        -------
+        volumes: numpy.ndarray
         """
-        if self.elements.element_type in ['tet', 'tet2']:
-            volumes = self._calculate_element_volumes_tet_like()
-        elif self.elements.element_type in ['hex']:
-            volumes = self._calculate_element_volumes_hex()
+        if elements is None:
+            element_type = self.elements.element_type
+            elements = self.elements
+        else:
+            element_type = elements.name
+
+        if element_type in ['tet', 'tet2']:
+            volumes = self._calculate_element_volumes_tet_like(
+                elements.data)
+        elif element_type in ['hex']:
+            volumes = self._calculate_element_volumes_hex(
+                elements.data)
+        elif element_type in ['hexprism']:
+            volumes = self._calculate_element_volumes_hexprism(
+                elements.data)
+        elif element_type == 'mix':
+            volumes = np.concatenate([
+                self.calculate_element_volumes(elements=e)
+                for e in self.elements.values()], axis=0)
         else:
             raise NotImplementedError
 
         # Handle negative volumes according to the settings
         if raise_negative_volume and np.any(volumes < 0.):
-            raise ValueError('Negative volume found.')
+            raise ValueError(
+                'Negative volume found for element IDs: '
+                f"{elements.ids[volumes[:, 0] < 0]}")
         if return_abs_volume:
             volumes = np.abs(volumes)
 
-        self.elemental_data.update({
-            'volume': FEMAttribute('Volume', self.elements.ids, volumes)})
+        self.elemental_data.update_data(
+            elements.ids, {'volume': volumes}, allow_overwrite=True)
         return volumes
 
-    def _calculate_element_volumes_tet_like(self):
+    def _calculate_element_volumes_tet_like(self, elements):
         """Calculate volume of each tet-2 like elements assuming that the
         geometry of higher order elements is the same as that of order 1
         elements.
 
-        Args:
+        Parameters
+        ----------
+        elements: numpy.ndarray
+            Element connectivity.
+
         Returns:
-            volumes: numpy.ndarray
+        volumes: numpy.ndarray
         """
-        elements = self.elements.data[:, :4]
         node0_points = self.collect_node_positions_by_ids(elements[:, 0])
         node1_points = self.collect_node_positions_by_ids(elements[:, 1])
         node2_points = self.collect_node_positions_by_ids(elements[:, 2])
@@ -366,17 +391,18 @@ class GeometryProcessorMixin:
         v30 = node3_points - node0_points
         return np.linalg.det(np.stack([v10, v20, v30], axis=1))[:, None] / 6.
 
-    def _calculate_element_volumes_hex(self):
+    def _calculate_element_volumes_hex(self, elements):
         """Calculate volume of each hex elements.
 
         Parameters
         ----------
+        elements: numpy.ndarray
+            Element connectivity.
 
         Returns
         -------
-            volumes: numpy.ndarray
+        volumes: numpy.ndarray
         """
-        elements = self.elements.data
         p0 = self.collect_node_positions_by_ids(elements[:, 0])
         p1 = self.collect_node_positions_by_ids(elements[:, 1])
         p2 = self.collect_node_positions_by_ids(elements[:, 2])
@@ -385,6 +411,11 @@ class GeometryProcessorMixin:
         p5 = self.collect_node_positions_by_ids(elements[:, 5])
         p6 = self.collect_node_positions_by_ids(elements[:, 6])
         p7 = self.collect_node_positions_by_ids(elements[:, 7])
+        return self._calculate_element_volumes_hex_with_nodes(
+            p0, p1, p2, p3, p4, p5, p6, p7)
+
+    def _calculate_element_volumes_hex_with_nodes(
+            self, p0, p1, p2, p3, p4, p5, p6, p7):
         return 1. / 6. * (
             + np.linalg.det(np.stack([p1 - p4, p0 - p4, p3 - p4], axis=1))
             + np.linalg.det(np.stack([p2 - p6, p1 - p6, p3 - p6], axis=1))
@@ -392,6 +423,35 @@ class GeometryProcessorMixin:
             + np.linalg.det(np.stack([p7 - p3, p4 - p3, p6 - p3], axis=1))
             + np.linalg.det(np.stack([p1 - p5, p4 - p5, p6 - p5], axis=1))
         )[:, None]
+
+    def _calculate_element_volumes_hexprism(self, elements):
+        """Calculate volume of each hexprism elements.
+
+        Parameters
+        ----------
+        elements: numpy.ndarray
+            Element connectivity.
+
+        Returns
+        -------
+        volumes: numpy.ndarray
+        """
+        p0 = self.collect_node_positions_by_ids(elements[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements[:, 5])
+        p6 = self.collect_node_positions_by_ids(elements[:, 6])
+        p7 = self.collect_node_positions_by_ids(elements[:, 7])
+        p8 = self.collect_node_positions_by_ids(elements[:, 8])
+        p9 = self.collect_node_positions_by_ids(elements[:, 9])
+        p10 = self.collect_node_positions_by_ids(elements[:, 10])
+        p11 = self.collect_node_positions_by_ids(elements[:, 11])
+        return self._calculate_element_volumes_hex_with_nodes(
+            p0, p1, p2, p3, p6, p7, p8, p9) \
+            + self._calculate_element_volumes_hex_with_nodes(
+                p0, p3, p4, p5, p6, p9, p10, p11)
 
     def make_elements_positive(self):
         """Perfmute element connectivity order when it has negative volume."""

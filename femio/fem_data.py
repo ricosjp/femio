@@ -613,9 +613,16 @@ class FEMData(
             Surface FEMData object.
         """
         surface_indices, _ = self.extract_surface()
-        unique_indices = np.unique(surface_indices)
+        if isinstance(surface_indices, dict):
+            unique_indices = np.unique(np.concatenate([
+                np.ravel(s) for s in surface_indices.values()]))
+            surface_ids = {
+                t: self.nodes.ids[ids] for t, ids in surface_indices.items()}
+        else:
+            unique_indices = np.unique(surface_indices)
+            surface_ids = self.nodes.ids[surface_indices]
+
         node_ids = self.nodes.ids[unique_indices]
-        surface_ids = self.nodes.ids[surface_indices]
         nodes = FEMAttribute(
             'NODE', node_ids, self.nodes.iloc[unique_indices].values)
         elements = self.elements.to_surface(surface_ids)

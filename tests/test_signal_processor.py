@@ -583,15 +583,10 @@ class TestSignalProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/hex_cross',
             read_npy=False, read_mesh_only=True, save=False)
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)}
+        )
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'))
@@ -618,15 +613,9 @@ class TestSignalProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/hex_cross',
             read_npy=False, read_mesh_only=True, save=False)
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)})
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'), n_hop=10)
@@ -651,15 +640,9 @@ class TestSignalProcessor(unittest.TestCase):
         center_element_index = 445
 
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)})
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'), n_hop=3)
@@ -679,15 +662,9 @@ class TestSignalProcessor(unittest.TestCase):
         center_element_index = 445
 
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)})
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'), n_hop=3,
@@ -1826,3 +1803,87 @@ class TestSignalProcessor(unittest.TestCase):
             [[[s.toarray() for s in s_] for s_ in s__] for s__ in s___]
             for s___ in csr_powered]), (4, 5, 0, 1, 2, 3))
         np.testing.assert_almost_equal(csr_powered_to_numpy, rank4)
+
+    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_mix(self):
+        fem_data = FEMData.read_directory(
+            'vtk', 'tests/data/vtk/mix_hex_hexprism',
+            read_npy=False, save=False)
+        grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
+            mode='nodal', n_hop=1, moment_matrix=True)
+
+        filter_ = fem_data.filter_first_order_nodes()
+        n = np.sum(filter_)
+        x_grad = np.stack(
+            [g.dot(fem_data.nodes.data[filter_, [0]]) for g in grads], axis=-1)
+        desired_x_grad = np.stack([
+            np.ones(n), np.zeros(n), np.zeros(n)], axis=-1)
+        np.testing.assert_almost_equal(x_grad, desired_x_grad)
+
+        z_grad = np.stack(
+            [g.dot(fem_data.nodes.data[filter_, [2]]) for g in grads], axis=-1)
+        desired_z_grad = np.stack([
+            np.zeros(n), np.zeros(n), np.ones(n)], axis=-1)
+        np.testing.assert_almost_equal(z_grad, desired_z_grad)
+        fem_data.nodal_data.update_data(
+            fem_data.nodes.ids, {'z_grad': z_grad})
+        fem_data.nodal_data.pop('inversed_moment_tensors')
+        fem_data.write(
+            'vtk', 'tests/data/vtk/write_w_moment_hex_prism/mesh.vtk',
+            overwrite=True)
+
+    def test_calculate_gradient_adjecency_matrix_neumann_mix(self):
+        fem_data = FEMData.read_directory(
+            'vtk', 'tests/data/vtk/mix_hex_hexprism',
+            read_npy=False, save=False)
+        grads_wo_neumann \
+            = fem_data.calculate_spatial_gradient_adjacency_matrices(
+                mode='nodal', n_hop=1, moment_matrix=True, normals=None)
+        grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
+            mode='nodal', n_hop=1, moment_matrix=True, normals=True)
+
+        inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
+            'inversed_moment_tensors')
+        normals = fem_data.nodal_data.get_attribute_data(
+            'filtered_surface_normals')
+
+        filter_ = fem_data.filter_first_order_nodes()
+        n = np.sum(filter_)
+        x = fem_data.nodes.data[filter_]
+
+        scale = 1.
+        phi = - np.sin(x[:, 0] / scale + 2 * x[:, 1] / scale) * scale + x[:, 2]
+        desired_phi_grad = np.stack([
+            - np.cos(x[:, 0] / scale + 2 * x[:, 1] / scale),
+            - np.cos(x[:, 0] / scale + 2 * x[:, 1] / scale) * 2,
+            np.ones(n)], axis=-1)
+        neumann_phi = np.einsum('ij,ij->i', normals, desired_phi_grad)
+        neumann_normas = np.einsum('ij,i->ij', normals, neumann_phi)
+
+        phi_grad_wo_neumann = np.stack(
+            [g.dot(phi) for g in grads_wo_neumann], axis=-1)
+        phi_grad = np.stack(
+            [g.dot(phi) for g in grads], axis=-1) + np.einsum(
+                'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
+        np.testing.assert_almost_equal(
+            phi_grad, desired_phi_grad, decimal=0)
+
+        error_phi_grad = phi_grad - desired_phi_grad
+        error_phi_grad_wo_neumann = phi_grad_wo_neumann - desired_phi_grad
+        error_norm = np.mean(
+            np.linalg.norm(error_phi_grad, axis=1))
+        error_norm_wo_phi = np.mean(
+            np.linalg.norm(error_phi_grad_wo_neumann, axis=1))
+        self.assertLess(error_norm, error_norm_wo_phi)
+
+        fem_data.nodal_data.pop('inversed_moment_tensors')
+        fem_data.nodal_data.update_data(
+            fem_data.nodes.ids, {
+                'phi_grad': phi_grad,
+                'phi_grad_wo_neumann': phi_grad_wo_neumann, 'phi': phi,
+                'desired_phi_grad': desired_phi_grad,
+                'error_phi_grad': error_phi_grad,
+                'error_phi_grad_wo_neumann': error_phi_grad_wo_neumann,
+            })
+        fem_data.write(
+            'vtk', 'tests/data/vtk/write_w_moment_hex_prism_neumann/mesh.vtk',
+            overwrite=True)

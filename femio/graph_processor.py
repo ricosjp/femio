@@ -25,6 +25,56 @@ class GraphProcessorMixin:
             surface_indices: indices of nodes (not IDs).
             surface_positions: Positions of each nodes on the surface.
         """
+        dict_facets = self.extract_facets()
+        dict_facet_shapes = {'tri': [], 'quad': []}
+        for facet in dict_facets.values():
+            n_node_per_element = facet.shape[-1]
+            if n_node_per_element == 3:
+                dict_facet_shapes['tri'].append(facet)
+            elif n_node_per_element == 4:
+                dict_facet_shapes['quad'].append(facet)
+            else:
+                raise ValueError(
+                    f"Unsupported element shape: {n_node_per_element}")
+
+        extracted_surface_info = {
+            k: self._extract_surface(np.concatenate(v, axis=0))
+            for k, v in dict_facet_shapes.items() if len(v) > 0}
+        if len(extracted_surface_info) == 1:
+            s = list(extracted_surface_info.values())[0]
+            return s[0], s[1]
+        else:
+            return {k: v[0] for k, v in extracted_surface_info.items()}, \
+                {k: v[1] for k, v in extracted_surface_info.items()}
+
+    def _extract_surface(self, facets):
+        sorted_facets = np.array([np.sort(f) for f in facets])
+        unique_sorted_facets, unique_indices, unique_counts = np.unique(
+            sorted_facets, return_index=True, return_counts=True, axis=0)
+        surface_ids = facets[unique_indices[np.where(unique_counts == 1)]]
+        surface_indices = np.array(
+            [[self.dict_node_id2index[node_id] for node_id in facet]
+             for facet in surface_ids])
+        surface_positions = np.array(
+            [[self.nodes.data[index] for index in facet]
+             for facet in surface_indices])
+        return surface_indices, surface_positions
+
+    def extract_facets(self, elements=None, element_type=None):
+        """Extract facets.
+
+        Parameters
+        ----------
+        elements: femio.FEMAttribute, optional
+            If fed, extract facets of the specified elements.
+        elements: str, optional
+            If not fed, infer element type from the number of nodes per
+            element.
+
+        Returns
+        -------
+        facets: Dict[numpy.ndarray]
+        """
         if elements is None:
             elements = self.elements
         if element_type is None:
@@ -40,19 +90,19 @@ class GraphProcessorMixin:
                     element_type = 'tet2'
                 elif nodes_per_element == 8:
                     element_type = 'hex'
+                elif nodes_per_element == 12:
+                    element_type = 'hexprism'
                 else:
                     raise ValueError(
                         f"Unknown nodes_per_element: {nodes_per_element}")
 
         if hasattr(elements, 'element_type'):
             if elements.element_type == 'mix':
-                root_data = {
-                    element_type:
-                    self.extract_surface(element, element_type=element_type)
-                    for element_type, element in self.elements.items()}
                 return {
-                    e: d[0] for e, d in root_data.items()}, {
-                        e: d[1] for e, d in root_data.items()}
+                    element_type:
+                    self.extract_facets(element, element_type=element_type)[
+                        element_type]
+                    for element_type, element in self.elements.items()}
             else:
                 elements = list(elements.values())[0]
 
@@ -73,20 +123,22 @@ class GraphProcessorMixin:
                 [e[3], e[0], e[4], e[7]],
                 [e[4], e[7], e[6], e[5]]]
                 for e in elements.data])
+        elif element_type == 'hexprism':
+            facets = np.concatenate([[
+                [e[0], e[5], e[4], e[1]],
+                [e[1], e[4], e[3], e[2]],
+                [e[5], e[11], e[10], e[4]],
+                [e[4], e[10], e[9], e[3]],
+                [e[3], e[9], e[8], e[2]],
+                [e[0], e[6], e[11], e[5]],
+                [e[6], e[7], e[10], e[11]],
+                [e[7], e[8], e[9], e[10]],
+                [e[1], e[2], e[8], e[7]],
+                [e[0], e[1], e[7], e[6]]]
+                for e in elements.data])
         else:
             raise NotImplementedError
-
-        sorted_facets = np.array([np.sort(f) for f in facets])
-        unique_sorted_facets, unique_indices, unique_counts = np.unique(
-            sorted_facets, return_index=True, return_counts=True, axis=0)
-        surface_ids = facets[unique_indices[np.where(unique_counts == 1)]]
-        surface_indices = np.array(
-            [[self.dict_node_id2index[node_id] for node_id in facet]
-             for facet in surface_ids])
-        surface_positions = np.array(
-            [[self.nodes.data[index] for index in facet]
-             for facet in surface_indices])
-        return surface_indices, surface_positions
+        return {element_type: facets}
 
     @functools.lru_cache(maxsize=1)
     def generate_all_faces(self, elements=None, element_type=None):
@@ -173,8 +225,8 @@ class GraphProcessorMixin:
         """
         adj = self.calculate_adjacency_matrix()
         degrees = adj.sum(axis=1) - 1
-        self.elemental_data.update({
-            'degree': FEMAttribute('Degree', self.elements.ids, degrees)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'degree': degrees}, allow_overwrite=True)
         return degrees
 
     @functools.lru_cache(maxsize=2)
