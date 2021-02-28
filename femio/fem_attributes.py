@@ -424,8 +424,8 @@ class FEMAttributes:
                 self[attribute_name].update(
                     ids, attribute_value, allow_overwrite=allow_overwrite)
             else:
-                self[attribute_name] = FEMAttribute(
-                    attribute_name, ids, attribute_value)
+                self[attribute_name] = self.attribute_class(
+                    name=attribute_name, ids=ids, data=attribute_value)
         if self.has_material(data_dict):
             self.material_overwritten = True
         return

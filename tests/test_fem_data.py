@@ -87,7 +87,7 @@ class TestFEMData(unittest.TestCase):
 
         if RUN_FISTR:
             subprocess.check_call(
-                f"fistr1 > /dev/null 2>&1",
+                "fistr1 > /dev/null 2>&1",
                 cwd=write_dir_name, shell=True)
             written_fem_data_with_res = FEMData.read_directory(
                 'fistr', write_dir_name, read_npy=False)
@@ -142,6 +142,136 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             surface_fem_data.nodal_data.get_attribute_data(
                 'INITIAL_TEMPERATURE'), desired_initial_temperature)
+
+    def test_to_surface_mix(self):
+        fem_data = FEMData.read_directory(
+            'vtk', 'tests/data/vtk/mix_hex_hexprism',
+            read_npy=False, save=False)
+        fem_data.nodal_data.update_data(
+            fem_data.nodes.ids, {'INITIAL_TEMPERATURE': np.arange(
+                len(fem_data.nodes))[:, None] * 10.})
+        surface_fem_data = fem_data.to_surface()
+        desired_nodes = np.array([
+            [0.0, 0.0, 0.0],
+            [0.3, 0.0, 0.0],
+            [0.6, 0.0, 0.0],
+            [0.9, 0.0, 0.0],
+            [0.0, 0.0, 0.3],
+            [0.3, 0.0, 0.3],
+            [0.6, 0.0, 0.3],
+            [0.9, 0.0, 0.3],
+            [0.4, 0.0, 0.4],
+            [0.5, 0.0, 0.4],
+            [0.4, 0.0, 0.5],
+            [0.5, 0.0, 0.5],
+            [0.0, 0.0, 0.6],
+            [0.3, 0.0, 0.6],
+            [0.6, 0.0, 0.6],
+            [0.9, 0.0, 0.6],
+            [0.0, 0.0, 0.9],
+            [0.3, 0.0, 0.9],
+            [0.6, 0.0, 0.9],
+            [0.9, 0.0, 0.9],
+            [0.0, 0.1, 0.0],
+            [0.3, 0.1, 0.0],
+            [0.6, 0.1, 0.0],
+            [0.9, 0.1, 0.0],
+            [0.0, 0.1, 0.3],
+            [0.9, 0.1, 0.3],
+            [0.0, 0.1, 0.6],
+            [0.9, 0.1, 0.6],
+            [0.0, 0.1, 0.9],
+            [0.3, 0.1, 0.9],
+            [0.6, 0.1, 0.9],
+            [0.9, 0.1, 0.9],
+            [-0.1, 0.2, -0.1],
+            [0.3, 0.2, -0.1],
+            [0.6, 0.2, -0.1],
+            [1.0, 0.2, -0.1],
+            [-0.1, 0.2, 0.3],
+            [0.3, 0.2, 0.3],
+            [0.6, 0.2, 0.3],
+            [1.0, 0.2, 0.3],
+            [0.4, 0.2, 0.4],
+            [0.5, 0.2, 0.4],
+            [0.4, 0.2, 0.5],
+            [0.5, 0.2, 0.5],
+            [-0.1, 0.2, 0.6],
+            [0.3, 0.2, 0.6],
+            [0.6, 0.2, 0.6],
+            [1.0, 0.2, 0.6],
+            [-0.1, 0.2, 1.0],
+            [0.3, 0.2, 1.0],
+            [0.6, 0.2, 1.0],
+            [1.0, 0.2, 1.0],
+        ])
+        desired_normals = np.array([
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 0.0, -1.0],
+            [1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [-1.0, 0.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0],
+            [0.0, 0.0, 1.0],
+            [0.0, -0.7071067811865476, -0.7071067811865476],
+            [-0.7071067811865476, -0.7071067811865476, 0.0],
+            [0.0, -0.7071067811865475, -0.7071067811865475],
+            [0.0, -0.7071067811865476, -0.7071067811865476],
+            [0.7071067811865476, -0.7071067811865474, 0.0],
+            [-0.7071067811865475, -0.7071067811865475, 0.0],
+            [0.7071067811865476, -0.7071067811865475, 0.0],
+            [-0.7071067811865476, -0.7071067811865476, 0.0],
+            [0.7071067811865476, -0.7071067811865475, 0.0],
+            [0.0, -0.7071067811865474, 0.7071067811865476],
+            [0.0, -0.7071067811865475, 0.7071067811865476],
+            [0.0, -0.7071067811865475, 0.7071067811865476],
+            [0.0, -1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [0.0, -1.0, 0.0],
+            [0.0, -1.0, 0.0],
+        ])
+
+        np.testing.assert_almost_equal(
+            surface_fem_data.nodes.data, desired_nodes)
+        self.assertEqual(len(surface_fem_data.elements), 50)
+        np.testing.assert_almost_equal(
+            surface_fem_data.calculate_element_normals(), desired_normals)
+        node_filter = np.ones(len(fem_data.nodes)).astype(bool)
+        node_filter[[25, 26, 28, 29, 30, 31, 33, 34]] = False
+        np.testing.assert_almost_equal(
+            surface_fem_data.nodal_data.get_attribute_data(
+                'INITIAL_TEMPERATURE'),
+            np.arange(len(fem_data.nodes))[node_filter][:, None] * 10)
+        surface_fem_data.write(
+            'ucd', 'tests/data/ucd/write_surface_mix_hex_hexprism.inp',
+            overwrite=True)
 
     def test_to_first_order_time_series(self):
         fem_data = FEMData.read_directory(

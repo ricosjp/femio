@@ -344,11 +344,22 @@ class FEMElementalAttribute(dict):
         ----------
         surface_ids: numpy.ndarray
             [n_facet, n_node_per_facet]-shaped array of surface IDs.
+
         Returns
         -------
         FEMElementalAttribute:
             FEMElementalAttribute object of the surface.
         """
+        if isinstance(surface_ids, dict):
+            surfaces = [
+                self._generate_surface(ids) for ids in surface_ids.values()]
+            return FEMElementalAttribute('ELEMENT', {
+                s.name: s for s in surfaces})
+        else:
+            s = self._generate_surface(surface_ids)
+            return FEMElementalAttribute('ELEMENT', {s.name: s})
+
+    def _generate_surface(self, surface_ids):
         n_node_per_element = surface_ids.shape[1]
         if n_node_per_element == 3:
             element_type = 'tri'
@@ -358,9 +369,8 @@ class FEMElementalAttribute(dict):
             raise NotImplementedError(
                 'Unsupported # of nodes per elements: '
                 f"{self.elements.data.shape[1]}")
-        return FEMElementalAttribute('ELEMENT', {
-            element_type: FEMAttribute(
-                element_type, np.arange(len(surface_ids))+1, surface_ids)})
+        return FEMAttribute(
+            element_type, np.arange(len(surface_ids))+1, surface_ids)
 
     def detect_element_type(self, element_data):
         n_node_per_element = element_data.shape[1]
