@@ -98,7 +98,9 @@ class TestBrickGenerator(unittest.TestCase):
 
         fem_data.write('fistr', fistr_write_directory / 'mesh')
 
-        subprocess.check_call("fistr1", cwd=fistr_write_directory, shell=True)
+        subprocess.check_output(
+            "echo hi; fistr1 2>&1; echo hi", cwd=fistr_write_directory,
+            shell=True)
         written_fem_data_with_res = FEMData.read_directory(
             'fistr', fistr_write_directory, read_npy=False, save=False)
 

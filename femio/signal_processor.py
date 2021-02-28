@@ -109,7 +109,7 @@ class SignalProcessorMixin:
         self.elemental_data.update_data(
             self.elements.ids, {
                 'linear_thermal_expansion_coefficient': ws,
-                'ORIENTATION': orients})
+                'ORIENTATION': orients}, allow_overwrite=True)
         return
 
     def convert_lte_local2global(self):
@@ -133,7 +133,8 @@ class SignalProcessorMixin:
 
         self.elemental_data.update_data(
             self.elements.ids,
-            {'linear_thermal_expansion_coefficient_full': lte_full})
+            {'linear_thermal_expansion_coefficient_full': lte_full},
+            allow_overwrite=True)
 
         self.material_overwritten = True
         return
@@ -192,8 +193,7 @@ class SignalProcessorMixin:
                 f"principal_{name_variable}_value_1": values[:, 0],
                 f"principal_{name_variable}_value_2": values[:, 1],
                 f"principal_{name_variable}_value_3": values[:, 2],
-            }
-        )
+            }, allow_overwrite=True)
 
     def calculate_principal_components(
             self, in_array, *,

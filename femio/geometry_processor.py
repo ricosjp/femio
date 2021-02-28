@@ -37,7 +37,8 @@ class GeometryProcessorMixin:
         if return_abs_area:
             areas = np.abs(areas)
 
-        self.elemental_data.update_data(self.elements.ids, {'area': areas})
+        self.elemental_data.update_data(
+            self.elements.ids, {'area': areas}, allow_overwrite=True)
         return areas
 
     def _calculate_element_areas_tri(self):
@@ -76,7 +77,8 @@ class GeometryProcessorMixin:
             raise NotImplementedError
 
         self.elemental_data.update_data(
-            self.elements.ids, {'edge_lengths': edge_lengths})
+            self.elements.ids, {'edge_lengths': edge_lengths},
+            allow_overwrite=True)
         return edge_lengths
 
     def _calculate_edge_lengths_polygon(self):
@@ -107,7 +109,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update_data(self.elements.ids, {'angles': angles})
+        self.elemental_data.update_data(
+            self.elements.ids, {'angles': angles}, allow_overwrite=True)
         return angles
 
     def _calculate_angles_polygon(self):
@@ -145,7 +148,7 @@ class GeometryProcessorMixin:
             raise NotImplementedError
 
         self.elemental_data.update_data(
-            self.elements.ids, {'jacobian': jacobians})
+            self.elements.ids, {'jacobian': jacobians}, allow_overwrite=True)
         return jacobians
 
     def _calculate_jacobians_quad(self):
@@ -212,7 +215,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update_data(self.elements.ids, {'normal': normals})
+        self.elemental_data.update_data(
+            self.elements.ids, {'normal': normals}, allow_overwrite=True)
         return normals
 
     def extract_direction_feature(self, vectors, *, skip_normalization=False):
@@ -361,7 +365,8 @@ class GeometryProcessorMixin:
         if return_abs_volume:
             volumes = np.abs(volumes)
 
-        self.elemental_data.update_data(elements.ids, {'volume': volumes})
+        self.elemental_data.update_data(
+            elements.ids, {'volume': volumes}, allow_overwrite=True)
         return volumes
 
     def _calculate_element_volumes_tet_like(self, elements):
