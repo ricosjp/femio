@@ -105,8 +105,8 @@ class TestVTK(unittest.TestCase):
             fem_data.calculate_element_volumes(),
             np.ones((2, 1)) * .1 * .1 * .005)
 
-    def test_read_hexcol(self):
-        file_name = Path('tests/data/vtk/hexcol/mesh.vtk')
+    def test_read_hexprism(self):
+        file_name = Path('tests/data/vtk/hexprism/mesh.vtk')
 
         fem_data = FEMData.read_files('vtk', [file_name])
         desired_nodes = np.array([
@@ -138,13 +138,13 @@ class TestVTK(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(
             fem_data.elements.data, desired_elements)
-        self.assertEqual(fem_data.elements.element_type, 'hexcol')
+        self.assertEqual(fem_data.elements.element_type, 'hexprism')
         np.testing.assert_almost_equal(
             fem_data.calculate_element_volumes(),
             np.ones((2, 1)) * .1 * .1 * .005)
 
-    def test_read_mix_hex_hexcol(self):
-        file_name = Path('tests/data/vtk/mix_hex_hexcol/mesh.vtk')
+    def test_read_mix_hex_hexprism(self):
+        file_name = Path('tests/data/vtk/mix_hex_hexprism/mesh.vtk')
 
         fem_data = FEMData.read_files('vtk', [file_name])
         desired_nodes = np.array([

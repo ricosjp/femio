@@ -25,7 +25,7 @@ class FEMElementalAttribute(dict):
         'prism2',
         'hex',
         'hex2',
-        'hexcol',
+        'hexprism',
         'unknown',
     ]
 

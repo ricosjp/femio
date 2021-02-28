@@ -59,11 +59,11 @@ class TestWriteVTK(unittest.TestCase):
             written_fem_data.elements.data,
             fem_data.elements.data)
 
-    def test_read_hexcol(self):
-        file_name = Path('tests/data/vtk/hexcol/mesh.vtk')
+    def test_read_hexprism(self):
+        file_name = Path('tests/data/vtk/hexprism/mesh.vtk')
 
         fem_data = FEMData.read_files('vtk', [file_name])
-        write_file_name = Path('tests/data/vtk/write_hexcol/mesh.vtk')
+        write_file_name = Path('tests/data/vtk/write_hexprism/mesh.vtk')
 
         if os.path.exists(write_file_name):
             os.remove(write_file_name)

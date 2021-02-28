@@ -348,8 +348,8 @@ class GeometryProcessorMixin:
         elif element_type in ['hex']:
             volumes = self._calculate_element_volumes_hex(
                 elements.data)
-        elif element_type in ['hexcol']:
-            volumes = self._calculate_element_volumes_hexcol(
+        elif element_type in ['hexprism']:
+            volumes = self._calculate_element_volumes_hexprism(
                 elements.data)
         elif element_type == 'mix':
             volumes = np.concatenate([
@@ -426,8 +426,8 @@ class GeometryProcessorMixin:
             + np.linalg.det(np.stack([p1 - p5, p4 - p5, p6 - p5], axis=1))
         )[:, None]
 
-    def _calculate_element_volumes_hexcol(self, elements):
-        """Calculate volume of each hexcol elements.
+    def _calculate_element_volumes_hexprism(self, elements):
+        """Calculate volume of each hexprism elements.
 
         Parameters
         ----------
