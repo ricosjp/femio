@@ -163,7 +163,9 @@ class FEMElementalAttribute(dict):
             self._element_type = 'mix'
             ids = np.array([
                 i for t in self.element_types for i in self[t].ids])
-            data = {t: self[t].data for t in self.element_types}
+            data = np.array([
+                d for t in self.element_types
+                for d in self[t].data], dtype=object)
             types = np.array([
                 t
                 for t in self.element_types for _ in self[t].ids])
