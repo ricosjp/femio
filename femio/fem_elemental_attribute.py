@@ -138,17 +138,8 @@ class FEMElementalAttribute(dict):
         elif isinstance(data, FEMElementalAttribute):
             self.update(data)
         elif isinstance(data, dict):
-            unknown_element_type = False
-            for k in data.keys():
-                if k not in self.ELEMENT_TYPES:
-                    if len(data) > 1:
-                        raise ValueError(f"Unsupported element type: {k}")
-                    else:
-                        unknown_element_type = True
-            if unknown_element_type:
-                self.update({'unknown': list(data.values())[0]})
-            else:
-                self.update(data)
+            data = self._validate_keys(data)
+            self.update(data)
         elif isinstance(data, np.ndarray):
             if ids is None:
                 ids = np.arange(len(data)) + 1
@@ -163,6 +154,15 @@ class FEMElementalAttribute(dict):
         self._update_self()
 
         return
+
+    def _validate_keys(self, dict_data):
+        for k in dict_data.keys():
+            if k not in self.ELEMENT_TYPES:
+                if len(dict_data) > 1:
+                    raise ValueError(f"Unsupported element type: {k}")
+                else:
+                    return {'unknown': list(dict_data.values())[0]}
+        return dict_data
 
     def _update_self(self):
         if self.get_n_element_type() == 1:
@@ -261,9 +261,14 @@ class FEMElementalAttribute(dict):
 
     def update(self, *args, **kwargs):
         if isinstance(args[0], dict):
-            super().update(*args, **kwargs)
+            dict_data = self._validate_keys(args[0])
+            if len(args) > 1:
+                super().update(dict_data, *args[1:], **kwargs)
+            else:
+                super().update(dict_data, **kwargs)
         else:
             self._update(*args, **kwargs)
+        return
 
     def _update(self, ids, values, *, allow_overwrite=False):
         """Update FEMElementalAttribute with new ids and values.
