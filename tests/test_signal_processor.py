@@ -1850,10 +1850,11 @@ class TestSignalProcessor(unittest.TestCase):
         n = np.sum(filter_)
         x = fem_data.nodes.data[filter_]
 
-        phi = - np.sin(x[:, 0] * 10. + 2 * x[:, 1] * 10.) / 10. + x[:, 2]
+        scale = 1.
+        phi = - np.sin(x[:, 0] / scale + 2 * x[:, 1] / scale) * scale + x[:, 2]
         desired_phi_grad = np.stack([
-            - np.cos(x[:, 0] * 10. + 2 * x[:, 1] * 10.),
-            - np.cos(x[:, 0] * 10. + 2 * x[:, 1] * 10.) * 2,
+            - np.cos(x[:, 0] / scale + 2 * x[:, 1] / scale),
+            - np.cos(x[:, 0] / scale + 2 * x[:, 1] / scale) * 2,
             np.ones(n)], axis=-1)
         neumann_phi = np.einsum('ij,ij->i', normals, desired_phi_grad)
         neumann_normas = np.einsum('ij,i->ij', normals, neumann_phi)
@@ -1864,7 +1865,7 @@ class TestSignalProcessor(unittest.TestCase):
             [g.dot(phi) for g in grads], axis=-1) + np.einsum(
                 'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
         np.testing.assert_almost_equal(
-            phi_grad, desired_phi_grad, decimal=1)
+            phi_grad, desired_phi_grad, decimal=0)
 
         error_phi_grad = phi_grad - desired_phi_grad
         error_phi_grad_wo_neumann = phi_grad_wo_neumann - desired_phi_grad
