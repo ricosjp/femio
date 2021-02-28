@@ -26,6 +26,7 @@ class FEMElementalAttribute(dict):
         'hex',
         'hex2',
         'hexcol',
+        'unknown',
     ]
 
     @classmethod
@@ -86,7 +87,6 @@ class FEMElementalAttribute(dict):
 
     @classmethod
     def from_meshio(cls, cell_data):
-        # NOTE: So far only support tetra10
         return FEMElementalAttribute('ELEMENT', {
             config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[k]:
             cls._from_meshio(k, v)
@@ -99,7 +99,9 @@ class FEMElementalAttribute(dict):
             cell = cls._from_meshio_tet2(data)
         else:
             cell = data
-        return FEMAttribute(cell_type, ids=np.arange(len(cell))+1, data=cell+1)
+        return FEMAttribute(
+            config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[cell_type],
+            ids=np.arange(len(cell))+1, data=cell+1)
 
     @classmethod
     def _from_meshio_tet2(cls, data):
@@ -141,7 +143,7 @@ class FEMElementalAttribute(dict):
             if ids is None:
                 ids = np.arange(len(data)) + 1
             if element_type is None:
-                element_type = 'Unknown'
+                element_type = 'unknown'
             self.update({element_type: FEMAttribute(
                 name, ids=ids, data=data, time_series=self.time_series)})
         else:
@@ -162,13 +164,13 @@ class FEMElementalAttribute(dict):
         else:
             self._element_type = 'mix'
             ids = np.array([
-                i for t in self.element_types for i in self[t].ids])
+                i for t in self.keys() for i in self[t].ids])
             data = np.array([
-                d for t in self.element_types
+                d for t in self.keys()
                 for d in self[t].data], dtype=object)
             types = np.array([
                 t
-                for t in self.element_types for _ in self[t].ids])
+                for t in self.keys() for _ in self[t].ids])
             sorted_indices = np.argsort(ids)
 
             self._ids = ids[sorted_indices]
@@ -190,13 +192,18 @@ class FEMElementalAttribute(dict):
 
         return
 
-    @property
-    def element_types(self):
+    def keys(self):
         return [t for t in self.ELEMENT_TYPES if t in self]
+
+    def values(self):
+        return [self[t] for t in self.ELEMENT_TYPES if t in self]
+
+    def items(self):
+        return [(t, self[t]) for t in self.ELEMENT_TYPES if t in self]
 
     def _unique_element_ids(self):
         offset = 0
-        for element_type in self.element_types:
+        for element_type in self.keys():
             self[element_type].ids += offset
             offset += len(self[element_type])
         return

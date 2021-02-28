@@ -25,6 +25,7 @@ class TestWriteVTK(unittest.TestCase):
         np.testing.assert_almost_equal(
             np.ravel(fem_data.nodal_data.get_attribute_data('t_init')),
             np.ravel(vtk_fem_data.nodal_data.get_attribute_data('t_init')))
+        # raise ValueError(vtk_fem_data.elemental_data['lte']['tetra10'].data)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('lte'),
             vtk_fem_data.elemental_data.get_attribute_data('lte'))

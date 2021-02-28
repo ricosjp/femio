@@ -80,7 +80,7 @@ class FEMAttributes:
                     if attribute_name not in elemental_data:
                         elemental_data[attribute_name] = {}
                     elemental_data[attribute_name].update({
-                        cell_type:
+                        config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[cell_type]:
                         FEMAttribute(attribute_name, ids, attribute_data)})
             attributes = {
                 attribute_name:
