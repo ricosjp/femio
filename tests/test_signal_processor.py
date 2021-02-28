@@ -583,15 +583,10 @@ class TestSignalProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/hex_cross',
             read_npy=False, read_mesh_only=True, save=False)
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+                fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)}
+        )
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'))
@@ -618,15 +613,9 @@ class TestSignalProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/hex_cross',
             read_npy=False, read_mesh_only=True, save=False)
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)})
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'), n_hop=10)
@@ -651,15 +640,9 @@ class TestSignalProcessor(unittest.TestCase):
         center_element_index = 445
 
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)})
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'), n_hop=3)
@@ -679,15 +662,9 @@ class TestSignalProcessor(unittest.TestCase):
         center_element_index = 445
 
         xs = fem_data.convert_nodal2elemental('NODE', calc_average=True)
-        fem_data.elemental_data.update({
-            'spatial_elemental_data':
-            FEMAttribute(
-                'spatial_elemental_data',
-                ids=fem_data.elements.ids,
-                data=np.stack(
-                    [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)
-            )
-        })
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'spatial_elemental_data': np.stack(
+                [2. * xs[:, 0], 3. * xs[:, 1] + 4. * xs[:, 2]**2], axis=1)})
         actual_grads = fem_data.calculate_elemental_spatial_gradients(
             fem_data.elemental_data.get_attribute_data(
                 'spatial_elemental_data'), n_hop=3,
