@@ -341,9 +341,13 @@ class FEMAttributes:
         None
         """
         if isinstance(dict_attributes, dict):
+            for v in dict_attributes.values():
+                if not isinstance(v, self.attribute_class):
+                    raise ValueError(
+                        f"{v} is not an instance of {self.attribute_class}")
             self.data.update(dict_attributes)
         elif isinstance(dict_attributes, FEMAttributes):
-            self.data.update(dict_attributes.data)
+            self.update(dict_attributes.data)
         else:
             raise ValueError(f"Unknown dict type for: {dict_attributes}")
         if self.has_material(dict_attributes):

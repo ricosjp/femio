@@ -37,8 +37,7 @@ class GeometryProcessorMixin:
         if return_abs_area:
             areas = np.abs(areas)
 
-        self.elemental_data.update({
-            'area': FEMAttribute('Area', self.elements.ids, areas)})
+        self.elemental_data.update_data(self.elements.ids, {'area': areas})
         return areas
 
     def _calculate_element_areas_tri(self):
@@ -76,9 +75,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'edge_lengths':
-            FEMAttribute('EdgeLengths', self.elements.ids, edge_lengths)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'edge_lengths': edge_lengths})
         return edge_lengths
 
     def _calculate_edge_lengths_polygon(self):
@@ -109,8 +107,7 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'angles': FEMAttribute('Angles', self.elements.ids, angles)})
+        self.elemental_data.update_data(self.elements.ids, {'angles': angles})
         return angles
 
     def _calculate_angles_polygon(self):
@@ -147,9 +144,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'jacobian':
-            FEMAttribute('Jacobian', self.elements.ids, jacobians)})
+        self.elemental_data.update_data(
+            self.elements.ids, {'jacobian': jacobians})
         return jacobians
 
     def _calculate_jacobians_quad(self):
@@ -216,8 +212,7 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError
 
-        self.elemental_data.update({
-            'normal': FEMAttribute('normal', self.elements.ids, normals)})
+        self.elemental_data.update_data(self.elements.ids, {'normal': normals})
         return normals
 
     def extract_direction_feature(self, vectors, *, skip_normalization=False):
@@ -366,8 +361,7 @@ class GeometryProcessorMixin:
         if return_abs_volume:
             volumes = np.abs(volumes)
 
-        self.elemental_data.update({
-            'volume': FEMAttribute('volume', elements.ids, volumes)})
+        self.elemental_data.update_data(elements.ids, {'volume': volumes})
         return volumes
 
     def _calculate_element_volumes_tet_like(self, elements):
