@@ -4,7 +4,6 @@ import functools
 import numpy as np
 import scipy.sparse as sp
 
-from .fem_attribute import FEMAttribute
 from . import functions
 
 
@@ -32,7 +31,7 @@ class SignalProcessorMixin:
             nodal_data = data
         if len(nodal_data) != len(self.nodes.ids):
             raise ValueError(
-                f"Input nodal data length is not the same as that of node")
+                "Input nodal data length is not the same as that of node")
 
         elemental_data = np.array([
             nodal_data[
@@ -107,16 +106,10 @@ class SignalProcessorMixin:
              np.zeros((len(self.elements.ids), 3))],
             axis=1)  # Omit the third axis to be right-handed system
 
-        self.elemental_data.update({
-            'linear_thermal_expansion_coefficient':
-            FEMAttribute(
-                'linear_thermal_expansion_coefficient',
-                self.elements.ids, ws)})
-        self.elemental_data.update({
-            'ORIENTATION':
-            FEMAttribute(
-                'ORIENTATION',
-                self.elements.ids, orients)})
+        self.elemental_data.update_data(
+            self.elements.ids, {
+                'linear_thermal_expansion_coefficient': ws,
+                'ORIENTATION': orients})
         return
 
     def convert_lte_local2global(self):
@@ -138,13 +131,9 @@ class SignalProcessorMixin:
              lte_mat[:, 0, 1] * 2, lte_mat[:, 1, 2] * 2, lte_mat[:, 0, 2] * 2],
             axis=1)
 
-        self.elemental_data.update(
-            {'linear_thermal_expansion_coefficient_full':
-             FEMAttribute(
-                 'linear_thermal_expansion_coefficient_full',
-                 self.elements.ids, lte_full)
-             }
-        )
+        self.elemental_data.update_data(
+            self.elements.ids,
+            {'linear_thermal_expansion_coefficient_full': lte_full})
 
         self.material_overwritten = True
         return
@@ -194,32 +183,15 @@ class SignalProcessorMixin:
         else:
             raise ValueError(f"Unknown name_variable: {name_variable}")
 
-        self.elemental_data.update(
+        self.elemental_data.update_data(
+            self.elements.ids,
             {
-                f"principal_{name_variable}_1":
-                FEMAttribute(
-                    f"principal_{name_variable}_1",
-                    self.elements.ids, vectors[:, :3]),
-                f"principal_{name_variable}_2":
-                FEMAttribute(
-                    f"principal_{name_variable}_2",
-                    self.elements.ids, vectors[:, 3:6]),
-                f"principal_{name_variable}_3":
-                FEMAttribute(
-                    f"principal_{name_variable}_3",
-                    self.elements.ids, vectors[:, 6:]),
-                f"principal_{name_variable}_value_1":
-                FEMAttribute(
-                    f"principal_{name_variable}_value_1",
-                    self.elements.ids, values[:, 0]),
-                f"principal_{name_variable}_value_2":
-                FEMAttribute(
-                    f"principal_{name_variable}_value_2",
-                    self.elements.ids, values[:, 1]),
-                f"principal_{name_variable}_value_3":
-                FEMAttribute(
-                    f"principal_{name_variable}_value_3",
-                    self.elements.ids, values[:, 2]),
+                f"principal_{name_variable}_1": vectors[:, :3],
+                f"principal_{name_variable}_2": vectors[:, 3:6],
+                f"principal_{name_variable}_3": vectors[:, 6:],
+                f"principal_{name_variable}_value_1": values[:, 0],
+                f"principal_{name_variable}_value_2": values[:, 1],
+                f"principal_{name_variable}_value_3": values[:, 2],
             }
         )
 
