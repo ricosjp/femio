@@ -82,6 +82,7 @@ def generate_random_mesh(
             {'strip': strip_filter[filter_, None].astype(int)})
 
     fd.make_elements_positive()
+    fd.remove_useless_nodes()
     return fd
 
 

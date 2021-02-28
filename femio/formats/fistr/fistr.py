@@ -500,7 +500,7 @@ class FrontISTRData(FEMData):
         conductivity_types = conductivities.extract_captures(r'TYPE=(\w+)')
         if len(conductivities) > 1:
             raise NotImplementedError(
-                f"# of materials of CONDUCTIVITY should be 1")
+                "# of materials of CONDUCTIVITY should be 1")
         conductivity_type = conductivity_types.iloc[0]
         if not np.all(conductivity_types == conductivity_type):
             raise NotImplementedError('Mixed type for CONDUCTIVITY in cnt')
@@ -710,7 +710,7 @@ class FrontISTRData(FEMData):
         raw_data = string_series[component_num_end+n_variables:]
         stride = int(len(raw_data) / len_data)
         if stride * len_data != len(raw_data):
-            raise ValueError(f"res file format not supported.")
+            raise ValueError("res file format not supported.")
 
         ids = raw_data[0::stride]
         data = st.StringSeries.connect_all(
