@@ -215,4 +215,13 @@ class TestVTK(unittest.TestCase):
         self.assertEqual(fem_data.elements.element_type, 'mix')
         np.testing.assert_almost_equal(
             fem_data.calculate_element_volumes(),
-            np.ones((2, 1)) * .1 * .1 * .005)
+            np.concatenate([
+                np.ones((2, 1)) * .3 * .3 * .1,
+                np.array([[.1 * .1 * .1]]),
+                np.ones((2, 1)) * .3 * .3 * .1,
+                np.ones((2, 1)) * .1 / 6 * (.4 * .3 * 2 + (.3**2 + .4**2)*2),
+                np.array([[.1 * .1 * .1]]),
+                np.ones((2, 1)) * .1 / 6 * (.4 * .3 * 2 + (.3**2 + .4**2)*2),
+                np.ones((4, 1)) * (.3*.3 + .02) * .1,
+                np.ones((4, 1)) * ((.3 + .4) * .3 * .1 / 2 + .02 * .1)
+            ]))

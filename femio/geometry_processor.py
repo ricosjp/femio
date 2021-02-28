@@ -354,8 +354,7 @@ class GeometryProcessorMixin:
         elif element_type == 'mix':
             volumes = np.concatenate([
                 self.calculate_element_volumes(elements=e)
-                for e in self.elements.values()])
-            raise ValueError(volumes)
+                for e in self.elements.values()], axis=0)
         else:
             raise NotImplementedError
 
@@ -368,7 +367,7 @@ class GeometryProcessorMixin:
             volumes = np.abs(volumes)
 
         self.elemental_data.update({
-            'volume': FEMAttribute('Volume', self.elements.ids, volumes)})
+            'volume': FEMAttribute('volume', elements.ids, volumes)})
         return volumes
 
     def _calculate_element_volumes_tet_like(self, elements):
