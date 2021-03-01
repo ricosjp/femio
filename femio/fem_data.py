@@ -769,10 +769,7 @@ class FEMData(
             positions = self.convert_nodal2elemental(
                 self.nodes.data, calc_average=True)
 
-        nnzs = [adj.getnnz() for adj in adjs]
-        ref_adj = adjs[np.argmax(nnzs)]
-        aligned_adjs = [functions.align_nnz(adj, ref_adj) for adj in adjs]
-
+        aligned_adjs = functions.align_nnz(adjs)
         graphs = [
             nx.from_scipy_sparse_matrix(
                 adj, parallel_edges=False, create_using=nx.DiGraph)

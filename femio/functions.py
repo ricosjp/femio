@@ -32,30 +32,40 @@ def normalize(array, keep_zeros=False):
     return array / norms
 
 
-def align_nnz(a, ref):
-    """Align a sparse matrix a to have the same nnz profile as ref.
+def align_nnz(sparses):
+    """Align a sparse matrices to have the same nnz profile as ref.
 
     Parameters
     ----------
-    a: scipy.sparse.csr_matrix or scipy.sparse.coo_matrix
-    ref: scipy.sparse.csr_matrix or scipy.sparse.coo_matrix
+    sparses: List[scipy.sparse.csr_matrix] or List[scipy.sparse.coo_matrix]
 
     Returns
     -------
     scipy.sparse.csr_matrix
     """
-    if isinstance(a, sp.csr_matrix) and isinstance(ref, sp.csr_matrix):
-        dummy_array = np.ones(len(ref.data))
-        dummy_csr = sp.csr_matrix(
-            (dummy_array, ref.indices, ref.indptr), shape=ref.shape)
-        added_a = a + dummy_csr
-        reduced_array = added_a.data - dummy_array
-        aligned_a = sp.csr_matrix(
-            (reduced_array, ref.indices, ref.indptr), shape=ref.shape)
-        return aligned_a
+    shapes = np.array([s.shape for s in sparses])
+    if not np.all(shapes == shapes[0]):
+        raise ValueError(f"Inputs should have the same shape: {shapes}")
 
-    if isinstance(a, sp.coo_matrix) and isinstance(ref, sp.coo_matrix):
-        return align_nnz(a.tocsr(), ref.tocsr())
+    if np.all([isinstance(s, sp.csr_matrix) for s in sparses]):
+        # Determine dummy_scale to avoid zero after summation
+        dummy_scale = np.abs(np.min([np.min(s) for s in sparses])) * 2 + 1
+        dummy_csr = sp.csr_matrix(sparses[0].shape)
+        for s in sparses:
+            dummy_csr = dummy_csr + sp.csr_matrix(
+                (np.ones(len(s.data)) * dummy_scale, s.indices, s.indptr),
+                shape=s.shape)
+        dummy_csr.sort_indices()
+        dummy_array = dummy_csr.data
+        added_sparses = [s + dummy_csr for s in sparses]
+        for added_sparse in added_sparses:
+            added_sparse.sort_indices()
+        reduced_arrays = [a_s.data - dummy_array for a_s in added_sparses]
+        aligned_sparses = [
+            sp.csr_matrix(
+                (reduced_array, dummy_csr.indices, dummy_csr.indptr),
+                shape=dummy_csr.shape) for reduced_array in reduced_arrays]
+        return aligned_sparses
+
     else:
-        raise NotImplementedError(
-            f"Type: {a.__class__}, {ref.__class__}")
+        return align_nnz([s.tocsr() for s in sparses])

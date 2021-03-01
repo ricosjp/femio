@@ -15,9 +15,9 @@ class TestFunctions(unittest.TestCase):
             np.testing.assert_almost_equal(np.linalg.norm(n), 1.)
 
     def test_align_nnz(self):
-        row = np.array([0, 2])
-        col = np.array([0, 1])
-        data = np.array([10, 20])
+        row = np.array([0, 1, 2])
+        col = np.array([0, 2, 1])
+        data = np.array([10, 20, 30])
         csr = sp.csr_matrix((data, (row, col)), shape=(3, 3))
 
         ref_row = np.array([0, 1, 2, 2])
@@ -25,13 +25,26 @@ class TestFunctions(unittest.TestCase):
         ref_data = np.array([1, 2, 0, 8])
         ref_csr = sp.csr_matrix((ref_data, (ref_row, ref_col)), shape=(3, 3))
 
-        aligned_csr = functions.align_nnz(csr, ref_csr)
+        aligned_csr, aligned_ref_csr = functions.align_nnz([csr, ref_csr])
 
-        desired_row = np.array([0, 1, 2, 2])
-        desired_col = np.array([0, 1, 1, 2])
-        desired_data = np.array([10, 0, 20, 0])
+        desired_row = np.array([0, 1, 1, 2, 2])
+        desired_col = np.array([0, 1, 2, 1, 2])
+        desired_data = np.array([10, 0, 20, 30, 0])
         desired_csr = sp.csr_matrix(
             (desired_data, (desired_row, desired_col)), shape=(3, 3))
         np.testing.assert_array_equal(aligned_csr.data, desired_csr.data)
         np.testing.assert_array_equal(aligned_csr.indices, desired_csr.indices)
         np.testing.assert_array_equal(aligned_csr.indptr, desired_csr.indptr)
+
+        desired_ref_row = np.array([0, 1, 1, 2, 2])
+        desired_ref_col = np.array([0, 1, 2, 1, 2])
+        desired_ref_data = np.array([1, 2, 0, 0, 8])
+        desired_ref_csr = sp.csr_matrix(
+            (desired_ref_data, (desired_ref_row, desired_ref_col)),
+            shape=(3, 3))
+        np.testing.assert_array_equal(
+            aligned_ref_csr.data, desired_ref_csr.data)
+        np.testing.assert_array_equal(
+            aligned_ref_csr.indices, desired_ref_csr.indices)
+        np.testing.assert_array_equal(
+            aligned_ref_csr.indptr, desired_ref_csr.indptr)
