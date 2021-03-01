@@ -518,3 +518,16 @@ class TestFEMData(unittest.TestCase):
                 [15.379292],
                 [16.664873]])
         )
+
+    def test_generate_graph_fem_data(self):
+        fem_data = FEMData.read_directory(
+            'vtk', 'tests/data/vtk/mix_hex_hexprism',
+            read_npy=False, save=False)
+        grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
+            mode='nodal', n_hop=1, moment_matrix=True)
+        graph_fem_data = fem_data.generate_graph_fem_data(grads, mode='nodal')
+        graph_fem_data.write(
+            'ucd', 'tests/data/ucd/write_graph_fem_data/mesh.inp',
+            overwrite=True)
+        self.assertEqual(
+            len(graph_fem_data.elements), np.max([g.getnnz() for g in grads]))
