@@ -49,7 +49,7 @@ pages:
 .deploy:pypi:
   stage: deploy
   script:
-    - pip install --upgrade pip poetry
+    - poetry run pip install --upgrade pip poetry
     - poetry version $VERSION
     - poetry build -f wheel
     - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
