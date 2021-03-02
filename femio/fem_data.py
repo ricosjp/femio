@@ -3,9 +3,11 @@ from pathlib import Path
 import re
 
 import meshio
+import networkx as nx
 import numpy as np
 
 from . import config
+from . import functions
 from .fem_attribute import FEMAttribute
 from .fem_attributes import FEMAttributes
 from .fem_elemental_attribute import FEMElementalAttribute
@@ -579,22 +581,63 @@ class FEMData(
             self.nodes.data[useful_indices])
         for key, value in self.nodal_data.items():
             self.nodal_data[key] = FEMAttribute(
-              value.name, self.nodes.ids, value.data[useful_indices])
+                value.name, self.nodes.ids, value.data[useful_indices])
         return
 
     def to_first_order(self):
-        """Convert to first order data"""
+        """Convert the FEMData object to the first order data.
+
+        Returns
+        -------
+        FEMData:
+            First order FEMData object.
+        """
         filter_ = self.filter_first_order_nodes()
         nodes = FEMAttribute(
-            'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_])
+            'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_].values)
         elements = self.elements.to_first_order()
         nodal_data = FEMAttributes({
-            k: FEMAttribute(k, v.ids[filter_], v.loc[filter_])
-            for k, v in self.nodal_data.items()})
+            k: FEMAttribute(
+                k, v.ids[filter_], v.loc[filter_].values,
+                time_series=v.time_series)
+            for k, v in self.nodal_data.items() if len(filter_) == len(v.ids)})
         elemental_data = self.elemental_data
         return FEMData(
             nodes, elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+
+    def to_surface(self):
+        """Convert the FEMData object to the surface data.
+
+        Returns
+        -------
+        FEMData:
+            Surface FEMData object.
+        """
+        surface_indices, _ = self.extract_surface()
+        if isinstance(surface_indices, dict):
+            unique_indices = np.unique(np.concatenate([
+                np.ravel(s) for s in surface_indices.values()]))
+            surface_ids = {
+                t: self.nodes.ids[ids] for t, ids in surface_indices.items()}
+        else:
+            unique_indices = np.unique(surface_indices)
+            surface_ids = self.nodes.ids[surface_indices]
+
+        node_ids = self.nodes.ids[unique_indices]
+        nodes = FEMAttribute(
+            'NODE', node_ids, self.nodes.iloc[unique_indices].values)
+        elements = self.elements.to_surface(surface_ids)
+        n_node = len(self.nodes)
+        nodal_data = FEMAttributes({
+            k: FEMAttribute(
+                k, node_ids, v.iloc[unique_indices].values,
+                time_series=v.time_series)
+            for k, v in self.nodal_data.items() if len(v) == n_node})
+
+        return FEMData(
+            nodes=nodes, elements=elements, nodal_data=nodal_data,
+            elemental_data={})
 
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([
@@ -691,3 +734,67 @@ class FEMData(
                 raise ValueError(
                     f"Unknown data block number: {str_data_block_number}")
         return
+
+    def add_static_material(self):
+        """Add simple material data for static analysis."""
+        self.materials.update_data(
+            'M1',
+            {'Young_modulus': np.array([1.]), 'Poisson_ratio': np.array([.3])})
+        self.sections.update_data(
+            'M1', {'TYPE': 'SOLID', 'EGRP': 'ALL'})
+        return
+
+    def generate_graph_fem_data(
+            self, adjs, *, mode='nodal', attribute_name='data'):
+        """Generate FEMData of the specified graphs.
+
+        Parameters
+        ----------
+        adjs: List[scipy.sparse]
+            Adjacency matrices with the same shape and the same non-zero
+            profile.
+        mode: str, optional
+            'nodal' or 'elemental'.
+        attribute_name: str, optional
+            The name of the edge feature. The default is 'data'.
+
+        Returns
+        -------
+        graph_fem_data: femio.FEMData
+            FEMData object of the specified graph.
+        """
+        if mode == 'nodal':
+            positions = self.nodes.data
+        elif mode == 'elemental':
+            positions = self.convert_nodal2elemental(
+                self.nodes.data, calc_average=True)
+
+        aligned_adjs = functions.align_nnz(adjs)
+        graphs = [
+            nx.from_scipy_sparse_matrix(
+                adj, parallel_edges=False, create_using=nx.DiGraph)
+            for adj in aligned_adjs]
+        edge_attributes = np.stack([
+            np.array(list(nx.get_edge_attributes(graph, 'weight').values()))
+            for graph in graphs], axis=-1)
+
+        middle_positions = np.array([
+            (positions[start] + positions[end]) / 2
+            for start, end in graphs[0].edges()])
+        all_positions = np.concatenate(
+            [positions, middle_positions], axis=0)
+
+        positions_attribute = FEMAttribute(
+            'NODE', ids=np.arange(len(all_positions))+1,
+            data=all_positions)
+        n_positions = len(positions)
+        segments = np.array([
+            [edge[0], n_positions + i]
+            for i, edge in enumerate(graphs[0].edges())]) + 1
+        segments_attribute = FEMAttribute(
+            'line', ids=np.arange(len(segments))+1, data=segments)
+        graph_fem_data = FEMData(
+            nodes=positions_attribute, elements={'line': segments_attribute})
+        graph_fem_data.elemental_data.update_data(
+            graph_fem_data.elements.ids, {attribute_name: edge_attributes})
+        return graph_fem_data

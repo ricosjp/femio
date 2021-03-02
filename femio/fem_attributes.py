@@ -55,9 +55,9 @@ class FEMAttributes:
             attribute_class = FEMAttribute
 
         split_dict_data = cls._split_dict_data(dict_data)
-        return cls([
-            attribute_class.from_dict(k, v)
-            for k, v in split_dict_data.items()], **kwargs)
+        return cls({
+            k: attribute_class.from_dict(k, v)
+            for k, v in split_dict_data.items()}, **kwargs)
 
     @classmethod
     def _split_dict_data(cls, dict_data):
@@ -80,7 +80,7 @@ class FEMAttributes:
                     if attribute_name not in elemental_data:
                         elemental_data[attribute_name] = {}
                     elemental_data[attribute_name].update({
-                        cell_type:
+                        config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[cell_type]:
                         FEMAttribute(attribute_name, ids, attribute_data)})
             attributes = {
                 attribute_name:
@@ -238,7 +238,7 @@ class FEMAttributes:
                 f"Cannot overwrite the existing attribute: {key}.")
         if not self.are_same_lengths():
             raise ValueError(
-                f"Attributes have various lengths. Specify IDs.")
+                "Attributes have various lengths. Specify IDs.")
 
         if name is None:
             name = key
@@ -341,9 +341,13 @@ class FEMAttributes:
         None
         """
         if isinstance(dict_attributes, dict):
+            for v in dict_attributes.values():
+                if not isinstance(v, self.attribute_class):
+                    raise ValueError(
+                        f"{v} is not an instance of {self.attribute_class}")
             self.data.update(dict_attributes)
         elif isinstance(dict_attributes, FEMAttributes):
-            self.data.update(dict_attributes.data)
+            self.update(dict_attributes.data)
         else:
             raise ValueError(f"Unknown dict type for: {dict_attributes}")
         if self.has_material(dict_attributes):
@@ -372,7 +376,7 @@ class FEMAttributes:
         dict_attributes = {
             name: self.attribute_class(
                 name, ids=dict_attribute_ids[name],
-                data=dict_attribute_data[name], silent=True)
+                data=dict_attribute_data[name], silent=True, time_series=True)
             for name in attribute_names}
         self.update(dict_attributes)
         return
@@ -395,7 +399,7 @@ class FEMAttributes:
         if name not in self:
             raise ValueError(f"{name} not in the data {self.keys()}")
         if ids is None:
-            self[name].data = data
+            self[name]._data = data
         else:
             fem_attribute = FEMAttribute(name, ids=ids, data=data)
             self[name] = fem_attribute
@@ -417,11 +421,11 @@ class FEMAttributes:
         """
         for attribute_name, attribute_value in data_dict.items():
             if attribute_name in self:
-                self.data[attribute_name].update(
+                self[attribute_name].update(
                     ids, attribute_value, allow_overwrite=allow_overwrite)
             else:
-                self.data[attribute_name] = FEMAttribute(
-                    attribute_name, ids, attribute_value)
+                self[attribute_name] = self.attribute_class(
+                    name=attribute_name, ids=ids, data=attribute_value)
         if self.has_material(data_dict):
             self.material_overwritten = True
         return

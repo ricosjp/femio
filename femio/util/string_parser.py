@@ -108,7 +108,13 @@ class StringSeries(pd.Series):
             str_format = '%.8E'
         if len(array.shape) == 1:
             if str_format is None:
-                return cls(array.astype(str))
+                try:
+                    str_array = array.astype(str)
+                    return cls(str_array)
+                except ValueError:
+                    return cls.read_array(
+                        array[:, None], delimiter=delimiter,
+                        str_format=str_format)
             else:
                 sio = StringIO()
                 np.savetxt(sio, array, fmt=str_format)

@@ -25,6 +25,8 @@ class FEMElementalAttribute(dict):
         'prism2',
         'hex',
         'hex2',
+        'hexprism',
+        'unknown',
     ]
 
     @classmethod
@@ -62,7 +64,7 @@ class FEMElementalAttribute(dict):
         """
         split_dict_data = cls._split_dict_data(dict_data)
         return cls(name, {
-            element_type: FEMAttribute.from_dict(name, v)
+            element_type: FEMAttribute.from_dict(name, v, **kwargs)
             for element_type, v in split_dict_data.items()}, **kwargs)
 
     @classmethod
@@ -85,11 +87,11 @@ class FEMElementalAttribute(dict):
 
     @classmethod
     def from_meshio(cls, cell_data):
-        # NOTE: So far only support tetra10
         return FEMElementalAttribute('ELEMENT', {
             config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[k]:
             cls._from_meshio(k, v)
-            for k, v in cell_data.items() if k in ['tetra', 'tetra10']})
+            for k, v in cell_data.items()
+            if k in ['tetra', 'tetra10', 'hexahedron', 'hexa_prism']})
 
     @classmethod
     def _from_meshio(cls, cell_type, data):
@@ -97,7 +99,9 @@ class FEMElementalAttribute(dict):
             cell = cls._from_meshio_tet2(data)
         else:
             cell = data
-        return FEMAttribute(cell_type, ids=np.arange(len(cell))+1, data=cell+1)
+        return FEMAttribute(
+            config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[cell_type],
+            ids=np.arange(len(cell))+1, data=cell+1)
 
     @classmethod
     def _from_meshio_tet2(cls, data):
@@ -108,7 +112,8 @@ class FEMElementalAttribute(dict):
 
     def __init__(
             self, name, data=None, *,
-            ids=None, use_object=False, silent=False):
+            ids=None, use_object=False, silent=False, time_series=False,
+            element_type=None, **kwargs):
         """Create elements data from FEMAttribute object or dict of
         FEMAttribute objects.
 
@@ -120,56 +125,169 @@ class FEMElementalAttribute(dict):
             (n_element, )-shaped ndarray of element IDs.
         use_object: bool, optional [False]
             If True, use object for values.
+        time_series: bool, optional [False]
+            If True, consider the first index represents the temporal
+            direction.
+        element_type: str, optional [None]
+            The type of element. Is is used when the input data is np.array.
         """
+        self.time_series = time_series
         if isinstance(data, FEMAttribute):
             element_type = self.detect_element_type(data.data)
             self.update({element_type: data})
         elif isinstance(data, FEMElementalAttribute):
             self.update(data)
         elif isinstance(data, dict):
+            data = self._validate_keys(data)
             self.update(data)
         elif isinstance(data, np.ndarray):
-            self.update({'unknown': FEMAttribute(name, ids=ids, data=data)})
+            if ids is None:
+                ids = np.arange(len(data)) + 1
+            if element_type is None:
+                element_type = 'unknown'
+            self.update({element_type: FEMAttribute(
+                name, ids=ids, data=data, time_series=self.time_series)})
         else:
             raise ValueError(f"Invalid input type: {data.__class__}")
 
         self.name = name
+        self._update_self()
+
+        return
+
+    def _validate_keys(self, dict_data):
+        for k in dict_data.keys():
+            if k not in self.ELEMENT_TYPES:
+                if len(dict_data) > 1:
+                    raise ValueError(f"Unsupported element type: {k}")
+                else:
+                    return {'unknown': list(dict_data.values())[0]}
+        return dict_data
+
+    def _update_self(self):
         if self.get_n_element_type() == 1:
             for k, v in self.items():
-                self.ids = v.ids
-                self.data = v.data
-                self.element_type = k
-                self.types = np.array([k] * len(self.ids))
+                self._ids = v.ids
+                self._data = v.data
+                self._element_type = k
+                self._types = np.array([k] * len(self.ids))
         else:
-            self.element_type = 'mix'
+            self._element_type = 'mix'
             ids = np.array([
-                i
-                for t in self.ELEMENT_TYPES if t in self
-                for i in self[t].ids])
+                i for t in self.keys() for i in self[t].ids])
             data = np.array([
-                d
-                for t in self.ELEMENT_TYPES if t in self
+                d for t in self.keys()
                 for d in self[t].data], dtype=object)
             types = np.array([
                 t
-                for t in self.ELEMENT_TYPES if t in self
-                for _ in self[t].ids])
+                for t in self.keys() for _ in self[t].ids])
             sorted_indices = np.argsort(ids)
 
-            self.ids = ids[sorted_indices]
-            self.data = data[sorted_indices]
-            self.types = types[sorted_indices]
+            self._ids = ids[sorted_indices]
+            self._data = data[sorted_indices]
+            self._types = types[sorted_indices]
             if len(np.unique(self.ids)) != len(self.data):
-                raise ValueError('Element ID is not unique')
+                print('Making element IDs unique')
+                self._unique_element_ids()
+                self._update_self()
+                return
 
-        self.unique_types = np.unique(self.types)
-        self.id2index = pd.DataFrame(
+        self._unique_types = np.unique(self.types)
+        self._id2index = pd.DataFrame(
             data=np.arange(len(self.ids)), index=self.ids)
-        self.ids_types = pd.DataFrame(
+        self._ids_types = pd.DataFrame(
             data=self.types, index=self.ids)
-        self.dict_type_ids = {
+        self._dict_type_ids = {
             key: value.ids for key, value in self.items()}
 
+        return
+
+    def keys(self):
+        return [t for t in self.ELEMENT_TYPES if t in self]
+
+    def values(self):
+        return [self[t] for t in self.ELEMENT_TYPES if t in self]
+
+    def items(self):
+        return [(t, self[t]) for t in self.ELEMENT_TYPES if t in self]
+
+    def _unique_element_ids(self):
+        offset = 0
+        for element_type in self.keys():
+            self[element_type].ids += offset
+            offset += len(self[element_type])
+        return
+
+    @property
+    def ids(self):
+        return self._ids
+
+    @property
+    def data(self):
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        if self.get_n_element_type() == 1:
+            self[list(self.keys())[0]].data = value
+        else:
+            raise NotImplementedError
+        self._update_self()
+        return
+
+    @property
+    def element_type(self):
+        return self._element_type
+
+    @property
+    def types(self):
+        return self._types
+
+    @property
+    def unique_types(self):
+        return self._unique_types
+
+    @property
+    def id2index(self):
+        return self._id2index
+
+    @property
+    def ids_types(self):
+        return self._ids_types
+
+    @property
+    def dict_type_ids(self):
+        return self._dict_type_ids
+
+    def update(self, *args, **kwargs):
+        if isinstance(args[0], dict):
+            dict_data = self._validate_keys(args[0])
+            if len(args) > 1:
+                super().update(dict_data, *args[1:], **kwargs)
+            else:
+                super().update(dict_data, **kwargs)
+        else:
+            self._update(*args, **kwargs)
+        return
+
+    def _update(self, ids, values, *, allow_overwrite=False):
+        """Update FEMElementalAttribute with new ids and values.
+
+        Parameters
+        ----------
+        ids: List[str], List[int], or int
+            IDs of new rows.
+        values: numpy.ndarray, float, or int
+            Values of new rows.
+        allow_overwrite: bool, optional
+            If True, allow overwrite existing rows. The default is False.
+        """
+        if self.get_n_element_type() == 1:
+            self[list(self.keys())[0]].update(
+                ids, values, allow_overwrite=allow_overwrite)
+        else:
+            raise NotImplementedError
+        self._update_self()
         return
 
     def get_n_element_type(self):
@@ -177,6 +295,26 @@ class FEMElementalAttribute(dict):
 
     def __len__(self):
         return len(self.ids)
+
+    def _infer_type(self, data):
+        n_node_per_element = data.shape[-1]
+        if n_node_per_element == 1:
+            return 'pt'
+        elif n_node_per_element == 2:
+            return 'line'
+        elif n_node_per_element == 3:
+            return 'tri'
+        elif n_node_per_element == 4:
+            raise ValueError(
+                'When # of nodes per element is 4, explicitly input '
+                'element_type.')
+        elif n_node_per_element == 8:
+            return 'hex'
+        elif n_node_per_element == 10:
+            return 'tet2'
+        else:
+            raise ValueError(
+                f"Unexpected # of nodes per element: {n_node_per_element}")
 
     def get_attribute_ids(self):
         return self.ids
@@ -198,6 +336,41 @@ class FEMElementalAttribute(dict):
             return element_data[:, :8]
         else:
             raise ValueError(f"Unsupported type: {element_type}")
+
+    def to_surface(self, surface_ids):
+        """Convert the FEMElementalAttribute object to surface.
+
+        Parameters
+        ----------
+        surface_ids: numpy.ndarray
+            [n_facet, n_node_per_facet]-shaped array of surface IDs.
+
+        Returns
+        -------
+        FEMElementalAttribute:
+            FEMElementalAttribute object of the surface.
+        """
+        if isinstance(surface_ids, dict):
+            surfaces = [
+                self._generate_surface(ids) for ids in surface_ids.values()]
+            return FEMElementalAttribute('ELEMENT', {
+                s.name: s for s in surfaces})
+        else:
+            s = self._generate_surface(surface_ids)
+            return FEMElementalAttribute('ELEMENT', {s.name: s})
+
+    def _generate_surface(self, surface_ids):
+        n_node_per_element = surface_ids.shape[1]
+        if n_node_per_element == 3:
+            element_type = 'tri'
+        elif n_node_per_element == 4:
+            element_type = 'quad'
+        else:
+            raise NotImplementedError(
+                'Unsupported # of nodes per elements: '
+                f"{self.elements.data.shape[1]}")
+        return FEMAttribute(
+            element_type, np.arange(len(surface_ids))+1, surface_ids)
 
     def detect_element_type(self, element_data):
         n_node_per_element = element_data.shape[1]

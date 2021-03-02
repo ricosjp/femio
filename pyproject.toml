@@ -14,7 +14,7 @@ matplotlib   = "^3.1"
 meshio       = "^3.3"
 networkx     = "^2.4"
 numpy        = "^1.17"
-numpy-stl    = "^2.10"
+numpy-stl    = "^2.13"
 pandas       = "^1.0"
 scikit-learn = "^0.22.0"
 scipy        = "^1.4"
@@ -25,6 +25,7 @@ PyQt5 = ["PyQt5"]
 
 [tool.poetry.dev-dependencies]
 pylint = "^2.4"
+autopep8 = "^1.4"
 pytest = "^5.3"
 
 [tool.poetry.scripts]

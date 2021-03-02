@@ -131,7 +131,7 @@ class FrontISTRData(FEMData):
         base_name = os.path.dirname(
             self.file_names.find_match(r'\.' + ext, convert_values=True)[0])
         str_data[ext] = str_data[ext].expand_include(
-                r'!INCLUDE\s*,\s*INPUT\s*=\s*([\w\/\.]+)', base_name)
+            r'!INCLUDE\s*,\s*INPUT\s*=\s*([\w\/\.]+)', base_name)
         return str_data
 
     def _read_msh(self, string_series):
@@ -259,7 +259,7 @@ class FrontISTRData(FEMData):
             list_ids = [
                 self.element_groups[section_value]
                 for section_value
-                in self.sections.get_attribute_data('EGRP')[:, 0]]
+                in self.sections.get_attribute_data('EGRP')]
         return np.concatenate(list_ids)
 
     def _extract_material_values(self, property_name):
@@ -269,7 +269,7 @@ class FrontISTRData(FEMData):
                 np.atleast_2d(material.loc[material_name].values),
                 len(self.element_groups[element_group_name]), axis=0)
             for material_name, element_group_name
-            in zip(self.sections['EGRP'].ids, self.sections['EGRP'].data[:, 0])
+            in zip(self.sections['EGRP'].ids, self.sections['EGRP'].data)
         ])
 
     def _extract_setting_value_unit(self, item_name):
@@ -442,8 +442,8 @@ class FrontISTRData(FEMData):
             n_filled_temp = len(self.nodal_data['INITIAL_TEMPERATURE'].data)
             if (n_node != n_filled_temp):
                 initial_temperatures = np.concatenate(
-                        [self.nodal_data['INITIAL_TEMPERATURE'].data,
-                         np.zeros([n_node - n_filled_temp, 1])])
+                    [self.nodal_data['INITIAL_TEMPERATURE'].data,
+                     np.zeros([n_node - n_filled_temp, 1])])
                 self.nodal_data['INITIAL_TEMPERATURE'] = FEMAttribute(
                     'INITIAL_TEMPERATURE', self.nodes.ids,
                     initial_temperatures)
@@ -500,7 +500,7 @@ class FrontISTRData(FEMData):
         conductivity_types = conductivities.extract_captures(r'TYPE=(\w+)')
         if len(conductivities) > 1:
             raise NotImplementedError(
-                f"# of materials of CONDUCTIVITY should be 1")
+                "# of materials of CONDUCTIVITY should be 1")
         conductivity_type = conductivity_types.iloc[0]
         if not np.all(conductivity_types == conductivity_type):
             raise NotImplementedError('Mixed type for CONDUCTIVITY in cnt')
@@ -680,15 +680,14 @@ class FrontISTRData(FEMData):
                 i_go_back += 1
             elemental_data_start = ind_clusters[1][0] - i_go_back + 1
             elemental_data = st.StringSeries.read_array(
-                    res_contents[elemental_data_start:])
+                res_contents[elemental_data_start:])
             nodal_data = st.StringSeries.read_array(
                 res_contents[:elemental_data_start])
 
         else:
             # Only nodal data exists
             elemental_data = None
-            nodal_data = st.StringSeries.read_array(
-                    res_contents)
+            nodal_data = st.StringSeries.read_array(res_contents)
 
         return nodal_data, elemental_data
 
@@ -711,14 +710,14 @@ class FrontISTRData(FEMData):
         raw_data = string_series[component_num_end+n_variables:]
         stride = int(len(raw_data) / len_data)
         if stride * len_data != len(raw_data):
-            raise ValueError(f"res file format not supported.")
+            raise ValueError("res file format not supported.")
 
         ids = raw_data[0::stride]
         data = st.StringSeries.connect_all(
             [raw_data[s::stride] for s in range(1, stride)], delimiter=' ')
         formatted_data = ids.connect(data, delimiter=' ')
         dict_fem_attribute = formatted_data.to_dict_fem_attributes(
-                variable_names, component_nums, delimiter=' ')
+            variable_names, component_nums, delimiter=' ')
         if is_elemental:
             return {
                 fem_attribute.name:
