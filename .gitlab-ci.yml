@@ -46,30 +46,36 @@ pages:
     - master
     - develop
 
-.deploy:pypi:
+# .deploy:pypi:
+#   stage: deploy
+#   script:
+#     - poetry run pip install --upgrade pip poetry
+#     - poetry version $VERSION
+#     - poetry build -f wheel
+#     - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
+#   retry: 2
+
+deploy:pypi:master:
   stage: deploy
+  before_script:
+    - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
   script:
     - poetry run pip install --upgrade pip poetry
     - poetry version $VERSION
     - poetry build -f wheel
     - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
-  retry: 2
-
-deploy:pypi:master:
-  extends: .deploy:pypi
-  inherit:
-    default: false
-  before_script:
-    - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
   only:
     - master
 
 deploy:pypi:tag:
-  extends: .deploy:pypi
-  inherit:
-    default: false
+  stage: deploy
   before_script:
     - export VERSION=$CI_COMMIT_REF_NAME
+  script:
+    - poetry run pip install --upgrade pip poetry
+    - poetry version $VERSION
+    - poetry build -f wheel
+    - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
   only:
     - tags
 
