@@ -33,14 +33,17 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            element_type = elements.name
+            if elements.name == 'ELEMENT':
+                element_type = elements.element_type
+            else:
+                element_type = elements.name
 
         if element_type in ['tri']:
             areas = self._calculate_element_areas_tri()
         elif element_type in ['quad']:
             areas = self._calculate_element_areas_quad()
         else:
-            raise NotImplementedError
+            raise NotImplementedError(element_type)
 
         # Handle negative volumes according to the settings
         if raise_negative_area and np.any(areas < 0.):
