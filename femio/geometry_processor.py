@@ -8,25 +8,36 @@ from . import functions
 
 class GeometryProcessorMixin:
 
-    @functools.lru_cache(maxsize=1)
     def calculate_element_areas(
-            self, *, raise_negative_area=False, return_abs_area=True):
+            self, *, raise_negative_area=False, return_abs_area=True,
+            elements=None):
         """Calculate areas of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated areas are returned and also stored in
         the fem_data.elemental_data dict with key = 'area' .
 
-        Args:
-            raise_negative_area: bool, optional [False]
-                If True, raise ValueError when negative area exists.
-            return_abs_area: bool, optional [True]
-                If True, return absolute area instead of signed area.
-        Returns:
-            areas: numpy.ndarray
+        Parameters
+        ----------
+        raise_negative_area: bool, optional [False]
+            If True, raise ValueError when negative area exists.
+        return_abs_area: bool, optional [True]
+            If True, return absolute area instead of signed area.
+        elements: femio.FEMAttribute
+            If fed, compute volumes for the fed one.
+
+        Returns
+        -------
+        areas: numpy.ndarray
         """
-        if self.elements.element_type in ['tri']:
+        if elements is None:
+            element_type = self.elements.element_type
+            elements = self.elements
+        else:
+            element_type = elements.name
+
+        if element_type in ['tri']:
             areas = self._calculate_element_areas_tri()
-        elif self.elements.element_type in ['quad']:
+        elif element_type in ['quad']:
             areas = self._calculate_element_areas_quad()
         else:
             raise NotImplementedError
@@ -283,37 +294,54 @@ class GeometryProcessorMixin:
         vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
         return vectors
 
-    @functools.lru_cache(maxsize=1)
     def calculate_element_metrics(
-            self, *, raise_negative_metric=True, return_abs_metric=False):
+            self, *, raise_negative_metric=True, return_abs_metric=False,
+            elements=None):
         """Calculate metric (area or volume depending on the mesh dimension)
         of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated metrics are returned and also stored in
         the fem_data.elemental_data dict with key = 'metric'.
 
-        Args:
-            raise_negative_metric: bool, optional [True]
-                If True, raise ValueError when negative metric exists.
-            return_abs_metric: bool, optional [False]
-                If True, return absolute volume instead of signed metric.
-        Returns:
-            metrics: numpy.ndarray
+        Parameters
+        ----------
+        raise_negative_metric: bool, optional [True]
+            If True, raise ValueError when negative metric exists.
+        return_abs_metric: bool, optional [False]
+            If True, return absolute volume instead of signed metric.
+        elements: femio.FEMAttribute
+            If fed, compute volumes for the fed one.
+
+        Returns
+        -------
+        metrics: numpy.ndarray
         """
-        if self.elements.element_type in ['tri', 'tri2', 'quad', 'quad2']:
+        if elements is None:
+            element_type = self.elements.element_type
+            elements = self.elements
+        else:
+            if elements.name == 'ELEMENT':
+                element_type = elements.element_type
+            else:
+                element_type = elements.name
+
+        if element_type in ['tri', 'tri2', 'quad', 'quad2']:
             metrics = self.calculate_element_areas(
                 raise_negative_area=raise_negative_metric,
-                return_abs_area=return_abs_metric)
-        elif self.elements.element_type in ['tet', 'tet2', 'hex']:
+                return_abs_area=return_abs_metric, elements=elements)
+        elif element_type in ['tet', 'tet2', 'hex', 'hexprism']:
             metrics = self.calculate_element_volumes(
                 raise_negative_volume=raise_negative_metric,
-                return_abs_volume=return_abs_metric)
+                return_abs_volume=return_abs_metric, elements=elements)
+        elif element_type == 'mix':
+            metrics = np.concatenate([
+                self.calculate_element_metrics(elements=e)
+                for e in elements.values()], axis=0)
         else:
             raise NotImplementedError(
-                f"Unsupported element type: {self.elements.element_type}")
+                f"Unsupported element type: {element_type}")
         return metrics
 
-    @functools.lru_cache(maxsize=1)
     def calculate_element_volumes(
             self, *, raise_negative_volume=True, return_abs_volume=False,
             elements=None):
@@ -339,7 +367,10 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            element_type = elements.name
+            if elements.name == 'ELEMENT':
+                element_type = elements.element_type
+            else:
+                element_type = elements.name
 
         if element_type in ['tet', 'tet2']:
             volumes = self._calculate_element_volumes_tet_like(
@@ -355,7 +386,7 @@ class GeometryProcessorMixin:
                 self.calculate_element_volumes(elements=e)
                 for e in self.elements.values()], axis=0)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(element_type, elements)
 
         # Handle negative volumes according to the settings
         if raise_negative_volume and np.any(volumes < 0.):

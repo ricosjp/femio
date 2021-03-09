@@ -492,12 +492,14 @@ class FEMAttributes:
             cell_data = {}
             for attribute_name, attribute_data in self.items():
                 for element_type, attribute in attribute_data.items():
-                    if element_type not in cell_data:
-                        cell_data[element_type] = {}
-                    cell_data[element_type].update({
-                        attribute_name: attribute.data})
+                    if len(attribute.data.shape) < 3:
+                        if element_type not in cell_data:
+                            cell_data[element_type] = {}
+                        cell_data[element_type].update({
+                            attribute_name: attribute.data})
             return cell_data
         else:
             return {
                 attribute_name: attribute_data.data
-                for attribute_name, attribute_data in self.items()}
+                for attribute_name, attribute_data in self.items()
+                if len(attribute_data.data.shape) < 3}
