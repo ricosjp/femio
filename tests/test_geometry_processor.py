@@ -1,3 +1,4 @@
+import pathlib
 import unittest
 
 import numpy as np
@@ -316,3 +317,10 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             extracted_vectors[:n_space // 2]
             - extracted_vectors[n_space // 2:], 0.)
+
+    def test_metric_volume_equal(self):
+        file_name = pathlib.Path('tests/data/vtk/mix_hex_hexprism/mesh.vtk')
+        fem_data = FEMData.read_files('vtk', [file_name])
+        np.testing.assert_almost_equal(
+            fem_data.calculate_element_metrics(),
+            fem_data.calculate_element_volumes())
