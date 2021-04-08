@@ -517,7 +517,7 @@ class GeometryProcessorMixin:
 
     def integrate_node_attribute_over_surface(self, attr_name):
         """
-        Integrate a node attribute over surface areas. 
+        Integrate a node attribute over surface areas.
 
         Parameters
         ----------
