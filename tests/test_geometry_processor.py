@@ -324,11 +324,12 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.calculate_element_metrics(),
             fem_data.calculate_element_volumes())
-        
+
     def test_integrate_node_attribute_over_surface(self):
         file_name = pathlib.Path('tests/data/fistr/tet/tet.msh')
         fem_data = FEMData.read_files('fistr', [file_name])
-        fem_data.nodal_data.set_attribute_data('values', np.array([3,1,4,1,5],np.float32))
+        fem_data.nodal_data.set_attribute_data(
+            'values', np.array([3, 1, 4, 1, 5], np.float32))
         # 123, 124, 134, 235, 245, 345
         sq2 = 2 ** .5
         areas = [1/2, 1/2, 1/2, sq2/2, sq2/2, 1/2]
