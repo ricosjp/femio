@@ -798,10 +798,10 @@ class FEMData(
         graph_fem_data.elemental_data.update_data(
             graph_fem_data.elements.ids, {attribute_name: edge_attributes})
         return graph_fem_data
-    
+
     def create_node_group(self, group_name, selected):
         """Create new node_group. 
-        
+
         Parameters
         ----------
         group_name: str
@@ -812,22 +812,22 @@ class FEMData(
         if group_name in self.node_groups:
             raise ValueError(f"node group {group_name} already exists")
         self.node_groups[group_name] = self.nodes.ids[selected]
-    
+
     def create_element_group_from_node_group(
-        self, element_group_name, node_group_name, kind='all'):
+            self, element_group_name, node_group_name, kind='all'):
         """Create new surface group from a node group. 
 
         An element is in the created group when (all / any) of the nodes
         is contained in the node group. 
-        
+
         Parameters
         ----------
         element_group_name: str
             The name of new element group.
-        
+
         node_group_name: str
             The name of original node group.
-        
+
         kind: {'all', 'any'}, default 'all'
             Type of creation rule. 
         """
@@ -849,8 +849,6 @@ class FEMData(
         print(selected)
         elem_group = element_ids[selected]
         if element_group_name in self.element_groups:
-            raise ValueError(f"element group {element_group_name} already exists")
+            raise ValueError(
+                f"element group {element_group_name} already exists")
         self.element_groups[element_group_name] = elem_group
-
-
-        
