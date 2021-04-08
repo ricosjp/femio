@@ -800,7 +800,7 @@ class FEMData(
         return graph_fem_data
 
     def create_node_group(self, group_name, selected):
-        """Create new node_group. 
+        """Create new node_group.
 
         Parameters
         ----------
@@ -815,10 +815,10 @@ class FEMData(
 
     def create_element_group_from_node_group(
             self, element_group_name, node_group_name, kind='all'):
-        """Create new surface group from a node group. 
+        """Create new surface group from a node group.
 
         An element is in the created group when (all / any) of the nodes
-        is contained in the node group. 
+        is contained in the node group.
 
         Parameters
         ----------
@@ -829,7 +829,7 @@ class FEMData(
             The name of original node group.
 
         kind: {'all', 'any'}, default 'all'
-            Type of creation rule. 
+            Type of creation rule.
         """
         element_data = self.elements.data
         target_nodes = self.node_groups[node_group_name]
