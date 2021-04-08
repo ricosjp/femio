@@ -537,27 +537,35 @@ class TestFEMData(unittest.TestCase):
         file_name = Path('tests/data/fistr/pyramid/pyramid.msh')
         fem_data = FEMData.read_files('fistr', [file_name])
 
-        selected = fem_data.nodes.data[:,2] == 0
+        selected = fem_data.nodes.data[:, 2] == 0
         fem_data.create_node_group('new_group', selected)
-        np.testing.assert_equal(fem_data.node_groups['new_group'], np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            fem_data.node_groups['new_group'], np.array([1, 2, 3]))
         with pytest.raises(ValueError):
             fem_data.create_node_group('new_group', selected)
 
     def test_create_element_group_from_node_group_all(self):
         file_name = Path('tests/data/fistr/pyramid/pyramid.msh')
         fem_data = FEMData.read_files('fistr', [file_name])
-        fem_data.create_node_group('node_1234', np.array([True, True, True, True, False]))
-        fem_data.create_element_group_from_node_group('element_1234', 'node_1234', 'all')
-        np.testing.assert_equal(fem_data.element_groups['element_1234'], np.array([1]))
+        fem_data.create_node_group(
+            'node_1234', np.array([True, True, True, True, False]))
+        fem_data.create_element_group_from_node_group(
+            'element_1234', 'node_1234', 'all')
+        np.testing.assert_equal(
+            fem_data.element_groups['element_1234'], np.array([1]))
         with pytest.raises(ValueError):
-            fem_data.create_element_group_from_node_group('element_1234', 'node_1234', 'all')
-    
+            fem_data.create_element_group_from_node_group(
+                'element_1234', 'node_1234', 'all')
+
     def test_create_element_group_from_node_group_any(self):
         file_name = Path('tests/data/fistr/pyramid/pyramid.msh')
         fem_data = FEMData.read_files('fistr', [file_name])
-        fem_data.create_node_group('node_1234', np.array([True, True, True, True, False]))
-        fem_data.create_element_group_from_node_group('element_1234', 'node_1234', 'any')
-        np.testing.assert_equal(fem_data.element_groups['element_1234'], np.array([1, 2]))
+        fem_data.create_node_group(
+            'node_1234', np.array([True, True, True, True, False]))
+        fem_data.create_element_group_from_node_group(
+            'element_1234', 'node_1234', 'any')
+        np.testing.assert_equal(
+            fem_data.element_groups['element_1234'], np.array([1, 2]))
         with pytest.raises(ValueError):
-            fem_data.create_element_group_from_node_group('element_1234', 'node_1234', 'all')
-    
+            fem_data.create_element_group_from_node_group(
+                'element_1234', 'node_1234', 'all')
