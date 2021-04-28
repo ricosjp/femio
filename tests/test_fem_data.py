@@ -350,10 +350,12 @@ class TestFEMData(unittest.TestCase):
             save=False)
         write_dir_name = 'tests/data/fistr/cload_save'
         fem_data.save(write_dir_name)
-        cload_ids = np.array(
-            [1,  4,  7, 10, 13, 16, 19, 22, 25,  1,  4,  7, 10, 13, 16, 19,
-             22, 25,  3,  6,  9, 12, 15, 18, 21, 24, 27,  3,  6,  9, 12, 15,
-             18, 21, 24, 27])
+        cload_ids = np.array([
+            1, 4, 7, 10, 13, 16, 19, 22, 25,
+            3, 6, 9, 12, 15, 18, 21, 24, 27,
+            1, 4, 7, 10, 13, 16, 19, 22, 25,
+            3, 6, 9, 12, 15, 18, 21, 24, 27,
+        ])
         np.testing.assert_array_equal(
             np.load(write_dir_name + '/femio_constraints.npz')['cload/ids'],
             cload_ids)
