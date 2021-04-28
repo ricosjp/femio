@@ -205,6 +205,30 @@ class TestWriteFistr(unittest.TestCase):
         #         written_fem_data_with_res.nodal_data['TEMPERATURE'].data,
         #         fem_data.nodal_data['TEMPERATURE'].data)
 
+    def test_write_fistr_cload_full(self):
+        fem_data = FEMData.read_files('fistr', [
+            'tests/data/fistr/cload/hex.msh'])
+        cload_data = np.random.rand(len(fem_data.nodes), 3)
+        fem_data.constraints.update_data(
+            fem_data.nodes.ids, {'cload': cload_data})
+
+        write_file_name = 'tests/data/fistr/write_cload_full/mesh'
+        if os.path.isfile(write_file_name + '.msh'):
+            os.remove(write_file_name + '.msh')
+        if os.path.isfile(write_file_name + '.cnt'):
+            os.remove(write_file_name + '.cnt')
+        fem_data.write(
+            'fistr', file_name=write_file_name, overwrite=True)
+
+        written_fem_data = FEMData.read_files('fistr', [
+            write_file_name + '.msh',
+            write_file_name + '.cnt'])
+        n = len(fem_data.nodes)
+        for dof in range(3):
+            np.testing.assert_almost_equal(
+                written_fem_data.constraints['cload'].data[
+                    dof*n:(dof+1)*n, dof], cload_data[:, dof])
+
     def test_write_fistr_static_overwrite(self):
         fem_data = FEMData.read_files('fistr', [
             'tests/data/fistr/thermal/hex.msh',
