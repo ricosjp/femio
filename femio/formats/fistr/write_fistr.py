@@ -195,6 +195,24 @@ class FistrWriter():
 
         self.write_string(self.write_msh_file, '!END\n')
 
+    def _generate_constraints(self, constraint_attribute):
+        data = constraint_attribute.data
+        ids = constraint_attribute.ids
+        write_ids = []
+        write_dof = []
+        write_data = []
+        for index in range(data.shape[-1]):
+            not_nan = ~np.isnan(data[:, index])
+            if not np.any(not_nan):
+                continue
+
+            write_ids.append(ids[not_nan])
+            write_dof.append(
+                np.stack([[index + 1, index + 1]] * np.sum(not_nan)))
+            write_data.append(data[not_nan, index])
+        return np.concatenate(write_ids), np.concatenate(write_dof), \
+            np.concatenate(write_data)
+
     def write_cnt(self):
         if not self.overwrite and self.write_cnt_file.exists():
             raise ValueError(f"File {self.write_cnt_file} already exists")
@@ -287,23 +305,13 @@ class FistrWriter():
         if 'boundary' in self.fem_data.constraints:
             print('Start boundary')
             print(dt.now())
-            data = self.fem_data.constraints['boundary'].data
-            ids = self.fem_data.constraints['boundary'].ids
-            write_ids = []
-            write_dof = []
-            write_data = []
-            for index in (0, 1, 2):
-                not_nan = ~np.isnan(data[:, index])
-                write_ids.append(ids[not_nan])
-                write_dof.append(
-                    np.stack([[index + 1, index + 1]] * np.sum(not_nan)))
-                write_data.append(data[not_nan, index])
 
+            write_ids, write_dof, write_data = self._generate_constraints(
+                self.fem_data.constraints['boundary'])
             self.write_data(
                 self.write_cnt_file,
                 '!BOUNDARY\n',
-                np.concatenate(write_ids),
-                np.concatenate(write_dof), np.concatenate(write_data),
+                write_ids, write_dof, write_data,
                 str_format=['%d', '%.5E'])
 
         # Write cprings
@@ -324,14 +332,24 @@ class FistrWriter():
         if 'cload' in self.fem_data.constraints:
             print('Start cload')
             print(dt.now())
-            isnan = np.isnan(self.fem_data.constraints['cload'].data)
-            cload_directions = np.where(~isnan)[1] + 1
-            cload_values = self.fem_data.constraints['cload'].data[~isnan]
+            # isnan = np.isnan(self.fem_data.constraints['cload'].data)
+            # cload_ids = self.fem_data.constraints['cload'].ids[
+            #     np.where(~isnan)[0]]
+            # cload_directions = np.where(~isnan)[1] + 1
+            # cload_values = self.fem_data.constraints['cload'].data[~isnan]
+            write_ids, write_dof, write_data = self._generate_constraints(
+                self.fem_data.constraints['cload'])
+            # self.write_data(
+            #     self.write_cnt_file,
+            #     '!BOUNDARY\n',
+            #     np.concatenate(write_ids),
+            #     np.concatenate(write_dof), np.concatenate(write_data),
+            #     str_format=['%d', '%.5E'])
             self.write_data(
                 self.write_cnt_file,
                 '!CLOAD\n',
-                self.fem_data.constraints['cload'].ids,
-                cload_directions, cload_values, str_format=['%d', '%5E'])
+                write_ids, write_dof[:, [0]], write_data,
+                str_format=['%d', '%5E'])
 
         # Write fixtemps
         if 'fixtemp' in self.fem_data.constraints:
