@@ -446,6 +446,35 @@ class TestWriteFistr(unittest.TestCase):
                 written_fem_data_with_res.nodal_data['DISPLACEMENT'].data,
                 fem_data.nodal_data['DISPLACEMENT'].data, decimal=5)
 
+    def test_write_fistr_6dof_boundary(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/mixture_shell',
+            read_npy=False, save=False)
+
+        disp = np.random.rand(3, 6)
+        fem_data.constraints.pop('boundary')
+        fem_data.constraints.update_data(
+            np.array([1, 2, 3]), {'boundary': disp})
+
+        write_dir_name = 'tests/data/fistr/write_6dof_boundary'
+        if os.path.exists(write_dir_name):
+            shutil.rmtree(write_dir_name)
+        fem_data.write(
+            'fistr', write_dir_name + '/mesh', overwrite=True)
+
+        written_fem_data = FEMData.read_directory(
+            'fistr', write_dir_name, read_npy=False, save=False)
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+
+        if RUN_FISTR:
+            subprocess.check_call("fistr1", cwd=write_dir_name, shell=True)
+            written_fem_data_with_res = FEMData.read_directory(
+                'fistr', write_dir_name, read_npy=False, save=False)
+            np.testing.assert_almost_equal(
+                written_fem_data_with_res.nodal_data['DISPLACEMENT'].data[:3],
+                disp, decimal=5)
+
     def test_write_fistr_mixed_solid(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/mixture_solid',

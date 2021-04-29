@@ -201,7 +201,7 @@ class FistrWriter():
         write_ids = []
         write_dof = []
         write_data = []
-        for index in (0, 1, 2):
+        for index in range(data.shape[-1]):
             not_nan = ~np.isnan(data[:, index])
             if not np.any(not_nan):
                 continue
