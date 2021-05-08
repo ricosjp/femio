@@ -283,7 +283,7 @@ class FEMAttribute():
             try:
                 ids = ids.astype(int)
                 return self.ids2indices(ids, id2index=id2index)
-            except TypeError:
+            except (TypeError, ValueError):
                 return [
                     self.ids2indices(ids_, id2index=id2index) for ids_ in ids]
         else:
