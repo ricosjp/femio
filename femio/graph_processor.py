@@ -197,6 +197,9 @@ class GraphProcessorMixin:
         Returns:
             filter: np.array() of bool
         """
+        if self.elements.is_first_order():
+            return np.ones(len(self.nodes.ids), dtype=bool)
+
         first_order_ids = np.unique(
             np.concatenate(self.elements.to_first_order().data))
         return np.isin(self.nodes.ids, first_order_ids, assume_unique=True)
