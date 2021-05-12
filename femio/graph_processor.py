@@ -65,7 +65,7 @@ class GraphProcessorMixin:
 
         Returns:
             surface_data: 2D array of int.
-            i-th row data correspond to the (element_id, surface_id) of surface.
+            row data correspond to (element_id, surface_id) of surface.
         """
         data = self.elements.data
         N = len(data)
@@ -91,13 +91,14 @@ class GraphProcessorMixin:
         surfs = surfs[ind]
 
         # select surce
-        once = np.ones(4*N, np.bool_)
-        once[:-1] &= (surfs[:-1, 0] != surfs[1:, 0]) | (surfs[:-1, 1]
-                                                        != surfs[1:, 1]) | (surfs[:-1, 2] != surfs[1:, 2])
-        once[1:] &= (surfs[:-1, 0] != surfs[1:, 0]) | (surfs[:-1, 1]
-                                                       != surfs[1:, 1]) | (surfs[:-1, 2] != surfs[1:, 2])
+        unique = np.ones(4*N, np.bool_)
+        distinct = (surfs[:-1, 0] != surfs[1:, 0])
+        distinct |= (surfs[:-1, 1] != surfs[1:, 1])
+        distinct |= (surfs[:-1, 2] != surfs[1:, 2])
+        unique[:-1] &= distinct
+        unique[1:] &= distinct
 
-        surfs = surfs[once]
+        surfs = surfs[unique]
         return surfs[:, 3:]
 
     def extract_facets(self, elements=None, element_type=None):
