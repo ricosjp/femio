@@ -315,3 +315,11 @@ class TestGraphProcessor(unittest.TestCase):
         desired_nodes = [1, 2, 3, 14, 5, 6, 7]  # Respecting the order
         np.testing.assert_array_equal(
             fem_data.nodes.ids[filter_], desired_nodes)
+
+    def test_extract_surface_femio(self):
+        file_name = pathlib.Path('tests/data/fistr/tet/tet.msh')
+        fem_data = FEMData.read_files('fistr', [file_name])
+        surfs = fem_data.extract_surface_femio()
+
+        expected = np.array([1, 1, 1, 2, 1, 4, 2, 2, 2, 4, 2, 3]).reshape(6, 2)
+        np.testing.assert_equal(surfs, expected)

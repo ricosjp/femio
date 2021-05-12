@@ -60,6 +60,46 @@ class GraphProcessorMixin:
              for facet in surface_indices])
         return surface_indices, surface_positions
 
+    def extract_surface_femio(self):
+        """Extract surface from solid mesh.
+
+        Returns:
+            surface_data: 2D array of int.
+            i-th row data correspond to the (element_id, surface_id) of surface.
+        """
+        data = self.elements.data
+        N = len(data)
+
+        # node_0, node_1, node_2, elem_id, surf_id
+        surfs = np.empty((4*N, 5), np.int32)
+        surfs[0*N:1*N, :3] = data[:, [0, 1, 2]]
+        surfs[1*N:2*N, :3] = data[:, [0, 1, 3]]
+        surfs[2*N:3*N, :3] = data[:, [1, 2, 3]]
+        surfs[3*N:4*N, :3] = data[:, [2, 0, 3]]
+        surfs[0*N:1*N, 3] = self.elements.ids
+        surfs[1*N:2*N, 3] = self.elements.ids
+        surfs[2*N:3*N, 3] = self.elements.ids
+        surfs[3*N:4*N, 3] = self.elements.ids
+        surfs[0*N:1*N, 4] = 1
+        surfs[1*N:2*N, 4] = 2
+        surfs[2*N:3*N, 4] = 3
+        surfs[3*N:4*N, 4] = 4
+
+        surfs[:, :3].sort(axis=1)
+        ind = np.lexsort(
+            (surfs[:, 4], surfs[:, 3], surfs[:, 2], surfs[:, 1], surfs[:, 0]))
+        surfs = surfs[ind]
+
+        # select surce
+        once = np.ones(4*N, np.bool_)
+        once[:-1] &= (surfs[:-1, 0] != surfs[1:, 0]) | (surfs[:-1, 1]
+                                                        != surfs[1:, 1]) | (surfs[:-1, 2] != surfs[1:, 2])
+        once[1:] &= (surfs[:-1, 0] != surfs[1:, 0]) | (surfs[:-1, 1]
+                                                       != surfs[1:, 1]) | (surfs[:-1, 2] != surfs[1:, 2])
+
+        surfs = surfs[once]
+        return surfs[:, 3:]
+
     def extract_facets(self, elements=None, element_type=None):
         """Extract facets.
 
