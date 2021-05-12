@@ -76,6 +76,18 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
+    def test_calculate_area_quad_gaussian(self):
+        data_directory = 'tests/data/obj/quad'
+        fem_data = FEMData.read_directory(
+            'obj', data_directory, read_npy=False, save=False)
+        desired_areas = np.array([
+            [1.],
+            [1.5],
+            [np.sqrt(2)],
+        ])
+        actual = fem_data._calculate_element_areas_quad_gaussian()
+        np.testing.assert_almost_equal(actual, desired_areas)
+
     def test_calculate_normal_tri(self):
         data_directory = 'tests/data/stl/multiple'
         fem_data = FEMData.read_directory(

@@ -76,7 +76,42 @@ class GeometryProcessorMixin:
         areas2 = np.linalg.norm(crosses2, axis=1, keepdims=True) / 2
         return areas1 + areas2
 
-    @functools.lru_cache(maxsize=1)
+    def _calculate_element_areas_quad_gaussian(self):
+        elements = self.elements.data[:, :4]
+        x0, y0, z0 = self.collect_node_positions_by_ids(elements[:, 0]).T
+        x1, y1, z1 = self.collect_node_positions_by_ids(elements[:, 1]).T
+        x2, y2, z2 = self.collect_node_positions_by_ids(elements[:, 2]).T
+        x3, y3, z3 = self.collect_node_positions_by_ids(elements[:, 3]).T
+
+        def J00(xi, eta):
+            return (x1 - x0) * (1 - eta) + (x2 - x3) * (1 + eta)
+
+        def J01(xi, eta):
+            return (x3 - x0) * (1 - xi) + (x2 - x1) * (1 + xi)
+
+        def J10(xi, eta):
+            return (y1 - y0) * (1 - eta) + (y2-y3) * (1 + eta)
+
+        def J11(xi, eta):
+            return (y3 - y0) * (1 - xi) + (y2 - y1) * (1 + xi)
+
+        def J20(xi, eta):
+            return (z1 - z0) * (1 - eta) + (z2 - z3) * (1 + eta)
+
+        def J21(xi, eta):
+            return (z3 - z0) * (1 - xi) + (z2 - z1) * (1 + xi)
+
+        res = 0
+        p = 0.5773502692
+        for (xi, eta) in ((p, p), (-p, p), (p, -p), (-p, -p)):
+            Jx = J10(xi, eta) * J21(xi, eta) - J20(xi, eta) * J11(xi, eta)
+            Jy = J20(xi, eta) * J01(xi, eta) - J00(xi, eta) * J21(xi, eta)
+            Jz = J00(xi, eta) * J11(xi, eta) - J10(xi, eta) * J01(xi, eta)
+            res += (Jx*Jx+Jy*Jy+Jz*Jz)**.5
+        res /= 16
+        return res.reshape(-1, 1)
+
+    @ functools.lru_cache(maxsize=1)
     def calculate_edge_lengths(self):
         """Calculate edge lengths of each element.
         Calculated lengths are returned and also stored in
@@ -109,7 +144,7 @@ class GeometryProcessorMixin:
 
         return edge_lengths
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_angles(self):
         """Calculate angles of each element.
         Calculated angles are returned and also stored in
@@ -145,7 +180,7 @@ class GeometryProcessorMixin:
 
         return angles
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_jacobians(self):
         """Calculate jacobians of each element.
         Calculated jacobians are returned and also stored in
@@ -184,7 +219,7 @@ class GeometryProcessorMixin:
         cross = np.cross(vector1, vector2)
         return np.linalg.norm(cross, axis=1)
 
-    @functools.lru_cache(maxsize=2)
+    @ functools.lru_cache(maxsize=2)
     def calculate_surface_normals(self, mode='mean'):
         """Calculate elemental normal vectors of the surface of a solid mesh.
         If an element is not on the surface, the vector will be zero.
@@ -205,12 +240,12 @@ class GeometryProcessorMixin:
                 surface_normals, mode=mode), keep_zeros=True)
         nodal_normals = FEMAttribute(
             'normal', self.nodes.ids, np.zeros((len(self.nodes.ids), 3)))
-        nodal_normals.loc[surface_fem_data.nodes.ids].data \
+        nodal_normals.loc[surface_fem_data.nodes.ids].data\
             = surface_nodal_normals
         self.nodal_data.update({'normal': nodal_normals})
         return nodal_normals.data
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_element_normals(self):
         """Calculate normal vectors of each shell elements. Please note that
         the calculated normal may not be aligned with neighbor elements. To
@@ -267,7 +302,7 @@ class GeometryProcessorMixin:
             cos_2theta
         ], axis=1)
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def _calculate_tri_crosses(self):
         elements = self.elements.data[:, :4]
         node0_points = self.collect_node_positions_by_ids(elements[:, 0])
@@ -279,7 +314,7 @@ class GeometryProcessorMixin:
         crosses = np.cross(v10, v20)
         return crosses
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def _calculate_quad_normals(self):
         elements = self.elements.data[:, :4]
         node0_points = self.collect_node_positions_by_ids(elements[:, 0])
