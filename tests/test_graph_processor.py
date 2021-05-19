@@ -17,7 +17,7 @@ FISTR_INP_FILE = 'tests/data/fistr/thermal/fistr_hex.inp'
 
 class TestGraphProcessor(unittest.TestCase):
 
-    def test_calculate_adjacency_materix_node(self):
+    def test_calculate_adjacency_matrix_node(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
         adjacency_matrix = fem_data.calculate_adjacency_matrix_node()
@@ -82,7 +82,7 @@ class TestGraphProcessor(unittest.TestCase):
         ], dtype=bool)
         np.testing.assert_array_equal(adjacency_matrix.toarray(), desired)
 
-    def test_calculate_adjacency_materix_node_obj(self):
+    def test_calculate_adjacency_matrix_node_obj(self):
         fem_data = FEMData.read_directory(
             'obj', 'tests/data/obj/mixture_graph', read_npy=False, save=False)
         adjacency_matrix = fem_data.calculate_adjacency_matrix_node()
