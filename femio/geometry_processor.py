@@ -1,6 +1,7 @@
 import functools
 
 import numpy as np
+import scipy.sparse as sp
 
 from .fem_attribute import FEMAttribute
 from . import functions
@@ -209,6 +210,86 @@ class GeometryProcessorMixin:
             = surface_nodal_normals
         self.nodal_data.update({'normal': nodal_normals})
         return nodal_normals.data
+
+    def calculate_normal_incidence_matrix(self):
+        """Calculate incidence matrix based on the normal vector which point
+        outside of each element.
+
+        Returns
+        -------
+        facet_fem_data: femio.FEMData
+        signed_incidence_matrix: scipy.sparse.csr_matrix[int]
+            Positive if the direction of the facet's normal vector is in
+            outside direction. Negative otherwise.
+        cell_normal_vectors: numpy.ndarray[float]
+            Normal vectors of cells.
+        """
+        facet_data = self.to_facets(remove_duplicates=True)
+        relative_incidence = self.calculate_relative_incidence_metrix_element(
+            facet_data, minimum_n_sharing=3)
+        coo = relative_incidence.tocoo()
+
+        all_facets = self.extract_facets(
+            remove_duplicates=False, method=np.stack)[
+                self.elements.element_type][coo.row]
+        all_normals = self.calculate_all_element_normals()[coo.row]
+        col_facet_elements = facet_data.elements.data[coo.col]
+        facet_normals = facet_data.calculate_element_normals()
+        col_facet_normals = facet_normals[coo.col]
+
+        # raise ValueError(np.array([
+        #         [
+        #             np.all(np.isin(all_facet, facet_element), axis=1),
+        #             all_facet, facet_element]
+        #     for all_facet, all_normal, facet_element, facet_normal, r, c
+        #     in zip(
+        #         all_facets, all_normals,
+        #         col_facet_elements, col_facet_normals, coo.row, coo.col)]))
+
+        inner_prods = np.concatenate([
+            np.dot(
+                all_normal[np.all(np.isin(all_facet, facet_element), axis=1)],
+                facet_normal)
+            for all_facet, all_normal, facet_element, facet_normal
+            in zip(
+                all_facets, all_normals,
+                col_facet_elements, col_facet_normals)])
+        if np.sum(np.logical_and(
+                -1 + 1e-3 < inner_prods, inner_prods < 1 - 1e-3)) > 0:
+            raise ValueError(
+                f"Normal vector computation tailed: {inner_prods}")
+        signed_incidence_data = np.zeros(len(inner_prods), dtype=int)
+        signed_incidence_data[1. - 1e-3 < inner_prods] = 1
+        signed_incidence_data[inner_prods < -1. + 1e-3] = -1
+        signed_incidence = sp.csr_matrix((
+            signed_incidence_data, (coo.row, coo.col)))
+        return facet_data, signed_incidence, facet_normals
+
+    @functools.lru_cache(maxsize=1)
+    def calculate_all_element_normals(self, facet_data=None):
+        """Calculate normal vectors of each elements. If the elements are
+        solid, then multiple normal vectors per solid will be generated.
+
+        Returns
+        -------
+        normals: numpy.ndarray
+            (n_element, n_faces_per_element, 3)-shaped array.
+        facet_data: femio.FEMData
+            FEMData object of facet data.
+        """
+        if self.elements.element_type in ['tet', 'tet2']:
+            n_facet_per_element = 4
+        elif self.elements.element_type == 'hex':
+            n_facet_per_element = 6
+        else:
+            raise NotImplementedError(
+                f"Unsupported element type: {self.elements.element_type}")
+
+        if facet_data is None:
+            facet_data = self.to_facets(remove_duplicates=False)
+        normals = facet_data.calculate_element_normals()
+        return np.reshape(
+            normals, (len(self.elements), n_facet_per_element, 3))
 
     @functools.lru_cache(maxsize=1)
     def calculate_element_normals(self):
