@@ -17,7 +17,7 @@ FISTR_INP_FILE = 'tests/data/fistr/thermal/fistr_hex.inp'
 
 class TestGraphProcessor(unittest.TestCase):
 
-    def test_calculate_adjacency_materix_node(self):
+    def test_calculate_adjacency_matrix_node(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
         adjacency_matrix = fem_data.calculate_adjacency_matrix_node()
@@ -82,7 +82,7 @@ class TestGraphProcessor(unittest.TestCase):
         ], dtype=bool)
         np.testing.assert_array_equal(adjacency_matrix.toarray(), desired)
 
-    def test_calculate_adjacency_materix_node_obj(self):
+    def test_calculate_adjacency_matrix_node_obj(self):
         fem_data = FEMData.read_directory(
             'obj', 'tests/data/obj/mixture_graph', read_npy=False, save=False)
         adjacency_matrix = fem_data.calculate_adjacency_matrix_node()
@@ -265,7 +265,7 @@ class TestGraphProcessor(unittest.TestCase):
         hex_data = FEMData.read_files(
             'fistr', ['tests/data/fistr/hex/hex.msh'])
         surface_indices, _ = hex_data.extract_surface()
-        desired = [
+        desired = np.array([
             [0, 3, 4, 1],
             [0, 1, 10, 9],
             [3, 0, 9, 12],
@@ -286,11 +286,62 @@ class TestGraphProcessor(unittest.TestCase):
             [14, 17, 26, 23],
             [16, 15, 24, 25],
             [17, 16, 25, 26],
-            [18, 21, 22, 19],
-            [19, 22, 23, 20],
-            [21, 24, 25, 22],
-            [22, 25, 26, 23]]
+            [18, 19, 22, 21],
+            [19, 20, 23, 22],
+            [21, 22, 25, 24],
+            [22, 23, 26, 25]])
         np.testing.assert_array_equal(surface_indices, desired)
+
+    def test_to_facets(self):
+        fem_data = FEMData.read_files(
+            'vtk', ['tests/data/vtk/hex/mesh.vtk'])
+        facet_fem_data = fem_data.to_facets()
+        write_facet = pathlib.Path('tests/data/ucd/write_hex_facet/mesh.inp')
+        if write_facet.exists():
+            write_facet.unlink()
+        facet_fem_data.write('ucd', write_facet)
+        desired_facets = np.array([
+            [1, 4, 3, 2],
+            [1, 2, 6, 5],
+            [4, 1, 5, 8],
+            [2, 3, 7, 6],
+            [3, 4, 8, 7],
+            [5, 6, 7, 8],
+            [5, 6, 10, 9],
+            [8, 5, 9, 12],
+            [6, 7, 11, 10],
+            [7, 8, 12, 11],
+            [9, 10, 11, 12]])
+        np.testing.assert_array_equal(
+            facet_fem_data.elements.data, desired_facets)
+
+    def test_relative_incidence_hex(self):
+        fem_data = FEMData.read_files(
+            'vtk', ['tests/data/vtk/hex/mesh.vtk'])
+        facet_fem_data = fem_data.to_facets()
+        inc_facet2cell = fem_data.calculate_relative_incidence_metrix_element(
+            facet_fem_data, minimum_n_sharing=3)
+        desired_inc = np.array([
+            [1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1]])
+        np.testing.assert_array_equal(
+            inc_facet2cell.toarray().astype(int), desired_inc)
+
+    def test_relative_incidence_graph_tet1(self):
+        fem_data = FEMData.read_files(
+            'fistr', ['tests/data/fistr/graph_tet1/mesh.msh'])
+        facet_fem_data = fem_data.to_facets()
+        inc_facet2cell = fem_data.calculate_relative_incidence_metrix_element(
+            facet_fem_data, minimum_n_sharing=3)
+        desired_inc = np.array([
+            [1, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0, 0, 0],
+            [1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+            [0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+        ])
+        np.testing.assert_array_equal(
+            inc_facet2cell.toarray().astype(int), desired_inc)
 
     def test_filter_first_order_nodes(self):
         fem_data = FEMData.read_directory(

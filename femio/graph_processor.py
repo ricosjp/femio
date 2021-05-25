@@ -6,6 +6,7 @@ import numpy as np
 import scipy.sparse as sp
 
 from .fem_attribute import FEMAttribute
+from . import functions
 
 
 class GraphProcessorMixin:
@@ -60,7 +61,9 @@ class GraphProcessorMixin:
              for facet in surface_indices])
         return surface_indices, surface_positions
 
-    def extract_facets(self, elements=None, element_type=None):
+    def extract_facets(
+            self, elements=None, element_type=None, remove_duplicates=False,
+            method=None):
         """Extract facets.
 
         Parameters
@@ -70,6 +73,9 @@ class GraphProcessorMixin:
         elements: str, optional
             If not fed, infer element type from the number of nodes per
             element.
+        method: callable
+            A method to aggregate facet features. If not fed, numpy.concatenate
+            is used.
 
         Returns
         -------
@@ -100,48 +106,27 @@ class GraphProcessorMixin:
             if elements.element_type == 'mix':
                 return {
                     element_type:
-                    self.extract_facets(element, element_type=element_type)[
-                        element_type]
+                    self.extract_facets(
+                        element, element_type=element_type,
+                        remove_duplicates=remove_duplicates, method=method)[
+                            element_type]
                     for element_type, element in self.elements.items()}
             else:
                 elements = list(elements.values())[0]
 
         if element_type == 'tri' or element_type == 'quad':
             facets = elements.data
-        elif element_type == 'tet':
-            facets = self.generate_all_faces(elements, 'tet')
-        elif element_type == 'tet2':
-            tet1_elements = FEMAttribute(
-                'tet', elements.ids, elements.data[:, :4])
-            facets = self.generate_all_faces(tet1_elements, 'tet')
-        elif element_type == 'hex':
-            facets = np.concatenate([[
-                [e[0], e[1], e[5], e[4]],
-                [e[0], e[3], e[2], e[1]],
-                [e[1], e[2], e[6], e[5]],
-                [e[2], e[3], e[7], e[6]],
-                [e[3], e[0], e[4], e[7]],
-                [e[4], e[7], e[6], e[5]]]
-                for e in elements.data])
-        elif element_type == 'hexprism':
-            facets = np.concatenate([[
-                [e[0], e[5], e[4], e[1]],
-                [e[1], e[4], e[3], e[2]],
-                [e[5], e[11], e[10], e[4]],
-                [e[4], e[10], e[9], e[3]],
-                [e[3], e[9], e[8], e[2]],
-                [e[0], e[6], e[11], e[5]],
-                [e[6], e[7], e[10], e[11]],
-                [e[7], e[8], e[9], e[10]],
-                [e[1], e[2], e[8], e[7]],
-                [e[0], e[1], e[7], e[6]]]
-                for e in elements.data])
         else:
-            raise NotImplementedError
+            facets = self._generate_all_faces(
+                elements, element_type, method=method)
+
+        if remove_duplicates:
+            facets = functions.remove_duplicates(facets)
+
         return {element_type: facets}
 
-    @functools.lru_cache(maxsize=1)
-    def generate_all_faces(self, elements=None, element_type=None):
+    def _generate_all_faces(
+            self, elements=None, element_type=None, method=None):
         if elements is None:
             elements = self.elements
         if element_type is None:
@@ -170,19 +155,50 @@ class GraphProcessorMixin:
                 e: d[0] for e, d in root_data.items()}, {
                     e: d[1] for e, d in root_data.items()}
 
+        if method is None:
+            method = np.concatenate
+
+        if isinstance(elements, np.ndarray):
+            elements_data = elements
+        else:
+            elements_data = elements.data
+
         if element_type == 'tri' or element_type == 'quad':
             face_ids = elements.data
         elif element_type == 'tet':
-            face_ids = np.concatenate([
+            face_ids = method([
                 np.stack([
                     [element[0], element[2], element[1]],
                     [element[0], element[1], element[3]],
                     [element[1], element[2], element[3]],
                     [element[0], element[3], element[2]],
-                ]) for element in elements.data])
+                ]) for element in elements_data])
         elif element_type == 'tet2':
-            tet1_elements = elements.data[:, :4]
-            face_ids = self.generate_all_faces(tet1_elements, 'tet')
+            tet1_elements = elements_data[:, :4]
+            face_ids = self._generate_all_faces(
+                tet1_elements, 'tet', method=method)
+        elif element_type == 'hex':
+            face_ids = method([[
+                [e[0], e[1], e[5], e[4]],
+                [e[0], e[3], e[2], e[1]],
+                [e[1], e[2], e[6], e[5]],
+                [e[2], e[3], e[7], e[6]],
+                [e[3], e[0], e[4], e[7]],
+                [e[4], e[5], e[6], e[7]]]
+                for e in elements_data])
+        elif element_type == 'hexprism':
+            face_ids = method([[
+                [e[0], e[5], e[4], e[1]],
+                [e[1], e[4], e[3], e[2]],
+                [e[5], e[11], e[10], e[4]],
+                [e[4], e[10], e[9], e[3]],
+                [e[3], e[9], e[8], e[2]],
+                [e[0], e[6], e[11], e[5]],
+                [e[6], e[7], e[10], e[11]],
+                [e[7], e[8], e[9], e[10]],
+                [e[1], e[2], e[8], e[7]],
+                [e[0], e[1], e[7], e[6]]]
+                for e in elements_data])
         else:
             raise NotImplementedError
 
@@ -197,6 +213,9 @@ class GraphProcessorMixin:
         Returns:
             filter: np.array() of bool
         """
+        if self.elements.is_first_order():
+            return np.ones(len(self.nodes.ids), dtype=bool)
+
         first_order_ids = np.unique(
             np.concatenate(self.elements.to_first_order().data))
         return np.isin(self.nodes.ids, first_order_ids, assume_unique=True)
@@ -212,6 +231,32 @@ class GraphProcessorMixin:
             filter_ = np.array([
                 np.any(i == extracting_ids) for i in all_ids])
         return filter_
+
+    def calculate_relative_incidence_metrix_element(
+            self, other_fem_data, minimum_n_sharing):
+        """Calculate incidence matrix from other_fem_data to self based on
+        elements, i.e., the resultant incidence matrix being of the shape
+        (n_self_element, n_other_element).
+
+        Parameters
+        ----------
+        other_fem_data: femio.FEMData
+            Other FEMData object.
+        minimum_n_sharing: int
+            The minimum number of sharing node ids to define edge connectivity.
+
+        Returns
+        -------
+        incidence_matrix: scipy.sparse.csr_matrix
+            Incidence matrix in CSR expression.
+        """
+        self_incidence = self.calculate_incidence_matrix().T.astype(
+            int)  # (n_self_element, n_node)
+        other_incidence = other_fem_data.calculate_incidence_matrix().astype(
+            int)  # (n_node, n_other_element)
+        relative_incidence = self_incidence.dot(other_incidence) \
+            >= minimum_n_sharing  # (n_self_element, n_other_elemnt)
+        return relative_incidence
 
     @functools.lru_cache(maxsize=1)
     def calculate_element_degree(self):

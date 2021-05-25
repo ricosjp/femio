@@ -69,3 +69,27 @@ def align_nnz(sparses):
 
     else:
         return align_nnz([s.tocsr() for s in sparses])
+
+
+def remove_duplicates(connectivities, return_index=False):
+    """Remove duplicating elements.
+
+    Parameters
+    ----------
+    connectivities: numpy.ndarray[int]
+        Element connectivities.
+    return_index: bool, optional
+        If True, return also indices of unique.
+
+    Returns
+    -------
+    connectivities_wo_duplications: numpy.ndarray[int]
+        Element connectivities without duplications.
+    """
+    sorted_connectivities = [
+        np.sort(connectivity) for connectivity in connectivities]
+    _, indices = np.unique(sorted_connectivities, axis=0, return_index=True)
+    if return_index:
+        return connectivities[indices], indices
+    else:
+        return connectivities[indices]

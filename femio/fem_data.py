@@ -639,6 +639,28 @@ class FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
             elemental_data={})
 
+    def to_facets(self, remove_duplicates=True):
+        """Convert the FEMData object to the facet data including facets inside
+        the solid.
+
+        Parameters
+        ----------
+        remove_duplicates: bool, optional
+            If True, remove duplicated faces and remain only one. The default
+            is True.
+
+        Returns
+        -------
+        FEMData:
+            Facets FEMData object.
+        """
+        dict_facets = self.extract_facets(remove_duplicates=remove_duplicates)
+        elements = self.elements.to_surface(dict_facets)
+
+        return FEMData(
+            nodes=self.nodes, elements=elements, nodal_data=self.nodal_data,
+            elemental_data={})
+
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([
             np.ravel(e.data) for e
