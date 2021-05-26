@@ -152,7 +152,7 @@ class GeometryProcessorMixin:
             J22 = c1*(z4-z0)+c2*(z7-z3)+c3*(z5-z1)+c4*(z6-z2)
             return J02, J12, J22
 
-        res = 0
+        res = 0.0
         p = 0.5773502692
         for s in range(8):
             xi = p if s & 4 else -p
@@ -161,8 +161,8 @@ class GeometryProcessorMixin:
             J00, J10, J20 = J0(xi, eta, zeta)
             J01, J11, J21 = J1(xi, eta, zeta)
             J02, J12, J22 = J2(xi, eta, zeta)
-            det = J00*J11*J22+J10*J21*J02+J20*J01*J12-J00*J21*J12-J10*J01*J22-J20*J11*J02
-            res += det
+            res += J00*J11*J22 + J10*J21*J02 + J20*J01*J12
+            res -= J00*J21*J12 + J10*J01*J22 + J20*J11*J02
         return res.reshape(-1, 1) / 512
 
     @ functools.lru_cache(maxsize=1)
@@ -621,7 +621,9 @@ class GeometryProcessorMixin:
         self.nodes.data[:, 2] += vz
 
     def rotation(self, vx, vy, vz, theta):
-        """Rotate the nodes, around straight line passing (0,0,0) and (vx,vy,vz).
+        """Rotate the nodes, around straight line which throw
+        (0,0,0) and (vx,vy,vz).
+
         Parameters
         ----------
         vx, vy, vz: float
