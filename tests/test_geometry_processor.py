@@ -80,6 +80,14 @@ class TestFEMData(unittest.TestCase):
         data_directory = 'tests/data/obj/quad'
         fem_data = FEMData.read_directory(
             'obj', data_directory, read_npy=False, save=False)
+
+        fem_data.nodal_data.reset()
+        vx, vy, vz = np.random.random(3)
+        theta = np.random.random() * np.pi * 2
+        fem_data.rotation(vx, vy, vz, theta)
+        vx, vy, vz = np.random.random(3)
+        fem_data.translation(vx, vy, vz)
+
         desired_areas = np.array([
             [1.],
             [1.5],
@@ -87,6 +95,23 @@ class TestFEMData(unittest.TestCase):
         ])
         actual = fem_data._calculate_element_areas_quad_gaussian()
         np.testing.assert_almost_equal(actual, desired_areas)
+
+    def test_calculate_volumes_hex_gaussian(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
+            save=False)
+
+        fem_data.nodal_data.reset()
+        fem_data.elemental_data.reset()
+        vx, vy, vz = np.random.random(3)
+        theta = np.random.random() * np.pi * 2
+        fem_data.rotation(vx, vy, vz, theta)
+        vx, vy, vz = np.random.random(3)
+        fem_data.translation(vx, vy, vz)
+
+        desired_volumes = np.full((7, 1), 8.0)
+        actual = fem_data._calculate_element_volumes_hex_gaussian()
+        np.testing.assert_almost_equal(actual, desired_volumes)
 
     def test_calculate_normal_tri(self):
         data_directory = 'tests/data/stl/multiple'
@@ -336,3 +361,34 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.calculate_element_metrics(),
             fem_data.calculate_element_volumes())
+
+    def test_translation_and_rotation(self):
+        data_directory = 'tests/data/obj/tri'
+        fem_data = FEMData.read_directory(
+            'obj', data_directory, read_npy=False, save=False)
+        fem_data.nodal_data.reset()
+
+        fem_data.rotation(1, 1, 1, np.pi/2)
+        a, b, c = 1/3, (1+3**.5)/3, (1-3**.5)/3
+        desired = np.array([0, 0, 0, a, b, c, c, a, b, b, c, a]).reshape(4, 3)
+        np.testing.assert_almost_equal(fem_data.nodes.data, desired)
+
+        fem_data.translation(1, 2, 3)
+        desired = np.array([1, 2, 3, a+1, b+2, c+3, c+1, a+2,
+                            b+3, b+1, c+2, a+3]).reshape(4, 3)
+        np.testing.assert_almost_equal(fem_data.nodes.data, desired)
+
+        vx, vy, vz = np.random.random(3)
+        theta = np.random.random() * np.pi * 2
+        fem_data.rotation(vx, vy, vz, theta)
+        vx, vy, vz = np.random.random(3)
+        fem_data.translation(vx, vy, vz)
+
+        X, Y, Z = fem_data.nodes.data.T
+        dist = np.empty((4, 4))
+        for i in range(4):
+            for j in range(4):
+                dist[i, j] = (X[i]-X[j])**2 + (Y[i]-Y[j])**2 + (Z[i]-Z[j])**2
+        desired = np.array([0, 1, 1, 1, 1, 0, 2, 2, 1, 2, 0,
+                            2, 1, 2, 2, 0], np.float64).reshape(4, 4)
+        np.testing.assert_almost_equal(dist, desired)
