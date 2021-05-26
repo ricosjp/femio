@@ -606,8 +606,14 @@ class FEMData(
             nodes, elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
 
-    def to_surface(self):
+    def to_surface(self, *, remove_unnecessary_nodes=True):
         """Convert the FEMData object to the surface data.
+
+        Parameters
+        ----------
+        remove_unnecessary_nodes: bool, optional
+            If True, remove nodes unnecessary for surface. The default is
+            True.
 
         Returns
         -------
@@ -624,16 +630,20 @@ class FEMData(
             unique_indices = np.unique(surface_indices)
             surface_ids = self.nodes.ids[surface_indices]
 
-        node_ids = self.nodes.ids[unique_indices]
-        nodes = FEMAttribute(
-            'NODE', node_ids, self.nodes.iloc[unique_indices].values)
+        if remove_unnecessary_nodes:
+            node_ids = self.nodes.ids[unique_indices]
+            nodes = FEMAttribute(
+                'NODE', node_ids, self.nodes.iloc[unique_indices].values)
+            n_node = len(self.nodes)
+            nodal_data = FEMAttributes({
+                k: FEMAttribute(
+                    k, node_ids, v.iloc[unique_indices].values,
+                    time_series=v.time_series)
+                for k, v in self.nodal_data.items() if len(v) == n_node})
+        else:
+            nodes = self.nodes
+            nodal_data = self.nodal_data
         elements = self.elements.to_surface(surface_ids)
-        n_node = len(self.nodes)
-        nodal_data = FEMAttributes({
-            k: FEMAttribute(
-                k, node_ids, v.iloc[unique_indices].values,
-                time_series=v.time_series)
-            for k, v in self.nodal_data.items() if len(v) == n_node})
 
         return FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
