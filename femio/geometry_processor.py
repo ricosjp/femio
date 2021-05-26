@@ -221,8 +221,8 @@ class GeometryProcessorMixin:
         signed_incidence_matrix: scipy.sparse.csr_matrix[int]
             Positive if the direction of the facet's normal vector is in
             outside direction. Negative otherwise.
-        cell_normal_vectors: numpy.ndarray[float]
-            Normal vectors of cells.
+        facet_normal_vectors: numpy.ndarray[float]
+            [n_facet, 3]-shaped array represents normal vectors of facets.
         """
         facet_data = self.to_facets(remove_duplicates=True)
         relative_incidence = self.calculate_relative_incidence_metrix_element(
