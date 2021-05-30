@@ -320,11 +320,17 @@ class FEMElementalAttribute(dict):
         return self.ids
 
     def to_first_order(self):
-        return FEMElementalAttribute('ELEMENT', {
-            element_type: FEMAttribute(
-                element_type, elements.ids, self._to_first_order(
-                    element_type, elements.data)
-            ) for element_type, elements in self.items()}, ids=self.ids)
+        if self.is_first_order():
+            return self
+        else:
+            return FEMElementalAttribute('ELEMENT', {
+                element_type: FEMAttribute(
+                    element_type, elements.ids, self._to_first_order(
+                        element_type, elements.data)
+                ) for element_type, elements in self.items()}, ids=self.ids)
+
+    def is_first_order(self):
+        return not np.any(['2' in t for t in self.unique_types])
 
     def _to_first_order(self, element_type, element_data):
         if '2' not in element_type:
