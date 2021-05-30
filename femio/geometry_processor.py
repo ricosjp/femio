@@ -595,3 +595,30 @@ class GeometryProcessorMixin:
                 elements[:, 1], elements[:, 3]], axis=-1)
         else:
             raise NotImplementedError
+
+    def integrate_node_attribute_over_surface(self, attr_name):
+        """
+        Integrate a node attribute over surface areas.
+
+        Parameters
+        ----------
+        attr_name: str
+            The name of node attribute.
+
+        Returns
+        -------
+        integrated_value: float number
+        """
+        node_ids = self.nodes.ids
+        surface = self.extract_surface()[0]
+        surf_xyz = self.nodes.data[surface]
+        p0, p1, p2 = surf_xyz[:, 0], surf_xyz[:, 1], surf_xyz[:, 2]
+        v01 = p1 - p0
+        v02 = p2 - p0
+        v = np.cross(v01, v02)
+        areas = (v*v).sum(axis=1) ** .5 / 2
+
+        values = self.nodal_data.data[attr_name].data.ravel()
+        values = values[surface].mean(axis=1)
+
+        return (values * areas).sum()
