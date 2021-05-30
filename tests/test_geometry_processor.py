@@ -76,6 +76,75 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
+    def test_normal_incidence_hex(self):
+        fem_data = FEMData.read_files(
+            'vtk', ['tests/data/vtk/hex/mesh.vtk'])
+        _, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+        coo = inc_facet2cell.tocoo()
+        desired_normals = np.array([
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+        ])
+        all_normals = [
+            data * normals[i_facet]
+            for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)]
+        np.testing.assert_almost_equal(all_normals, desired_normals)
+
+    def test_relative_incidence_graph_tet1(self):
+        fem_data = FEMData.read_files(
+            'fistr', ['tests/data/fistr/graph_tet1/mesh.msh'])
+        facet_fem_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+        coo = inc_facet2cell.tocoo()
+        write_file_name = pathlib.Path(
+            'tests/data/ucd/write_graph_tet1_facet/mesh.inp')
+        if write_file_name.exists():
+            write_file_name.unlink()
+        facet_fem_data.write('ucd', write_file_name)
+        desired_normals = np.array([
+            # Cell 1
+            [3**-.5, 3**-.5, 3**-.5],
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            # Cell 2
+            [0., -2.**-.5, -2.**-.5],
+            [-1., 0., 0.],
+            [2.**-.5, 2**-.5, 0.],
+            [0., 0., 1.],
+            # Cell 3
+            [-3**-.5, -3**-.5, -3**-.5],
+            [2.**-.5, 2**-.5, 0.],
+            [0., -1., 0.],
+            [0., 2.**-.5, 2.**-.5],
+            # Cell 4
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            [3**-.5, 3**-.5, 3**-.5],
+            # Cell 5
+            [3**-.5, 3**-.5, -3**-.5],
+            [0., 0., 1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+        ])
+        all_normals = np.array([
+            data * normals[i_facet]
+            for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)])
+        # raise ValueError(facet_fem_data.elements.data[coo.col], coo.row)
+        np.testing.assert_almost_equal(all_normals, desired_normals)
+
     def test_calculate_normal_tri(self):
         data_directory = 'tests/data/stl/multiple'
         fem_data = FEMData.read_directory(

@@ -280,7 +280,12 @@ class FEMAttribute():
                 raise ValueError('Must feed id2index')
         ids = np.asarray(ids)
         if str(ids.dtype) == 'object':
-            return [self.ids2indices(ids_) for ids_ in ids]
+            try:
+                ids = ids.astype(int)
+                return self.ids2indices(ids, id2index=id2index)
+            except (TypeError, ValueError):
+                return [
+                    self.ids2indices(ids_, id2index=id2index) for ids_ in ids]
         else:
             shape = ids.shape
             return np.reshape(

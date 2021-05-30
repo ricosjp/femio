@@ -20,8 +20,8 @@ ESTRESS, ON
  4, 2, 3, 0.0
 !CLOAD
  BND0, 1, 1.
- BND0, 2, 1.
  BND1, 1, -1.
+ BND0, 2, 1.
  BND1, 2, -1.
 #
 ### Solver Setting
