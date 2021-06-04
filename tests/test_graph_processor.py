@@ -374,3 +374,53 @@ class TestGraphProcessor(unittest.TestCase):
 
         expected = np.array([1, 1, 1, 2, 1, 4, 2, 2, 2, 4, 2, 3]).reshape(6, 2)
         np.testing.assert_equal(surfs, expected)
+
+    def test_separate(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/mixture_separate',
+            read_npy=False, save=False)
+        list_fem_data = fem_data.separate()
+
+        for i, fd in enumerate(list_fem_data):
+            if i == 0:
+                np.testing.assert_array_equal(
+                    fd.nodes.ids, [
+                        1, 2, 3, 4, 5, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17])
+                np.testing.assert_almost_equal(
+                    fd.nodal_data.get_attribute_data('t_init')[:, 0], [
+                        1., 1., 1., 1., 1., 1., 1., 1., 1.,
+                        2., 2., 2., 2., 2., 2.])
+                np.testing.assert_array_equal(
+                    fd.elements['hex'].data, [
+                        [1, 2, 4, 3, 5, 6, 8, 7],
+                        [13, 3, 4, 14, 15, 7, 8, 16]])
+                np.testing.assert_array_equal(
+                    fd.elements['tet'].data, [
+                        [12, 2, 6, 9]])
+                np.testing.assert_array_equal(
+                    fd.elements['prism'].data, [
+                        [1, 5, 17, 2, 6, 12]])
+
+            elif i == 1:
+                np.testing.assert_array_equal(
+                    fd.nodes.ids, [
+                        101, 102, 103, 104, 105, 106, 107, 108, 109, 112, 113,
+                        114, 115, 116, 117,
+                    ])
+                np.testing.assert_almost_equal(
+                    fd.nodal_data.get_attribute_data('t_init')[:, 0], [
+                        3., 3., 3., 3., 3., 3., 3., 3., 3.,
+                        4., 4., 4., 4., 4., 4.])
+                np.testing.assert_array_equal(
+                    fd.elements['hex'].data, [
+                        [101, 102, 104, 103, 105, 106, 108, 107],
+                        [113, 103, 104, 114, 115, 107, 108, 116]])
+                np.testing.assert_array_equal(
+                    fd.elements['tet'].data, [
+                        [112, 102, 106, 109]])
+                np.testing.assert_array_equal(
+                    fd.elements['prism'].data, [
+                        [101, 105, 117, 102, 106, 112]])
+
+            else:
+                raise ValueError('Separation failed')

@@ -1,7 +1,7 @@
 import datetime as dt
 import functools
 
-# import networkx as nx
+import networkx as nx
 import numpy as np
 import scipy.sparse as sp
 
@@ -10,6 +10,25 @@ from . import functions
 
 
 class GraphProcessorMixin:
+
+    def separate(self):
+        """Separate the FEMData object into parts in terms of connected
+        subgraphs.
+
+        Returns
+        -------
+        list_fem_data: List[femio.FEMData]
+            Connected subgraphs of the FEMData object. The components are
+            in the order of the smallest node ids.
+        """
+        original_graph = nx.from_scipy_sparse_matrix(
+            self.calculate_adjacency_matrix_element())
+        list_element_indices = list(nx.connected_components(original_graph))
+        unsorted_list_fem_data = [
+            self.extract_with_element_indices(list(element_indices))
+            for element_indices in list_element_indices]
+        return sorted(
+            unsorted_list_fem_data, key=lambda fd: np.min(fd.nodes.ids))
 
     def convert_id_elements_to_index_elements(self, element_ids=None):
         if element_ids is None:
