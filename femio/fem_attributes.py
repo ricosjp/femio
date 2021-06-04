@@ -503,3 +503,8 @@ class FEMAttributes:
                 attribute_name: attribute_data.data
                 for attribute_name, attribute_data in self.items()
                 if len(attribute_data.data.shape) < 3}
+
+    def filter_with_ids(self, ids):
+        return FEMAttributes(
+            {key: value.filter_with_ids(ids) for key, value in self.items()},
+            is_elemental=self.is_elemental)

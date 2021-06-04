@@ -884,3 +884,29 @@ class FEMData(
             raise ValueError(
                 f"element group {element_group_name} already exists")
         self.element_groups[element_group_name] = elem_group
+
+    def extract_with_element_indices(self, element_indices):
+        """Extract a sub-FEMData object with the specified element indices.
+
+        Parameters
+        ----------
+        element_indices: numpy.ndarray[int]
+            Element indices to extract the data.
+
+        Returns
+        -------
+        sub_fem_data: femio.FEMData
+            Extracted FEMData object.
+        """
+        element_data = self.elements.data[element_indices]
+        element_ids = self.elements.ids[element_indices]
+        node_ids = np.unique(np.concatenate(element_data))
+
+        nodes = self.nodes.filter_with_ids(node_ids)
+        elements = self.elements.filter_with_ids(element_ids)
+        nodal_data = self.nodal_data.filter_with_ids(node_ids)
+        elemental_data = self.elemental_data.filter_with_ids(
+            element_ids)
+        return FEMData(
+            nodes=nodes, elements=elements, nodal_data=nodal_data,
+            elemental_data=elemental_data)
