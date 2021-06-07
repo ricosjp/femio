@@ -629,3 +629,19 @@ class TestFEMDataFISTR(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.nodal_data.get_attribute_data('displacement'),
             old_fem_data.nodal_data.get_attribute_data('displacement'))
+
+    def test_fistr_read_heat_cflux(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/heat_cflux',
+            read_npy=False, save=False)
+        np.testing.assert_almost_equal(
+            fem_data.constraints.get_attribute_data('cflux'),
+            np.array([0.018181818] * 58)[:, None])
+
+    def test_fistr_read_heat_pure_cflux(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/heat_pure_cflux',
+            read_npy=False, save=False)
+        np.testing.assert_almost_equal(
+            fem_data.constraints.get_attribute_data('pure_cflux'),
+            np.array([0.018181818] * 58)[:, None])
