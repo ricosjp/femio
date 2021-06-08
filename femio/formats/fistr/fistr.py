@@ -554,9 +554,9 @@ class FrontISTRData(FEMData):
         if len(temps) == 0:
             return
         temp_data = self._extend_assignments(temps)
-        self.nodal_data.update(
-            {'CNT_TEMPERATURE':
-             temp_data.to_fem_attribute('CNT_TEMPERATURE', 0, 1)})
+        self.nodal_data.update({
+            'CNT_TEMPERATURE':
+            temp_data.to_fem_attribute('CNT_TEMPERATURE', 0, 1)})
 
     def _read_cnt_boundaries(self, header_data):
         bnds = header_data.extract_data('!BOUNDARY')
