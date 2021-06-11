@@ -246,6 +246,12 @@ class FistrWriter():
                     and len(self.fem_data.settings['heat']) > 0:
                 heat_setting = st.StringSeries.read_array(
                     self.fem_data.settings['heat'])[0] + '\n'
+                data_types = [float, float, float, float, int, float]
+                heat_setting = ','.join(
+                    str(data_type(s))
+                    for s, data_type
+                    in zip(self.fem_data.settings['heat'][0], data_types)
+                ) + '\n'
                 if abs(self.fem_data.settings['heat'][0][0] - 0.) < 1e-5:
                     frequency = 1  # Steady
             else:
