@@ -245,9 +245,10 @@ class StringSeries(pd.Series):
         include_ss = StringSeries.read_files(include_files)
         return pd.concat([self, include_ss], ignore_index=True)
 
-    def to_fem_attribute(self, name, id_column, slice_data_columns, *,
-                         data_type=float, delimiter=',',
-                         data_unit='unit_unknown', generate_id2index=False):
+    def to_fem_attribute(
+        self, name, id_column, slice_data_columns, *,
+        data_type=float, delimiter=',',
+            data_unit='unit_unknown', generate_id2index=False):
         """Generate FEMAttribute object with parsing the series.
 
         Args:
@@ -267,6 +268,8 @@ class StringSeries(pd.Series):
         df = self.str.split(delimiter, expand=True)
         ids = df.values[:, id_column].astype(float).astype(int)
         data = df.values[:, slice_data_columns].astype(data_type)
+        if len(data.shape) == 1:
+            data = data[:, None]
         return fem_attribute.FEMAttribute(
             name, ids, data, data_unit=data_unit,
             generate_id2index=generate_id2index)

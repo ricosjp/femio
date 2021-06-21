@@ -212,8 +212,13 @@ class FrontISTRData(FEMData):
         print('start cnt fixtemp')
         print(dt.now())
         self._read_cnt_fixtemps(header_data)
+        print('start cnt cflux')
+        print(dt.now())
+        self._read_cnt_cflux(header_data)
+
         print('cnt finish')
         print(dt.now())
+        return
 
     def _read_res(self, string_series):
         if string_series is None:
@@ -549,9 +554,9 @@ class FrontISTRData(FEMData):
         if len(temps) == 0:
             return
         temp_data = self._extend_assignments(temps)
-        self.nodal_data.update(
-            {'CNT_TEMPERATURE':
-             temp_data.to_fem_attribute('CNT_TEMPERATURE', 0, 1)})
+        self.nodal_data.update({
+            'CNT_TEMPERATURE':
+            temp_data.to_fem_attribute('CNT_TEMPERATURE', 0, 1)})
 
     def _read_cnt_boundaries(self, header_data):
         bnds = header_data.extract_data('!BOUNDARY')
@@ -613,6 +618,28 @@ class FrontISTRData(FEMData):
         temperatures = _temperatures.astype(float)
         self.constraints.update(
             {'fixtemp': FEMAttribute('fixtemp', ids, temperatures)})
+
+    def _read_cnt_cflux(self, header_data):
+        cfluxes = header_data.extract_data('!CFLUX')
+        types = header_data.extract_headers(
+            '!CFLUX').extract_captures(r'TYPE=(\w+)')
+        if len(cfluxes) == 0:
+            return
+        if len(types) == 0:
+            label = 'cflux'
+        elif np.all(types == ['PURE']):
+            label = 'pure_cflux'
+        else:
+            headers = header_data.extract_headers('!CFLUX')
+            raise ValueError(f"Unsupported CFLUX configuration: {headers}")
+
+        cflux_data = self._extend_assignments(cfluxes)
+        _ids, _values = cflux_data.split_vertical_all()
+        ids = _ids.astype(int)
+        values = _values.astype(float)
+        self.constraints.update(
+            {label: FEMAttribute(label, ids, values.values[:, None])})
+        return
 
     def _extend_assignments(self, series):
         node_groups, values = series.find_match(
