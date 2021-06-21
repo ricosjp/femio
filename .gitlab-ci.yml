@@ -1,4 +1,4 @@
-image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos
+image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos:0.3.2
 
 default:
   before_script:
