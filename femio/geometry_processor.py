@@ -10,8 +10,8 @@ from . import functions
 class GeometryProcessorMixin:
 
     def calculate_element_areas(
-            self, *, linear=False, raise_negative_area=False, return_abs_area=True,
-            elements=None):
+            self, *, linear=False, raise_negative_area=False,
+            return_abs_area=True, elements=None):
         """Calculate areas of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated areas are returned and also stored in
@@ -20,8 +20,8 @@ class GeometryProcessorMixin:
         Parameters
         ----------
         linear: bool, optional [False]
-            If False, areas are calculated by gaussian integral. 
-            If True, areas are calculated under the assumption that 
+            If False, areas are calculated by gaussian integral.
+            If True, areas are calculated under the assumption that
             all elements is linear, and it runs a bit faster.
         raise_negative_area: bool, optional [False]
             If True, raise ValueError when negative area exists.
@@ -518,8 +518,8 @@ class GeometryProcessorMixin:
         return metrics
 
     def calculate_element_volumes(
-            self, *, linear=False, raise_negative_volume=True, return_abs_volume=False,
-            elements=None):
+            self, *, linear=False, raise_negative_volume=True,
+            return_abs_volume=False, elements=None):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated volumes are returned and also stored in
@@ -528,8 +528,8 @@ class GeometryProcessorMixin:
         Parameters
         ----------
         linear: bool, optional [False]
-            If False, areas are calculated by gaussian integral. 
-            If True, areas are calculated under the assumption that 
+            If False, areas are calculated by gaussian integral.
+            If True, areas are calculated under the assumption that
             all elements is linear, and it runs a bit faster.
         raise_negative_volume: bool, optional [True]
             If True, raise ValueError when negative volume exists.
@@ -591,7 +591,7 @@ class GeometryProcessorMixin:
         Parameters
         ----------
         elements: femio.FEMAttribute
-            Elements to calcluate volumes. 
+            Elements to calcluate volumes.
 
         Returns:
         volumes: numpy.ndarray
@@ -611,7 +611,7 @@ class GeometryProcessorMixin:
         Parameters
         ----------
         elements: femio.FEMAttribute
-            Elements to calcluate volumes. 
+            Elements to calcluate volumes.
 
         Returns
         -------
@@ -644,7 +644,7 @@ class GeometryProcessorMixin:
         Parameters
         ----------
         elements: femio.FEMAttribute
-            Elements to calcluate volumes. 
+            Elements to calcluate volumes.
 
         Returns
         -------
