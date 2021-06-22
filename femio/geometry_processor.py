@@ -10,7 +10,7 @@ from . import functions
 class GeometryProcessorMixin:
 
     def calculate_element_areas(
-            self, *, raise_negative_area=False, return_abs_area=True,
+            self, *, linear=False, raise_negative_area=False, return_abs_area=True,
             elements=None):
         """Calculate areas of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
@@ -19,6 +19,10 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
+        linear: bool, optional [False]
+            If False, areas are calculated by gaussian integral. 
+            If True, areas are calculated under the assumption that 
+            all elements is linear, and it runs a bit faster.
         raise_negative_area: bool, optional [False]
             If True, raise ValueError when negative area exists.
         return_abs_area: bool, optional [True]
@@ -40,9 +44,12 @@ class GeometryProcessorMixin:
                 element_type = elements.name
 
         if element_type in ['tri']:
-            areas = self._calculate_element_areas_tri()
+            areas = self._calculate_element_areas_tri(elements)
         elif element_type in ['quad']:
-            areas = self._calculate_element_areas_quad()
+            if linear:
+                areas = self._calculate_element_areas_quad(elements)
+            else:
+                areas = self._calculate_element_areas_quad_gaussian(elements)
         else:
             raise NotImplementedError(element_type)
 
@@ -56,16 +63,16 @@ class GeometryProcessorMixin:
             self.elements.ids, {'area': areas}, allow_overwrite=True)
         return areas
 
-    def _calculate_element_areas_tri(self):
-        crosses = self._calculate_tri_crosses()
+    def _calculate_element_areas_tri(self, elements):
+        crosses = self._calculate_tri_crosses(elements)
         return np.linalg.norm(crosses, axis=1, keepdims=True) / 2.
 
-    def _calculate_element_areas_quad(self):
-        elements = self.elements.data[:, :4]
-        node0_points = self.collect_node_positions_by_ids(elements[:, 0])
-        node1_points = self.collect_node_positions_by_ids(elements[:, 1])
-        node2_points = self.collect_node_positions_by_ids(elements[:, 2])
-        node3_points = self.collect_node_positions_by_ids(elements[:, 3])
+    def _calculate_element_areas_quad(self, elements):
+        element_data = elements.data
+        node0_points = self.collect_node_positions_by_ids(element_data[:, 0])
+        node1_points = self.collect_node_positions_by_ids(element_data[:, 1])
+        node2_points = self.collect_node_positions_by_ids(element_data[:, 2])
+        node3_points = self.collect_node_positions_by_ids(element_data[:, 3])
 
         v10 = node1_points - node0_points
         v20 = node2_points - node0_points
@@ -77,12 +84,12 @@ class GeometryProcessorMixin:
         areas2 = np.linalg.norm(crosses2, axis=1, keepdims=True) / 2
         return areas1 + areas2
 
-    def _calculate_element_areas_quad_gaussian(self):
-        elements = self.elements.data[:, :4]
-        x0, y0, z0 = self.collect_node_positions_by_ids(elements[:, 0]).T
-        x1, y1, z1 = self.collect_node_positions_by_ids(elements[:, 1]).T
-        x2, y2, z2 = self.collect_node_positions_by_ids(elements[:, 2]).T
-        x3, y3, z3 = self.collect_node_positions_by_ids(elements[:, 3]).T
+    def _calculate_element_areas_quad_gaussian(self, elements):
+        element_data = elements.data
+        x0, y0, z0 = self.collect_node_positions_by_ids(element_data[:, 0]).T
+        x1, y1, z1 = self.collect_node_positions_by_ids(element_data[:, 1]).T
+        x2, y2, z2 = self.collect_node_positions_by_ids(element_data[:, 2]).T
+        x3, y3, z3 = self.collect_node_positions_by_ids(element_data[:, 3]).T
 
         def J00(xi, eta):
             return (x1 - x0) * (1 - eta) + (x2 - x3) * (1 + eta)
@@ -112,45 +119,45 @@ class GeometryProcessorMixin:
         res /= 16
         return res.reshape(-1, 1)
 
-    def _calculate_element_volumes_hex_gaussian(self):
-        elements = self.elements.data[:, :8]
-        x0, y0, z0 = self.collect_node_positions_by_ids(elements[:, 0]).T
-        x1, y1, z1 = self.collect_node_positions_by_ids(elements[:, 1]).T
-        x2, y2, z2 = self.collect_node_positions_by_ids(elements[:, 2]).T
-        x3, y3, z3 = self.collect_node_positions_by_ids(elements[:, 3]).T
-        x4, y4, z4 = self.collect_node_positions_by_ids(elements[:, 4]).T
-        x5, y5, z5 = self.collect_node_positions_by_ids(elements[:, 5]).T
-        x6, y6, z6 = self.collect_node_positions_by_ids(elements[:, 6]).T
-        x7, y7, z7 = self.collect_node_positions_by_ids(elements[:, 7]).T
+    def _calculate_element_volumes_hex_gaussian(self, elements):
+        element_data = elements.data
+        x0, y0, z0 = self.collect_node_positions_by_ids(element_data[:, 0]).T
+        x1, y1, z1 = self.collect_node_positions_by_ids(element_data[:, 1]).T
+        x2, y2, z2 = self.collect_node_positions_by_ids(element_data[:, 2]).T
+        x3, y3, z3 = self.collect_node_positions_by_ids(element_data[:, 3]).T
+        x4, y4, z4 = self.collect_node_positions_by_ids(element_data[:, 4]).T
+        x5, y5, z5 = self.collect_node_positions_by_ids(element_data[:, 5]).T
+        x6, y6, z6 = self.collect_node_positions_by_ids(element_data[:, 6]).T
+        x7, y7, z7 = self.collect_node_positions_by_ids(element_data[:, 7]).T
 
         def J0(xi, eta, zeta):
-            c1 = (1-eta)*(1-zeta)
-            c2 = (1-eta)*(1+zeta)
-            c3 = (1+eta)*(1-zeta)
-            c4 = (1+eta)*(1+zeta)
-            J00 = c1*(x1-x0)+c2*(x5-x4)+c3*(x2-x3)+c4*(x6-x7)
-            J10 = c1*(y1-y0)+c2*(y5-y4)+c3*(y2-y3)+c4*(y6-y7)
-            J20 = c1*(z1-z0)+c2*(z5-z4)+c3*(z2-z3)+c4*(z6-z7)
+            c1 = (1 - eta) * (1 - zeta)
+            c2 = (1 - eta) * (1 + zeta)
+            c3 = (1 + eta) * (1 - zeta)
+            c4 = (1 + eta) * (1 + zeta)
+            J00 = c1 * (x1 - x0) + c2 * (x5 - x4) + c3 * (x2 - x3) + c4 * (x6 - x7)
+            J10 = c1 * (y1 - y0) + c2 * (y5 - y4) + c3 * (y2 - y3) + c4 * (y6 - y7)
+            J20 = c1 * (z1 - z0) + c2 * (z5 - z4) + c3 * (z2 - z3) + c4 * (z6 - z7)
             return J00, J10, J20
 
         def J1(xi, eta, zeta):
-            c1 = (1-xi)*(1-zeta)
-            c2 = (1-xi)*(1+zeta)
-            c3 = (1+xi)*(1-zeta)
-            c4 = (1+xi)*(1+zeta)
-            J01 = c1*(x3-x0)+c2*(x7-x4)+c3*(x2-x1)+c4*(x6-x5)
-            J11 = c1*(y3-y0)+c2*(y7-y4)+c3*(y2-y1)+c4*(y6-y5)
-            J21 = c1*(z3-z0)+c2*(z7-z4)+c3*(z2-z1)+c4*(z6-z5)
+            c1 = (1 - xi) * (1 - zeta)
+            c2 = (1 - xi) * (1 + zeta)
+            c3 = (1 + xi) * (1 - zeta)
+            c4 = (1 + xi) * (1 + zeta)
+            J01 = c1 * (x3 - x0) + c2 * (x7 - x4) + c3 * (x2 - x1) + c4 * (x6 - x5)
+            J11 = c1 * (y3 - y0) + c2 * (y7 - y4) + c3 * (y2 - y1) + c4 * (y6 - y5)
+            J21 = c1 * (z3 - z0) + c2 * (z7 - z4) + c3 * (z2 - z1) + c4 * (z6 - z5)
             return J01, J11, J21
 
         def J2(xi, eta, zeta):
-            c1 = (1-xi)*(1-eta)
-            c2 = (1-xi)*(1+eta)
-            c3 = (1+xi)*(1-eta)
-            c4 = (1+xi)*(1+eta)
-            J02 = c1*(x4-x0)+c2*(x7-x3)+c3*(x5-x1)+c4*(x6-x2)
-            J12 = c1*(y4-y0)+c2*(y7-y3)+c3*(y5-y1)+c4*(y6-y2)
-            J22 = c1*(z4-z0)+c2*(z7-z3)+c3*(z5-z1)+c4*(z6-z2)
+            c1 = (1 - xi) * (1 - eta)
+            c2 = (1 - xi) * (1 + eta)
+            c3 = (1 + xi) * (1 - eta)
+            c4 = (1 + xi) * (1 + eta)
+            J02 = c1 * (x4 - x0) + c2 * (x7 - x3) + c3 * (x5 - x1) + c4 * (x6 - x2)
+            J12 = c1 * (y4 - y0) + c2 * (y7 - y3) + c3 * (y5 - y1) + c4 * (y6 - y2)
+            J22 = c1 * (z4 - z0) + c2 * (z7 - z3) + c3 * (z5 - z1) + c4 * (z6 - z2)
             return J02, J12, J22
 
         res = 0.0
@@ -162,8 +169,8 @@ class GeometryProcessorMixin:
             J00, J10, J20 = J0(xi, eta, zeta)
             J01, J11, J21 = J1(xi, eta, zeta)
             J02, J12, J22 = J2(xi, eta, zeta)
-            res += J00*J11*J22 + J10*J21*J02 + J20*J01*J12
-            res -= J00*J21*J12 + J10*J01*J22 + J20*J11*J02
+            res += J00 * J11 * J22 + J10 * J21 * J02 + J20 * J01 * J12
+            res -= J00 * J21 * J12 + J10 * J01 * J22 + J20 * J11 * J02
         return res.reshape(-1, 1) / 512
 
     @functools.lru_cache(maxsize=1)
@@ -175,8 +182,9 @@ class GeometryProcessorMixin:
         Returns:
             edge_lengths: numpy.ndarray
         """
+        elements = self.elements
         if self.elements.element_type in ['tri', 'quad']:
-            edge_lengths = self._calculate_edge_lengths_polygon()
+            edge_lengths = self._calculate_edge_lengths_polygon(elements)
         else:
             raise NotImplementedError
 
@@ -185,13 +193,12 @@ class GeometryProcessorMixin:
             allow_overwrite=True)
         return edge_lengths
 
-    def _calculate_edge_lengths_polygon(self):
-        elements = self.elements.data
-        n = elements.shape[1]
+    def _calculate_edge_lengths_polygon(self, elements):
+        n = elements.data.shape[1]
         points = [
-            self.collect_node_positions_by_ids(elements[:, i])
+            self.collect_node_positions_by_ids(elements.data[:, i])
             for i in range(n)]
-        edge_lengths = np.empty(elements.shape, dtype=np.float64)
+        edge_lengths = np.empty(elements.data.shape, dtype=np.float64)
 
         for i in range(n):
             v = points[(i + 1) % n] - points[i]
@@ -209,7 +216,7 @@ class GeometryProcessorMixin:
             angles: numpy.ndarray
         """
         if self.elements.element_type in ['tri', 'quad']:
-            angles = self._calculate_angles_polygon()
+            angles = self._calculate_angles_polygon(self.elements)
         else:
             raise NotImplementedError
 
@@ -217,13 +224,12 @@ class GeometryProcessorMixin:
             self.elements.ids, {'angles': angles}, allow_overwrite=True)
         return angles
 
-    def _calculate_angles_polygon(self):
-        elements = self.elements.data
-        n = elements.shape[1]
+    def _calculate_angles_polygon(self, elements):
+        n = elements.data.shape[1]
         points = [
-            self.collect_node_positions_by_ids(elements[:, i])
+            self.collect_node_positions_by_ids(elements.data[:, i])
             for i in range(n)]
-        angles = np.empty(elements.shape, dtype=np.float64)
+        angles = np.empty(elements.data.shape, dtype=np.float64)
 
         for i in range(n):
             v1 = points[(i - 1) % n] - points[i]
@@ -244,10 +250,11 @@ class GeometryProcessorMixin:
         Returns:
             jacobians: numpy.ndarray
         """
+        elements = self.elements
         if self.elements.element_type in ['tri']:
-            jacobians = self._calculate_element_areas_tri() * 2
+            jacobians = self._calculate_element_areas_tri(elements) * 2
         elif self.elements.element_type in ['quad']:
-            jacobians = self._calculate_jacobians_quad()
+            jacobians = self._calculate_jacobians_quad(elements)
         else:
             raise NotImplementedError
 
@@ -255,11 +262,10 @@ class GeometryProcessorMixin:
             self.elements.ids, {'jacobian': jacobians}, allow_overwrite=True)
         return jacobians
 
-    def _calculate_jacobians_quad(self):
-        elements = self.elements.data
+    def _calculate_jacobians_quad(self, elements):
         normal_vector = self.calculate_element_normals()
         points = [
-            self.collect_node_positions_by_ids(elements[:, i])
+            self.collect_node_positions_by_ids(elements.data[:, i])
             for i in range(4)]
 
         # projection onto a plane
@@ -391,11 +397,12 @@ class GeometryProcessorMixin:
             normals: numpy.ndarray
                 (n_element, 3)-shaped array.
         """
+        elements = self.elements
         if self.elements.element_type in ['tri']:
-            crosses = self._calculate_tri_crosses()
+            crosses = self._calculate_tri_crosses(elements)
             normals = crosses / np.linalg.norm(crosses, axis=1, keepdims=True)
         elif self.elements.element_type in ['quad']:
-            normals = self._calculate_quad_normals()
+            normals = self._calculate_quad_normals(elements)
         else:
             raise NotImplementedError
 
@@ -437,25 +444,21 @@ class GeometryProcessorMixin:
             cos_2theta
         ], axis=1)
 
-    @functools.lru_cache(maxsize=1)
-    def _calculate_tri_crosses(self):
-        elements = self.elements.data[:, :4]
-        node0_points = self.collect_node_positions_by_ids(elements[:, 0])
-        node1_points = self.collect_node_positions_by_ids(elements[:, 1])
-        node2_points = self.collect_node_positions_by_ids(elements[:, 2])
+    def _calculate_tri_crosses(self, elements):
+        node0_points = self.collect_node_positions_by_ids(elements.data[:, 0])
+        node1_points = self.collect_node_positions_by_ids(elements.data[:, 1])
+        node2_points = self.collect_node_positions_by_ids(elements.data[:, 2])
         v10 = node1_points - node0_points
         v20 = node2_points - node0_points
 
         crosses = np.cross(v10, v20)
         return crosses
 
-    @functools.lru_cache(maxsize=1)
-    def _calculate_quad_normals(self):
-        elements = self.elements.data[:, :4]
-        node0_points = self.collect_node_positions_by_ids(elements[:, 0])
-        node1_points = self.collect_node_positions_by_ids(elements[:, 1])
-        node2_points = self.collect_node_positions_by_ids(elements[:, 2])
-        node3_points = self.collect_node_positions_by_ids(elements[:, 3])
+    def _calculate_quad_normals(self, elements):
+        node0_points = self.collect_node_positions_by_ids(elements.data[:, 0])
+        node1_points = self.collect_node_positions_by_ids(elements.data[:, 1])
+        node2_points = self.collect_node_positions_by_ids(elements.data[:, 2])
+        node3_points = self.collect_node_positions_by_ids(elements.data[:, 3])
 
         v10 = node1_points - node0_points
         v20 = node2_points - node0_points
@@ -497,7 +500,6 @@ class GeometryProcessorMixin:
                 element_type = elements.element_type
             else:
                 element_type = elements.name
-
         if element_type in ['tri', 'tri2', 'quad', 'quad2']:
             metrics = self.calculate_element_areas(
                 raise_negative_area=raise_negative_metric,
@@ -516,7 +518,7 @@ class GeometryProcessorMixin:
         return metrics
 
     def calculate_element_volumes(
-            self, *, raise_negative_volume=True, return_abs_volume=False,
+            self, *, linear=False, raise_negative_volume=True, return_abs_volume=False,
             elements=None):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
@@ -525,6 +527,10 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
+        linear: bool, optional [False]
+            If False, areas are calculated by gaussian integral. 
+            If True, areas are calculated under the assumption that 
+            all elements is linear, and it runs a bit faster.
         raise_negative_volume: bool, optional [True]
             If True, raise ValueError when negative volume exists.
         return_abs_volume: bool, optional [False]
@@ -547,13 +553,17 @@ class GeometryProcessorMixin:
 
         if element_type in ['tet', 'tet2']:
             volumes = self._calculate_element_volumes_tet_like(
-                elements.data)
+                elements)
         elif element_type in ['hex']:
-            volumes = self._calculate_element_volumes_hex(
-                elements.data)
+            if linear:
+                volumes = self._calculate_element_volumes_hex(
+                    elements)
+            else:
+                volumes = self._calculate_element_volumes_hex_gaussian(
+                    elements)
         elif element_type in ['hexprism']:
             volumes = self._calculate_element_volumes_hexprism(
-                elements.data)
+                elements)
         elif element_type == 'mix':
             volumes = np.concatenate([
                 self.calculate_element_volumes(elements=e)
@@ -580,16 +590,16 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
-        elements: numpy.ndarray
-            Element connectivity.
+        elements: femio.FEMAttribute
+            Elements to calcluate volumes. 
 
         Returns:
         volumes: numpy.ndarray
         """
-        node0_points = self.collect_node_positions_by_ids(elements[:, 0])
-        node1_points = self.collect_node_positions_by_ids(elements[:, 1])
-        node2_points = self.collect_node_positions_by_ids(elements[:, 2])
-        node3_points = self.collect_node_positions_by_ids(elements[:, 3])
+        node0_points = self.collect_node_positions_by_ids(elements.data[:, 0])
+        node1_points = self.collect_node_positions_by_ids(elements.data[:, 1])
+        node2_points = self.collect_node_positions_by_ids(elements.data[:, 2])
+        node3_points = self.collect_node_positions_by_ids(elements.data[:, 3])
         v10 = node1_points - node0_points
         v20 = node2_points - node0_points
         v30 = node3_points - node0_points
@@ -600,21 +610,21 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
-        elements: numpy.ndarray
-            Element connectivity.
+        elements: femio.FEMAttribute
+            Elements to calcluate volumes. 
 
         Returns
         -------
         volumes: numpy.ndarray
         """
-        p0 = self.collect_node_positions_by_ids(elements[:, 0])
-        p1 = self.collect_node_positions_by_ids(elements[:, 1])
-        p2 = self.collect_node_positions_by_ids(elements[:, 2])
-        p3 = self.collect_node_positions_by_ids(elements[:, 3])
-        p4 = self.collect_node_positions_by_ids(elements[:, 4])
-        p5 = self.collect_node_positions_by_ids(elements[:, 5])
-        p6 = self.collect_node_positions_by_ids(elements[:, 6])
-        p7 = self.collect_node_positions_by_ids(elements[:, 7])
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
+        p6 = self.collect_node_positions_by_ids(elements.data[:, 6])
+        p7 = self.collect_node_positions_by_ids(elements.data[:, 7])
         return self._calculate_element_volumes_hex_with_nodes(
             p0, p1, p2, p3, p4, p5, p6, p7)
 
@@ -633,25 +643,25 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
-        elements: numpy.ndarray
-            Element connectivity.
+        elements: femio.FEMAttribute
+            Elements to calcluate volumes. 
 
         Returns
         -------
         volumes: numpy.ndarray
         """
-        p0 = self.collect_node_positions_by_ids(elements[:, 0])
-        p1 = self.collect_node_positions_by_ids(elements[:, 1])
-        p2 = self.collect_node_positions_by_ids(elements[:, 2])
-        p3 = self.collect_node_positions_by_ids(elements[:, 3])
-        p4 = self.collect_node_positions_by_ids(elements[:, 4])
-        p5 = self.collect_node_positions_by_ids(elements[:, 5])
-        p6 = self.collect_node_positions_by_ids(elements[:, 6])
-        p7 = self.collect_node_positions_by_ids(elements[:, 7])
-        p8 = self.collect_node_positions_by_ids(elements[:, 8])
-        p9 = self.collect_node_positions_by_ids(elements[:, 9])
-        p10 = self.collect_node_positions_by_ids(elements[:, 10])
-        p11 = self.collect_node_positions_by_ids(elements[:, 11])
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
+        p6 = self.collect_node_positions_by_ids(elements.data[:, 6])
+        p7 = self.collect_node_positions_by_ids(elements.data[:, 7])
+        p8 = self.collect_node_positions_by_ids(elements.data[:, 8])
+        p9 = self.collect_node_positions_by_ids(elements.data[:, 9])
+        p10 = self.collect_node_positions_by_ids(elements.data[:, 10])
+        p11 = self.collect_node_positions_by_ids(elements.data[:, 11])
         return self._calculate_element_volumes_hex_with_nodes(
             p0, p1, p2, p3, p6, p7, p8, p9) \
             + self._calculate_element_volumes_hex_with_nodes(
@@ -721,9 +731,9 @@ class GeometryProcessorMixin:
         Y = self.nodes.data[:, 1]
         Z = self.nodes.data[:, 2]
         c, s = np.cos(theta), np.sin(theta)
-        new_X = (n1*n1*(1-c)+c)*X+(n1*n2*(1-c)-n3*s)*Y+(n1*n3*(1-c)+n2*s)*Z
-        new_Y = (n2*n2*(1-c)+c)*Y+(n2*n3*(1-c)-n1*s)*Z+(n2*n1*(1-c)+n3*s)*X
-        new_Z = (n3*n3*(1-c)+c)*Z+(n3*n1*(1-c)-n2*s)*X+(n3*n2*(1-c)+n1*s)*Y
+        new_X = (n1*n1*(1-c)+c) * X + (n1*n2*(1-c)-n3*s) * Y + (n1*n3*(1-c)+n2*s) * Z
+        new_Y = (n2*n2*(1-c)+c) * Y + (n2*n3*(1-c)-n1*s) * Z + (n2*n1*(1-c)+n3*s) * X
+        new_Z = (n3*n3*(1-c)+c) * Z + (n3*n1*(1-c)-n2*s) * X + (n3*n2*(1-c)+n1*s) * Y
         self.nodes.data[:, 0] = new_X
         self.nodes.data[:, 1] = new_Y
         self.nodes.data[:, 2] = new_Z

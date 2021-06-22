@@ -29,7 +29,7 @@ class TestFEMData(unittest.TestCase):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
             save=False)
-        actual_volumes = fem_data.calculate_element_volumes()
+        actual_volumes = fem_data.calculate_element_volumes(linear=True)
         desired_volumes = np.ones((7, 1)) * 8.
         np.testing.assert_almost_equal(actual_volumes, desired_volumes)
 
@@ -59,7 +59,7 @@ class TestFEMData(unittest.TestCase):
             [3.],
             [6.],
         ])
-        fem_data.calculate_element_areas()
+        fem_data.calculate_element_areas(linear=True)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
@@ -72,7 +72,7 @@ class TestFEMData(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        fem_data.calculate_element_areas()
+        fem_data.calculate_element_areas(linear=True)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
@@ -93,7 +93,7 @@ class TestFEMData(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        actual = fem_data._calculate_element_areas_quad_gaussian()
+        actual = fem_data.calculate_element_areas(linear=False)
         np.testing.assert_almost_equal(actual, desired_areas)
 
     def test_calculate_volumes_hex_gaussian(self):
@@ -110,7 +110,7 @@ class TestFEMData(unittest.TestCase):
         fem_data.translation(vx, vy, vz)
 
         desired_volumes = np.full((7, 1), 8.0)
-        actual = fem_data._calculate_element_volumes_hex_gaussian()
+        actual = fem_data.calculate_element_volumes(linear=False)
         np.testing.assert_almost_equal(actual, desired_volumes)
 
     def test_normal_incidence_hex(self):
