@@ -135,9 +135,9 @@ class GeometryProcessorMixin:
             c2 = (1 - eta) * (1 + zeta)
             c3 = (1 + eta) * (1 - zeta)
             c4 = (1 + eta) * (1 + zeta)
-            J00 = c1 * (x1 - x0) + c2 * (x5 - x4) + c3 * (x2 - x3) + c4 * (x6 - x7)
-            J10 = c1 * (y1 - y0) + c2 * (y5 - y4) + c3 * (y2 - y3) + c4 * (y6 - y7)
-            J20 = c1 * (z1 - z0) + c2 * (z5 - z4) + c3 * (z2 - z3) + c4 * (z6 - z7)
+            J00 = c1 * (x1-x0) + c2 * (x5-x4) + c3 * (x2-x3) + c4 * (x6-x7)
+            J10 = c1 * (y1-y0) + c2 * (y5-y4) + c3 * (y2-y3) + c4 * (y6-y7)
+            J20 = c1 * (z1-z0) + c2 * (z5-z4) + c3 * (z2-z3) + c4 * (z6-z7)
             return J00, J10, J20
 
         def J1(xi, eta, zeta):
@@ -145,9 +145,9 @@ class GeometryProcessorMixin:
             c2 = (1 - xi) * (1 + zeta)
             c3 = (1 + xi) * (1 - zeta)
             c4 = (1 + xi) * (1 + zeta)
-            J01 = c1 * (x3 - x0) + c2 * (x7 - x4) + c3 * (x2 - x1) + c4 * (x6 - x5)
-            J11 = c1 * (y3 - y0) + c2 * (y7 - y4) + c3 * (y2 - y1) + c4 * (y6 - y5)
-            J21 = c1 * (z3 - z0) + c2 * (z7 - z4) + c3 * (z2 - z1) + c4 * (z6 - z5)
+            J01 = c1 * (x3-x0) + c2 * (x7-x4) + c3 * (x2-x1) + c4 * (x6-x5)
+            J11 = c1 * (y3-y0) + c2 * (y7-y4) + c3 * (y2-y1) + c4 * (y6-y5)
+            J21 = c1 * (z3-z0) + c2 * (z7-z4) + c3 * (z2-z1) + c4 * (z6-z5)
             return J01, J11, J21
 
         def J2(xi, eta, zeta):
@@ -155,9 +155,9 @@ class GeometryProcessorMixin:
             c2 = (1 - xi) * (1 + eta)
             c3 = (1 + xi) * (1 - eta)
             c4 = (1 + xi) * (1 + eta)
-            J02 = c1 * (x4 - x0) + c2 * (x7 - x3) + c3 * (x5 - x1) + c4 * (x6 - x2)
-            J12 = c1 * (y4 - y0) + c2 * (y7 - y3) + c3 * (y5 - y1) + c4 * (y6 - y2)
-            J22 = c1 * (z4 - z0) + c2 * (z7 - z3) + c3 * (z5 - z1) + c4 * (z6 - z2)
+            J02 = c1 * (x4-x0) + c2 * (x7-x3) + c3 * (x5-x1) + c4 * (x6-x2)
+            J12 = c1 * (y4-y0) + c2 * (y7-y3) + c3 * (y5-y1) + c4 * (y6-y2)
+            J22 = c1 * (z4-z0) + c2 * (z7-z3) + c3 * (z5-z1) + c4 * (z6-z2)
             return J02, J12, J22
 
         res = 0.0
@@ -731,9 +731,12 @@ class GeometryProcessorMixin:
         Y = self.nodes.data[:, 1]
         Z = self.nodes.data[:, 2]
         c, s = np.cos(theta), np.sin(theta)
-        new_X = (n1*n1*(1-c)+c) * X + (n1*n2*(1-c)-n3*s) * Y + (n1*n3*(1-c)+n2*s) * Z
-        new_Y = (n2*n2*(1-c)+c) * Y + (n2*n3*(1-c)-n1*s) * Z + (n2*n1*(1-c)+n3*s) * X
-        new_Z = (n3*n3*(1-c)+c) * Z + (n3*n1*(1-c)-n2*s) * X + (n3*n2*(1-c)+n1*s) * Y
+        coefs = [n1*n1*(1-c) + c, n1*n2*(1-c) - n3*s, n1*n3*(1-c) + n2*s]
+        new_X = coefs[0] * X + coefs[1] * Y + coefs[2] * Z
+        coefs = [n2*n2*(1-c) + c, n2*n3*(1-c) - n1*s, n2*n1*(1-c) + n3*s]
+        new_Y = coefs[0] * Y + coefs[1] * Z + coefs[2] * X
+        coefs = [n3*n3*(1-c) + c, n3*n1*(1-c) - n2*s, n3*n2*(1-c) + n1*s]
+        new_Z = coefs[0] * Z + coefs[1] * X + coefs[2] * Y
         self.nodes.data[:, 0] = new_X
         self.nodes.data[:, 1] = new_Y
         self.nodes.data[:, 2] = new_Z
