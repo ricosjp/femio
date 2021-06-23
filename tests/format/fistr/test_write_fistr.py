@@ -862,3 +862,41 @@ class TestWriteFistr(unittest.TestCase):
             np.testing.assert_almost_equal(
                 written_fem_data_with_res.nodal_data[
                     'DISPLACEMENT'].data[3, -1], .1, decimal=3)
+
+    def test_write_fistr_heat_cflux(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/heat_cflux',
+            read_npy=False, save=False)
+
+        write_dir_name = 'tests/data/fistr/write_heat_cflux'
+        if os.path.exists(write_dir_name):
+            shutil.rmtree(write_dir_name)
+        fem_data.write(
+            'fistr', file_name=os.path.join(write_dir_name, 'mesh'))
+
+        if RUN_FISTR:
+            subprocess.check_call("fistr1", cwd=write_dir_name, shell=True)
+            written_fem_data_with_res = FEMData.read_directory(
+                'fistr', write_dir_name, read_npy=False, save=False)
+            np.testing.assert_almost_equal(
+                written_fem_data_with_res.nodal_data['TEMPERATURE'].data,
+                fem_data.nodal_data['TEMPERATURE'].data, decimal=5)
+
+    def test_write_fistr_heat_pure_cflux(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/heat_pure_cflux',
+            read_npy=False, save=False)
+
+        write_dir_name = 'tests/data/fistr/write_heat_pure_cflux'
+        if os.path.exists(write_dir_name):
+            shutil.rmtree(write_dir_name)
+        fem_data.write(
+            'fistr', file_name=os.path.join(write_dir_name, 'mesh'))
+
+        if RUN_FISTR:
+            subprocess.check_call("fistr1", cwd=write_dir_name, shell=True)
+            written_fem_data_with_res = FEMData.read_directory(
+                'fistr', write_dir_name, read_npy=False, save=False)
+            np.testing.assert_almost_equal(
+                written_fem_data_with_res.nodal_data['TEMPERATURE'].data,
+                fem_data.nodal_data['TEMPERATURE'].data, decimal=5)

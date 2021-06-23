@@ -246,6 +246,12 @@ class FistrWriter():
                     and len(self.fem_data.settings['heat']) > 0:
                 heat_setting = st.StringSeries.read_array(
                     self.fem_data.settings['heat'])[0] + '\n'
+                data_types = [float, float, float, float, int, float]
+                heat_setting = ','.join(
+                    str(data_type(s))
+                    for s, data_type
+                    in zip(self.fem_data.settings['heat'][0], data_types)
+                ) + '\n'
                 if abs(self.fem_data.settings['heat'][0][0] - 0.) < 1e-5:
                     frequency = 1  # Steady
             else:
@@ -332,19 +338,8 @@ class FistrWriter():
         if 'cload' in self.fem_data.constraints:
             print('Start cload')
             print(dt.now())
-            # isnan = np.isnan(self.fem_data.constraints['cload'].data)
-            # cload_ids = self.fem_data.constraints['cload'].ids[
-            #     np.where(~isnan)[0]]
-            # cload_directions = np.where(~isnan)[1] + 1
-            # cload_values = self.fem_data.constraints['cload'].data[~isnan]
             write_ids, write_dof, write_data = self._generate_constraints(
                 self.fem_data.constraints['cload'])
-            # self.write_data(
-            #     self.write_cnt_file,
-            #     '!BOUNDARY\n',
-            #     np.concatenate(write_ids),
-            #     np.concatenate(write_dof), np.concatenate(write_data),
-            #     str_format=['%d', '%.5E'])
             self.write_data(
                 self.write_cnt_file,
                 '!CLOAD\n',
@@ -353,13 +348,33 @@ class FistrWriter():
 
         # Write fixtemps
         if 'fixtemp' in self.fem_data.constraints:
-            print('Start cload')
+            print('Start fixtemp')
             print(dt.now())
             self.write_data(
                 self.write_cnt_file,
                 '!FIXTEMP\n',
                 self.fem_data.constraints['fixtemp'].ids,
                 self.fem_data.constraints['fixtemp'].data)
+
+        # Write cflux
+        if 'cflux' in self.fem_data.constraints:
+            print('Start cflux')
+            print(dt.now())
+            self.write_data(
+                self.write_cnt_file,
+                '!CFLUX\n',
+                self.fem_data.constraints['cflux'].ids,
+                self.fem_data.constraints['cflux'].data)
+
+        # Write pure cflux
+        if 'pure_cflux' in self.fem_data.constraints:
+            print('Start pure cflux')
+            print(dt.now())
+            self.write_data(
+                self.write_cnt_file,
+                '!CFLUX, TYPE=PURE\n',
+                self.fem_data.constraints['pure_cflux'].ids,
+                self.fem_data.constraints['pure_cflux'].data)
 
         # Write cnt temperature boundary condition
         if 'CNT_TEMPERATURE' in self.fem_data.nodal_data:
