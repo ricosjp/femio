@@ -29,7 +29,7 @@ class TestFEMData(unittest.TestCase):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
             save=False)
-        actual_volumes = fem_data.calculate_element_volumes()
+        actual_volumes = fem_data.calculate_element_volumes(linear=True)
         desired_volumes = np.ones((7, 1)) * 8.
         np.testing.assert_almost_equal(actual_volumes, desired_volumes)
 
@@ -59,7 +59,7 @@ class TestFEMData(unittest.TestCase):
             [3.],
             [6.],
         ])
-        fem_data.calculate_element_areas()
+        fem_data.calculate_element_areas(linear=True)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
@@ -72,9 +72,46 @@ class TestFEMData(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        fem_data.calculate_element_areas()
+        fem_data.calculate_element_areas(linear=True)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
+
+    def test_calculate_area_quad_gaussian(self):
+        data_directory = 'tests/data/obj/quad'
+        fem_data = FEMData.read_directory(
+            'obj', data_directory, read_npy=False, save=False)
+
+        fem_data.nodal_data.reset()
+        vx, vy, vz = np.random.random(3)
+        theta = np.random.random() * np.pi * 2
+        fem_data.rotation(vx, vy, vz, theta)
+        vx, vy, vz = np.random.random(3)
+        fem_data.translation(vx, vy, vz)
+
+        desired_areas = np.array([
+            [1.],
+            [1.5],
+            [np.sqrt(2)],
+        ])
+        actual = fem_data.calculate_element_areas(linear=False)
+        np.testing.assert_almost_equal(actual, desired_areas)
+
+    def test_calculate_volumes_hex_gaussian(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
+            save=False)
+
+        fem_data.nodal_data.reset()
+        fem_data.elemental_data.reset()
+        vx, vy, vz = np.random.random(3)
+        theta = np.random.random() * np.pi * 2
+        fem_data.rotation(vx, vy, vz, theta)
+        vx, vy, vz = np.random.random(3)
+        fem_data.translation(vx, vy, vz)
+
+        desired_volumes = np.full((7, 1), 8.0)
+        actual = fem_data.calculate_element_volumes(linear=False)
+        np.testing.assert_almost_equal(actual, desired_volumes)
 
     def test_normal_incidence_hex(self):
         fem_data = FEMData.read_files(
@@ -393,6 +430,37 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.calculate_element_metrics(),
             fem_data.calculate_element_volumes())
+
+    def test_translation_and_rotation(self):
+        data_directory = 'tests/data/obj/tri'
+        fem_data = FEMData.read_directory(
+            'obj', data_directory, read_npy=False, save=False)
+        fem_data.nodal_data.reset()
+
+        fem_data.rotation(1, 1, 1, np.pi/2)
+        a, b, c = 1/3, (1+3**.5)/3, (1-3**.5)/3
+        desired = np.array([0, 0, 0, a, b, c, c, a, b, b, c, a]).reshape(4, 3)
+        np.testing.assert_almost_equal(fem_data.nodes.data, desired)
+
+        fem_data.translation(1, 2, 3)
+        desired = np.array([1, 2, 3, a+1, b+2, c+3, c+1, a+2,
+                            b+3, b+1, c+2, a+3]).reshape(4, 3)
+        np.testing.assert_almost_equal(fem_data.nodes.data, desired)
+
+        vx, vy, vz = np.random.random(3)
+        theta = np.random.random() * np.pi * 2
+        fem_data.rotation(vx, vy, vz, theta)
+        vx, vy, vz = np.random.random(3)
+        fem_data.translation(vx, vy, vz)
+
+        X, Y, Z = fem_data.nodes.data.T
+        dist = np.empty((4, 4))
+        for i in range(4):
+            for j in range(4):
+                dist[i, j] = (X[i]-X[j])**2 + (Y[i]-Y[j])**2 + (Z[i]-Z[j])**2
+        desired = np.array([0, 1, 1, 1, 1, 0, 2, 2, 1, 2, 0,
+                            2, 1, 2, 2, 0], np.float64).reshape(4, 4)
+        np.testing.assert_almost_equal(dist, desired)
 
     def test_integrate_node_attribute_over_surface(self):
         file_name = pathlib.Path('tests/data/fistr/tet/tet.msh')
