@@ -14,12 +14,14 @@
 tests/data/**/**/* linguist-generated
 
 # Documents
-*.md    text diff=markdown
-*.txt   text
-*.rst   text
-*.pdf   binary
-*.css   text diff=css
-*.html  text diff=html
+*.md text diff=markdown
+*.txt text
+*.rst text
+*.pdf binary
+*.css text diff=css
+*.html linguist-documentation
+docs/* linguist-documentation
+sphinx/* linguist-documentation
 
 # Figures
 *.png   binary
