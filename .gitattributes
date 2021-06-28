@@ -1,3 +1,27 @@
-tests/data/* linguist-generated
-docs/* linguist-documentation
-sphinx/* linguist-documentation
+# Test data files
+*.bak
+*.cnt
+*.dat
+*.inp
+*.msh
+*.npy
+*.npz
+*.obj
+*.res.*
+*.step
+*.stl
+*.vtk
+
+# Documents
+*.md    text diff=markdown
+*.txt   text
+*.rst   text
+*.pdf   binary
+*.css   text diff=css
+*.html  text diff=html
+
+# Figures
+*.png   binary
+*.ico   binary
+*.gif   binary
+*.svg   text
