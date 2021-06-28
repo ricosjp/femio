@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v1
       - name: sphinx
-      shell: bash
+        shell: bash
         run: |
           pip install --upgrade pip poetry
           poetry run python3 -m pip install -r sphinx/requirements.txt
