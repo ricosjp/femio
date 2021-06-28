@@ -92,22 +92,3 @@ deploy:ricos:
   only:
     - develop
   retry: 2
-
-
-commit:
-  stage: commit
-  script:
-    - mkdir -p ~/.ssh
-    - chmod 700 ~/.ssh
-    - ssh-keyscan -H "$CI_SERVER_HOST" >> ~/.ssh/known_hosts
-    - eval "$(ssh-agent -s)"
-    - echo "$SSH_PRIVATE_KEY" | ssh-add - > /dev/null
-    - git config --global user.name "runner@gitlab.ritc.jp"
-    - git config --global user.email "runner@gitlab.ritc.jp"
-    - git remote set-url --push origin git@$CI_SERVER_HOST:$CI_PROJECT_PATH.git
-    - git add docs
-    - git commit -m '[ci skip] push document by GitLab runner'
-    - git push origin --force HEAD:gh-pages
-  only:
-    - master
-  allow_failure: true
