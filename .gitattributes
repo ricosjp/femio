@@ -11,6 +11,7 @@
 *.step
 *.stl
 *.vtk
+tests/data/**/**/*
 
 # Documents
 *.md    text diff=markdown
