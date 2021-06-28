@@ -18,7 +18,8 @@ tests/data/**/**/* linguist-generated
 *.txt text
 *.rst text
 *.pdf binary
-*.css text diff=css
+*.js linguist-documentation
+*.css linguist-documentation
 *.html linguist-documentation
 docs/* linguist-documentation
 sphinx/* linguist-documentation
