@@ -1,3 +1,5 @@
+![](sphinx/fig/femio_logo.svg)
+
 # Femio
 The FEM I/O + mesh processing tool.
 

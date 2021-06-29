@@ -10,6 +10,10 @@ tests/data/ucd/write_*
 docker
 public
 
+# Documents
+*.rst
+docs
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
