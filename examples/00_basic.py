@@ -19,7 +19,7 @@ import femio
 # If you load the file with
 # `ParaView <https://www.paraview.org/>`_, it should look as follows.
 #
-# .. image:: ../../examples/fig/hex_raw.png
+# .. image:: ../../examples/00_basic_fig/hex_raw.png
 #   :width: 400
 
 ###############################################################################
@@ -107,7 +107,7 @@ fem_data.write('fistr', '00_basic_out/mesh', overwrite=True)
 # If you load the resultant file :code:`00_basic_out/mesh_vis_psf.0001.inp`
 # in ParaView, it will look as follows.
 #
-# .. image:: ../../examples/fig/hex_res.png
+# .. image:: ../../examples/00_basic_fig/res.png
 #   :width: 400
 #
 # In addition, you can load that file and analyze the data.

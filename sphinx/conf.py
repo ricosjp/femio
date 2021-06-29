@@ -17,7 +17,6 @@
 from glob import glob
 import shutil
 import os
-from sphinx_gallery.scrapers import figure_rst
 from sphinx_gallery.sorting import FileNameSortKey
 
 
@@ -31,9 +30,10 @@ class PNGScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         # Find all PNG files in the directory of this example.
         path_current_example = os.path.dirname(block_vars['src_file'])
-        path_fig = os.path.join(path_current_example, 'fig')
-        pngs = sorted(glob(os.path.join(path_current_example, '*.png'))) \
-            + sorted(glob(os.path.join(path_fig, '*.png')))
+        path_fig = os.path.join(
+            path_current_example,
+            os.path.basename(block_vars['src_file']).rstrip('.py') + '_fig')
+        pngs = sorted(glob(os.path.join(path_fig, 'res.png')))
 
         image_names = list()
         image_path_iterator = block_vars['image_path_iterator']
@@ -42,9 +42,8 @@ class PNGScraper(object):
                 self.seen |= set(png)
                 this_image_path = image_path_iterator.next()
                 image_names.append(this_image_path)
-                shutil.move(png, this_image_path)
-        # Use the `figure_rst` helper function to generate rST for image files
-        return figure_rst(image_names, gallery_conf['src_dir'])
+                shutil.copyfile(png, this_image_path)
+        return ''
 
 
 # -- Project information -----------------------------------------------------
