@@ -31,7 +31,9 @@ class PNGScraper(object):
     def __call__(self, block, block_vars, gallery_conf):
         # Find all PNG files in the directory of this example.
         path_current_example = os.path.dirname(block_vars['src_file'])
-        pngs = sorted(glob(os.path.join(path_current_example, '*.png')))
+        path_fig = os.path.join(path_current_example, 'fig')
+        pngs = sorted(glob(os.path.join(path_current_example, '*.png'))) \
+            + sorted(glob(os.path.join(path_fig, '*.png')))
 
         image_names = list()
         image_path_iterator = block_vars['image_path_iterator']
