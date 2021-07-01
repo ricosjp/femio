@@ -44,7 +44,6 @@ pages:
   only:
     - master
     - develop
-    - update_documents
 
 # .deploy:pypi:
 #   stage: deploy

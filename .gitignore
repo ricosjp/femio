@@ -9,10 +9,12 @@ tests/data/fistr/write_*
 tests/data/ucd/write_*
 docker
 public
+examples/00_basic_out
 
 # Documents
 *.rst
 docs
+sphinx
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
