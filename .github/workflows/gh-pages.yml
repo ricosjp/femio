@@ -15,11 +15,11 @@ jobs:
       - name: sphinx
         shell: bash
         run: |
-          python3 -m pip install matplotlib
-          poetry run python3 -m pip install -r sphinx/requirements.txt
-          poetry run sphinx-apidoc -f -o ./sphinx femio
-          poetry run sphinx-build ./sphinx ./docs
           poetry build
+          python3 -m pip install dist/pysiml-*.whl
+          python3 -m pip install -r sphinx/requirements.txt
+          sphinx-apidoc -f -o ./sphinx femio
+          sphinx-build ./sphinx ./docs
           cp -r docs public
           mv dist/*.whl public/
       - name: deploy_pages

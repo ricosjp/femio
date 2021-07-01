@@ -11,6 +11,9 @@ fistr: Dockerfile
 	cp ../pyproject.toml .
 	docker build -t $(REGISTORY)/fistr_ricos:$(TAG) -f Dockerfile .
 
+in: fistr
+	docker run -it --rm $(REGISTORY)/fistr_ricos:$(TAG) /bin/bash
+
 push: fistr
 	docker push $(REGISTORY)/fistr_ricos:$(TAG)
 
