@@ -15,7 +15,6 @@ jobs:
       - name: sphinx
         shell: bash
         run: |
-          pip install --upgrade pip poetry
           poetry run python3 -m pip install -r sphinx/requirements.txt
           poetry run sphinx-apidoc -f -o ./sphinx femio
           poetry run sphinx-build ./sphinx ./docs
