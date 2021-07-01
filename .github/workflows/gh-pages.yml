@@ -7,7 +7,9 @@ on:
 
 jobs:
   docs:
-    runs-on: ghcr.io/ricosjp/femio:0.3.2
+    runs-on: ubuntu-latest
+    container:
+        image: ghcr.io/ricosjp/femio:0.3.2
     steps:
       - uses: actions/checkout@v1
       - name: sphinx
