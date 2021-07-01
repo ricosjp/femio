@@ -1,0 +1,37 @@
+femio.util package
+==================
+
+Submodules
+----------
+
+femio.util.brick\_generator module
+----------------------------------
+
+.. automodule:: femio.util.brick_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.util.random\_generator module
+-----------------------------------
+
+.. automodule:: femio.util.random_generator
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.util.string\_parser module
+--------------------------------
+
+.. automodule:: femio.util.string_parser
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: femio.util
+   :members:
+   :undoc-members:
+   :show-inheritance:
