@@ -11,10 +11,16 @@ class FEMAttribute():
 
     Attributes
     ----------
-    name: String indicating the name of the attribute.
-    ids: Ndattay of ints indicating either IDs e.g. node ID, element ID.
-    data: Ndarray of data content.
-    data_unit: String indicating unit of the data.
+    name: str
+        String indicating the name of the attribute.
+    ids: numpy.ndarray[int]
+        Ndattay of ints indicating either IDs e.g. node ID, element ID.
+    data: numpy.ndarray
+        Ndarray of data content.
+    data_unit: str
+        String indicating unit of the data.
+    time_series: bool
+        If True, it indicates time series data.
     """
 
     @classmethod
