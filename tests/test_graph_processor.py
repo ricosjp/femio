@@ -183,6 +183,50 @@ class TestGraphProcessor(unittest.TestCase):
             np.testing.assert_array_equal(
                 np.sort(adj[:, start_point].tocoo().row), end_points)
 
+    def test_calculate_n_hop_adj(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/hex_long',
+            read_npy=False, read_mesh_only=True, save=False)
+        adj1 = fem_data.calculate_n_hop_adj(
+            'elemental', n_hop=1, include_self_loop=False).toarray()
+        adj2 = fem_data.calculate_n_hop_adj(
+            'elemental', n_hop=2, include_self_loop=False).toarray()
+        adj3 = fem_data.calculate_n_hop_adj(
+            'elemental', n_hop=3, include_self_loop=True).toarray()
+
+        expected_adj1 = np.array([
+            [0, 1, 0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0, 0, 0],
+            [0, 0, 1, 0, 1, 0, 0],
+            [0, 0, 0, 1, 0, 1, 0],
+            [0, 0, 0, 0, 1, 0, 1],
+            [0, 0, 0, 0, 0, 1, 0],
+        ])
+        np.testing.assert_array_almost_equal(adj1, expected_adj1)
+
+        expected_adj2 = np.array([
+            [0, 1, 1, 0, 0, 0, 0],
+            [1, 0, 1, 1, 0, 0, 0],
+            [1, 1, 0, 1, 1, 0, 0],
+            [0, 1, 1, 0, 1, 1, 0],
+            [0, 0, 1, 1, 0, 1, 1],
+            [0, 0, 0, 1, 1, 0, 1],
+            [0, 0, 0, 0, 1, 1, 0],
+        ])
+        np.testing.assert_array_almost_equal(adj2, expected_adj2)
+
+        expected_adj3 = np.array([
+            [1, 1, 1, 1, 0, 0, 0],
+            [1, 1, 1, 1, 1, 0, 0],
+            [1, 1, 1, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 1, 1, 1],
+            [0, 0, 1, 1, 1, 1, 1],
+            [0, 0, 0, 1, 1, 1, 1],
+        ])
+        np.testing.assert_array_almost_equal(adj3, expected_adj3)
+
     def test_calculate_element_degree(self):
         data_directory = 'tests/data/fistr/graph_tet1'
         fem_data = FEMData.read_directory(
