@@ -537,47 +537,6 @@ class TestSignalProcessor(unittest.TestCase):
             actual_grads[center_node_index, :, 1],
             [0., 3., 8. * fem_data.nodes.data[center_node_index, 2]])
 
-    def test_calculate_n_hop_adj(self):
-        fem_data = FEMData.read_directory(
-            'fistr', 'tests/data/fistr/hex_long',
-            read_npy=False, read_mesh_only=True, save=False)
-        adj1 = fem_data.calculate_n_hop_adj('elemental', n_hop=1).toarray()
-        adj2 = fem_data.calculate_n_hop_adj('elemental', n_hop=2).toarray()
-        adj3 = fem_data.calculate_n_hop_adj('elemental', n_hop=3).toarray()
-
-        expected_adj1 = np.array([
-            [0, 1, 0, 0, 0, 0, 0],
-            [1, 0, 1, 0, 0, 0, 0],
-            [0, 1, 0, 1, 0, 0, 0],
-            [0, 0, 1, 0, 1, 0, 0],
-            [0, 0, 0, 1, 0, 1, 0],
-            [0, 0, 0, 0, 1, 0, 1],
-            [0, 0, 0, 0, 0, 1, 0],
-        ])
-        np.testing.assert_array_almost_equal(adj1, expected_adj1)
-
-        expected_adj2 = np.array([
-            [0, 1, 1, 0, 0, 0, 0],
-            [1, 0, 1, 1, 0, 0, 0],
-            [1, 1, 0, 1, 1, 0, 0],
-            [0, 1, 1, 0, 1, 1, 0],
-            [0, 0, 1, 1, 0, 1, 1],
-            [0, 0, 0, 1, 1, 0, 1],
-            [0, 0, 0, 0, 1, 1, 0],
-        ])
-        np.testing.assert_array_almost_equal(adj2, expected_adj2)
-
-        expected_adj3 = np.array([
-            [0, 1, 1, 1, 0, 0, 0],
-            [1, 0, 1, 1, 1, 0, 0],
-            [1, 1, 0, 1, 1, 1, 0],
-            [1, 1, 1, 0, 1, 1, 1],
-            [0, 1, 1, 1, 0, 1, 1],
-            [0, 0, 1, 1, 1, 0, 1],
-            [0, 0, 0, 1, 1, 1, 0],
-        ])
-        np.testing.assert_array_almost_equal(adj3, expected_adj3)
-
     def test_elemental_spatial_gradient(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_cross',

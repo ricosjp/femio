@@ -435,7 +435,7 @@ class GraphProcessorMixin:
 
     @functools.lru_cache(maxsize=15)
     def calculate_n_hop_adj(
-            self, mode='elemental', n_hop=1, include_self_loop=False,
+            self, mode='elemental', n_hop=1, include_self_loop=True,
             order1_only=True):
         if mode == 'elemental':
             adj = self.calculate_adjacency_matrix_element()
