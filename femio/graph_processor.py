@@ -394,7 +394,7 @@ class GraphProcessorMixin:
         ----------
         order1_only: bool, optional [True]
             If True, consider only order 1 nodes.
-        
+
         Returns
         -------
         adj: scipy.sparse.csr_matrix
