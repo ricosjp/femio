@@ -42,9 +42,12 @@ class GraphProcessorMixin:
     def extract_surface(self, elements=None, element_type=None):
         """Extract surface from solid mesh.
 
-        Returns:
-            surface_indices: indices of nodes (not IDs).
-            surface_positions: Positions of each nodes on the surface.
+        Returns
+        -------
+        surface_indices:
+            indices of nodes (not IDs).
+        surface_positions:
+            Positions of each nodes on the surface.
         """
         dict_facets = self.extract_facets()
         dict_facet_shapes = {'tri': [], 'quad': []}
@@ -84,8 +87,9 @@ class GraphProcessorMixin:
     def extract_surface_fistr(self):
         """Extract surface from solid mesh.
 
-        Returns:
-            surface_data: 2D array of int.
+        Returns
+        -------
+        surface_data: 2D array of int.
             row data correspond to (element_id, surface_id) of surface.
         """
         data = self.elements.data
@@ -269,10 +273,9 @@ class GraphProcessorMixin:
     def filter_first_order_nodes(self):
         """Obtain filter to get first order nodes.
 
-        Args:
-            None
-        Returns:
-            filter: np.array() of bool
+        Returns
+        -------
+        filter: np.array() of bool
         """
         if self.elements.is_first_order():
             return np.ones(len(self.nodes.ids), dtype=bool)
@@ -326,8 +329,9 @@ class GraphProcessorMixin:
         Calculated degrees are returned and also stored in
         the fem_data.elemental_data dict with key = 'degree' .
 
-        Returns:
-            degrees: numpy.ndarray
+        Returns
+        -------
+        degrees: numpy.ndarray
         """
         adj = self.calculate_adjacency_matrix()
         degrees = adj.sum(axis=1) - 1
@@ -340,19 +344,21 @@ class GraphProcessorMixin:
             self, *, mode='elemental', order1_only=True):
         """Calculate graph adjacency matrix.
 
-        Args:
-            mode: str, optional (['elemental'], 'nodal')
-                If 'elemental', generate (n_element, n_element) shaped
-                adjacency matrix where edges are defined by node shearing.
-                If 'nodal', generate (n_node, n_node) shaped adjacency matrix
-                with edges are defined by element shearing.
-            order1_only: bool, optional [True]
-                If True, consider only order 1 nodes. Effective only when
-                mode == 'nodal'.
+        Parameters
+        ----------
+        mode: str, optional (['elemental'], 'nodal')
+            If 'elemental', generate (n_element, n_element) shaped
+            adjacency matrix where edges are defined by node shearing.
+            If 'nodal', generate (n_node, n_node) shaped adjacency matrix
+            with edges are defined by element shearing.
+        order1_only: bool, optional [True]
+            If True, consider only order 1 nodes. Effective only when
+            mode == 'nodal'.
 
-        Returns:
-            adj: scipy.sparse.csr_matrix
-                Adjacency matrix in CSR expression.
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
         """
         if mode == 'elemental':
             adj = self.calculate_adjacency_matrix_element()
@@ -367,9 +373,10 @@ class GraphProcessorMixin:
         """Calculate graph adjacency matrix regarding elements sharing the same
         node as connected.
 
-        Returns:
-            adj: scipy.sparse.csr_matrix
-                Adjacency matrix in CSR expression.
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
         """
         print('Calculating incidence matrix')
         print(dt.datetime.now())
@@ -383,12 +390,15 @@ class GraphProcessorMixin:
         """Calculate graph adjacency matrix regarding nodes connected with
         edges. Edges are defined by element shearing.
 
-        Args:
-            order1_only: bool, optional [True]
-                If True, consider only order 1 nodes.
-        Returns:
-            adj: scipy.sparse.csr_matrix
-                Adjacency matrix in CSR expression.
+        Parameters
+        ----------
+        order1_only: bool, optional [True]
+            If True, consider only order 1 nodes.
+        
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
         """
         print('Calculating incidence matrix')
         print(dt.datetime.now())
