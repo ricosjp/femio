@@ -7,14 +7,6 @@ import networkx as nx
 from femio.fem_data import FEMData
 
 
-RUN_FISTR = True
-
-
-FISTR_MSH_FILE = 'tests/data/fistr/thermal/hex.msh'
-FISTR_RES_FILE = 'tests/data/fistr/thermal/hex.res.0.1'
-FISTR_INP_FILE = 'tests/data/fistr/thermal/fistr_hex.inp'
-
-
 class TestGraphProcessor(unittest.TestCase):
 
     def test_calculate_adjacency_matrix_node(self):
@@ -468,3 +460,37 @@ class TestGraphProcessor(unittest.TestCase):
 
             else:
                 raise ValueError('Separation failed')
+
+    def test_euclidean_hop_graph(self):
+        fem_data = FEMData.read_directory(
+            'obj', 'tests/data/obj/mixture_plane', read_npy=False, save=False)
+
+        adj = fem_data.euclidean_hop_graph(0.8)
+        desired = np.zeros((8, 8), bool)
+        np.testing.assert_array_equal(adj.todense(), desired)
+
+        adj = fem_data.euclidean_hop_graph(1.0)
+        desired = np.array([
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, 0],
+            [1, 1, 0, 1, 0, 1, 0, 0],
+            [0, 0, 1, 0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 1, 0, 1, 0, 1, 1],
+            [0, 0, 0, 1, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 1, 0, 0],
+        ], dtype=bool)
+        np.testing.assert_array_equal(adj.todense(), desired)
+
+        adj = fem_data.euclidean_hop_graph(1.5)
+        desired = np.array([
+            [0, 1, 1, 1, 0, 0, 0, 0],
+            [1, 0, 1, 0, 1, 1, 0, 0],
+            [1, 1, 0, 1, 1, 1, 1, 0],
+            [1, 0, 1, 0, 0, 1, 1, 0],
+            [0, 1, 1, 0, 0, 1, 0, 1],
+            [0, 1, 1, 1, 1, 0, 1, 1],
+            [0, 0, 1, 1, 0, 1, 0, 1],
+            [0, 0, 0, 0, 1, 1, 1, 0],
+        ], dtype=bool)
+        np.testing.assert_array_equal(adj.todense(), desired)

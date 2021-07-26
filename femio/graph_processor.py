@@ -2,6 +2,7 @@ import datetime as dt
 import functools
 
 import networkx as nx
+from numba import njit
 import numpy as np
 import scipy.sparse as sp
 
@@ -91,19 +92,19 @@ class GraphProcessorMixin:
         N = len(data)
 
         # node_0, node_1, node_2, elem_id, surf_id
-        surfs = np.empty((4*N, 5), np.int32)
-        surfs[0*N:1*N, :3] = data[:, [0, 1, 2]]
-        surfs[1*N:2*N, :3] = data[:, [0, 1, 3]]
-        surfs[2*N:3*N, :3] = data[:, [1, 2, 3]]
-        surfs[3*N:4*N, :3] = data[:, [2, 0, 3]]
-        surfs[0*N:1*N, 3] = self.elements.ids
-        surfs[1*N:2*N, 3] = self.elements.ids
-        surfs[2*N:3*N, 3] = self.elements.ids
-        surfs[3*N:4*N, 3] = self.elements.ids
-        surfs[0*N:1*N, 4] = 1
-        surfs[1*N:2*N, 4] = 2
-        surfs[2*N:3*N, 4] = 3
-        surfs[3*N:4*N, 4] = 4
+        surfs = np.empty((4 * N, 5), np.int32)
+        surfs[0 * N:1 * N, :3] = data[:, [0, 1, 2]]
+        surfs[1 * N:2 * N, :3] = data[:, [0, 1, 3]]
+        surfs[2 * N:3 * N, :3] = data[:, [1, 2, 3]]
+        surfs[3 * N:4 * N, :3] = data[:, [2, 0, 3]]
+        surfs[0 * N:1 * N, 3] = self.elements.ids
+        surfs[1 * N:2 * N, 3] = self.elements.ids
+        surfs[2 * N:3 * N, 3] = self.elements.ids
+        surfs[3 * N:4 * N, 3] = self.elements.ids
+        surfs[0 * N:1 * N, 4] = 1
+        surfs[1 * N:2 * N, 4] = 2
+        surfs[2 * N:3 * N, 4] = 3
+        surfs[3 * N:4 * N, 4] = 4
 
         surfs[:, :3].sort(axis=1)
         ind = np.lexsort(
@@ -111,7 +112,7 @@ class GraphProcessorMixin:
         surfs = surfs[ind]
 
         # select surce
-        unique = np.ones(4*N, np.bool_)
+        unique = np.ones(4 * N, np.bool_)
         distinct = (surfs[:-1, 0] != surfs[1:, 0])
         distinct |= (surfs[:-1, 1] != surfs[1:, 1])
         distinct |= (surfs[:-1, 2] != surfs[1:, 2])
@@ -380,7 +381,7 @@ class GraphProcessorMixin:
     @functools.lru_cache(maxsize=1)
     def calculate_adjacency_matrix_node(self, order1_only=True):
         """Calculate graph adjacency matrix regarding nodes connected with
-        edges.
+        edges. Edges are defined by element shearing.
 
         Args:
             order1_only: bool, optional [True]
@@ -388,8 +389,6 @@ class GraphProcessorMixin:
         Returns:
             adj: scipy.sparse.csr_matrix
                 Adjacency matrix in CSR expression.
-            node2nodes: dict
-                Dictionary of node ID to adjacent node IDs.
         """
         print('Calculating incidence matrix')
         print(dt.datetime.now())
@@ -428,7 +427,7 @@ class GraphProcessorMixin:
             [i] * len(n) for i, n in enumerate(node_indices)])
         incidence_matrix = sp.csr_matrix(
             (
-                [True]*len(element_indices),
+                [True] * len(element_indices),
                 (np.concatenate(node_indices), element_indices)),
             shape=(len(nodes), len(elements)))
         return incidence_matrix
@@ -516,3 +515,69 @@ class GraphProcessorMixin:
     def collect_element_data_by_ids(self, node_ids):
         return self.elements.data[
             self.collect_element_indices_by_ids(node_ids)]
+
+    @staticmethod
+    @njit
+    def _nns_connected(indptr, indices, node_pos, max_dist):
+        eps = 1e-8
+        max_dist += eps
+        N = len(indptr) - 1
+        visited = np.zeros(N, np.bool_)
+        res = [(0, 0)] * 0
+
+        def calc_frm(v):
+            que = [v]
+            visited[v] = 1
+            for frm in que:
+                for i in range(indptr[frm], indptr[frm + 1]):
+                    to = indices[i]
+                    if visited[to]:
+                        continue
+                    dx, dy, dz = node_pos[to] - node_pos[v]
+                    if dx * dx + dy * dy + dz * dz > max_dist ** 2:
+                        continue
+                    visited[to] = 1
+                    que.append(to)
+                    res.append((v, to))
+            for w in que:
+                visited[w] = 0
+
+        for v in range(N):
+            calc_frm(v)
+        return res
+
+    def euclidean_hop_graph(self, r):
+        """
+        Calculate the adjacency matrix of graph H defined as follows.
+        Let G be the original nodal graph, whose edge is defined by element
+        sharing.
+        Then H is a new nodal graph, and v, w is adjacent if and only if:
+            v, w belong to the same connected component, if G is restricted to
+            r-ball centered at v.
+
+        More formally, v, w is adjacent if there exists a sequence of nodes
+        (v_0, v_1, ..., v_n) satisfying
+            - v_0 = v, v_n = w
+            - |v - v_i| < r, for all i
+            - v_i and v_{i+1} shares some element.
+
+        Parameters
+        ----------
+        r : float
+            radius of the ball.
+
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
+        """
+        G = self.calculate_adjacency_matrix(mode='nodal')
+        pos = self.nodes.data.astype(np.float64)
+        adj_list = self._nns_connected(G.indptr, G.indices, pos, r)
+        row, col = np.array(adj_list).reshape(-1, 2).T
+        adj = sp.csr_matrix(
+            ([True] * len(adj_list), (row, col)),
+            dtype=bool,
+            shape=G.shape
+        )
+        return adj
