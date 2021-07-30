@@ -528,12 +528,13 @@ class GraphProcessorMixin:
 
     @staticmethod
     @njit
-    def _nns_connected(indptr, indices, node_pos, max_dist):
+    def _calculate_euclidean_hop_graph_nodal(
+            indptr, indices, node_pos, max_dist):
         eps = 1e-8
         max_dist += eps
         N = len(indptr) - 1
         visited = np.zeros(N, np.bool_)
-        res = [(0, 0)] * 0
+        res = [0] * 0
 
         def calc_frm(v):
             que = [v]
@@ -548,7 +549,8 @@ class GraphProcessorMixin:
                         continue
                     visited[to] = 1
                     que.append(to)
-                    res.append((v, to))
+                    res.append(v)
+                    res.append(to)
             for w in que:
                 visited[w] = 0
 
@@ -556,38 +558,126 @@ class GraphProcessorMixin:
             calc_frm(v)
         return res
 
-    def euclidean_hop_graph(self, r):
-        """
-        Calculate the adjacency matrix of graph H defined as follows.
-        Let G be the original nodal graph, whose edge is defined by element
-        sharing.
-        Then H is a new nodal graph, and v, w is adjacent if and only if:
-            v, w belong to the same connected component, if G is restricted to
-            r-ball centered at v.
+    @staticmethod
+    @njit
+    def _calculate_euclidean_hop_graph_elemental(
+            indptr_v, indices_v, indptr_e, indices_e, node_pos, max_dist):
+        eps = 1e-8
+        max_dist += eps
+        V = len(indptr_v) - 1
+        E = len(indptr_e) - 1
+        visited = np.zeros(V + E, np.bool_)
+        res = [0] * 0
 
-        More formally, v, w is adjacent if there exists a sequence of nodes
+        for e in range(E):
+            v_ids = indices_e[indptr_e[e]:indptr_e[e+1]]
+            xyz = node_pos[v_ids]
+
+            def is_nbd(v):
+                x, y, z = node_pos[v]
+                for x1, y1, z1 in xyz:
+                    dx, dy, dz = x-x1, y-y1, z-z1
+                    if dx*dx + dy*dy + dz*dz <= max_dist**2:
+                        return True
+                return False
+
+            que = [V + e]
+            visited[V + e] = 1
+            for frm in que:
+                if frm < V:
+                    TO = indices_v[indptr_v[frm]:indptr_v[frm + 1]]
+                    for to in TO:
+                        to += V
+                        if visited[to]:
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+                        res.append(e)
+                        res.append(to - V)
+                else:
+                    TO = indices_e[indptr_e[frm - V]:indptr_e[frm - V + 1]]
+                    for to in TO:
+                        if visited[to]:
+                            continue
+                        if not is_nbd(to):
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+            for w in que:
+                visited[w] = 0
+
+        return res
+
+    def calculate_euclidean_hop_graph(self, r, *, mode='elemental'):
+        """
+        Calculate the adjacency matrix of graph G defined as follows.
+
+        If mode is 'nodal', G is a nodal graph and node v, v' is
+        adjacent in G if there exists a sequence of nodes
         (v_0, v_1, ..., v_n) satisfying
             - v_0 = v, v_n = w
-            - |v - v_i| < r, for all i
+            - dist(v, v_i) < r, for all i
             - v_i and v_{i+1} shares some element.
+
+        If mode is 'elemental', G is a elemental graph and element e, e' is
+        adjacent in G if there exists a sequence of elements
+        (e_0, e_1, ..., e_n) satisfying
+            - e_0 = e, e_n = e'
+            - dist(e, e_i) < r, for all i
+            - e_i and e_{i+1} shares some node.
+
+        In elemental case, the distance of elements is defined by Euclidean
+        distance between its vertex sets.
+
+        In both cases, self-loops are excluded.
 
         Parameters
         ----------
         r : float
             radius of the ball.
+        mode: str, optional (['elemental'], 'nodal')
+            If 'elemental', generate (n_element, n_element) shaped
+            adjacenty martix of the euclidean hop graph.
+            If 'nodal', generate (n_node, n_node) shaped
+            adjacenty martix of the euclidean hop graph.
 
         Returns
         -------
         adj: scipy.sparse.csr_matrix
             Adjacency matrix in CSR expression.
         """
-        G = self.calculate_adjacency_matrix(mode='nodal')
-        pos = self.nodes.data.astype(np.float64)
-        adj_list = self._nns_connected(G.indptr, G.indices, pos, r)
-        row, col = np.array(adj_list).reshape(-1, 2).T
-        adj = sp.csr_matrix(
-            ([True] * len(adj_list), (row, col)),
-            dtype=bool,
-            shape=G.shape
-        )
+
+        if mode == 'nodal':
+            G = self.calculate_adjacency_matrix(mode='nodal')
+            pos = self.nodes.data.astype(np.float64)
+            adj_list = self._calculate_euclidean_hop_graph_nodal(
+                G.indptr, G.indices, pos, r)
+            row, col = np.array(adj_list).reshape(-1, 2).T
+            adj = sp.csr_matrix(
+                ([True] * (len(adj_list) // 2), (row, col)),
+                dtype=bool,
+                shape=G.shape
+            )
+        elif mode == 'elemental':
+            incidence = self.calculate_incidence_matrix()
+            indptr_v = incidence.indptr
+            indices_v = incidence.indices
+            incidence = incidence.T.tocsr()
+            indptr_e = incidence.indptr
+            indices_e = incidence.indices
+            pos = self.nodes.data.astype(np.float64)
+
+            adj_list = self._calculate_euclidean_hop_graph_elemental(
+                indptr_v, indices_v, indptr_e, indices_e, pos, r)
+            row, col = np.array(adj_list).reshape(-1, 2).T
+
+            n_elem = incidence.shape[0]
+            adj = sp.csr_matrix(
+                ([True] * (len(adj_list) // 2), (row, col)),
+                dtype=bool,
+                shape=(n_elem, n_elem)
+            )
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+
         return adj

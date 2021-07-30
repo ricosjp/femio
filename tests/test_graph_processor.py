@@ -461,36 +461,101 @@ class TestGraphProcessor(unittest.TestCase):
             else:
                 raise ValueError('Separation failed')
 
-    def test_euclidean_hop_graph(self):
+    def test_calculate_euclidean_hop_graph_nodal(self):
         fem_data = FEMData.read_directory(
             'obj', 'tests/data/obj/mixture_plane', read_npy=False, save=False)
 
-        adj = fem_data.euclidean_hop_graph(0.8)
-        desired = np.zeros((8, 8), bool)
+        adj = fem_data.calculate_euclidean_hop_graph(0.8, mode='nodal')
+        desired = np.zeros((12, 12), bool)
         np.testing.assert_array_equal(adj.todense(), desired)
 
-        adj = fem_data.euclidean_hop_graph(1.0)
+        adj = fem_data.calculate_euclidean_hop_graph(1.0, mode='nodal')
         desired = np.array([
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [0, 0, 1, 0, 0, 0, 0, 0],
-            [1, 1, 0, 1, 0, 1, 0, 0],
-            [0, 0, 1, 0, 0, 0, 1, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
-            [0, 0, 1, 0, 1, 0, 1, 1],
-            [0, 0, 0, 1, 0, 1, 0, 0],
-            [0, 0, 0, 0, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0],
+            [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1],
+            [0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
         ], dtype=bool)
         np.testing.assert_array_equal(adj.todense(), desired)
 
-        adj = fem_data.euclidean_hop_graph(1.5)
+        adj = fem_data.calculate_euclidean_hop_graph(1.5, mode='nodal')
         desired = np.array([
-            [0, 1, 1, 1, 0, 0, 0, 0],
-            [1, 0, 1, 0, 1, 1, 0, 0],
-            [1, 1, 0, 1, 1, 1, 1, 0],
-            [1, 0, 1, 0, 0, 1, 1, 0],
-            [0, 1, 1, 0, 0, 1, 0, 1],
-            [0, 1, 1, 1, 1, 0, 1, 1],
-            [0, 0, 1, 1, 0, 1, 0, 1],
-            [0, 0, 0, 0, 1, 1, 1, 0],
+            [0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0],
+            [1, 1, 0, 1, 0, 1, 0, 1, 1, 1, 0, 0],
+            [0, 1, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0],
+            [0, 0, 1, 1, 1, 0, 1, 0, 1, 0, 1, 1],
+            [0, 0, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1],
+            [0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0],
+        ], dtype=bool)
+        np.testing.assert_array_equal(adj.todense(), desired)
+
+        adj = fem_data.calculate_euclidean_hop_graph(2.0, mode='nodal')
+        desired = np.array([
+            [0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [1, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0],
+            [1, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0],
+            [1, 1, 1, 0, 1, 1, 1, 1, 1, 0, 1, 0],
+            [1, 1, 1, 1, 0, 1, 0, 1, 1, 1, 0, 1],
+            [0, 1, 0, 1, 1, 0, 0, 0, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 1, 0],
+            [1, 0, 1, 1, 1, 0, 1, 0, 1, 1, 1, 1],
+            [0, 1, 0, 1, 1, 1, 1, 1, 0, 1, 1, 1],
+            [0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1],
+            [0, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1],
+            [0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0],
+        ], dtype=bool)
+        np.testing.assert_array_equal(adj.todense(), desired)
+
+    def test_calculate_euclidean_hop_graph_elemental(self):
+        fem_data = FEMData.read_directory(
+            'obj', 'tests/data/obj/mixture_plane', read_npy=False, save=False)
+
+        adj = fem_data.calculate_euclidean_hop_graph(0.8, mode='elemental')
+        desired = np.array([
+            [0, 1, 0, 0, 0, 0, 0],
+            [1, 0, 1, 1, 0, 0, 0],
+            [0, 1, 0, 1, 0, 0, 0],
+            [0, 1, 1, 0, 1, 1, 0],
+            [0, 0, 0, 1, 0, 1, 0],
+            [0, 0, 0, 1, 1, 0, 1],
+            [0, 0, 0, 0, 0, 1, 0],
+        ], dtype=bool)
+        np.testing.assert_array_equal(adj.todense(), desired)
+
+        adj = fem_data.calculate_euclidean_hop_graph(1.0, mode='elemental')
+        desired = np.array([
+            [0, 1, 1, 1, 0, 0, 0],
+            [1, 0, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1, 0],
+            [1, 1, 1, 0, 1, 1, 1],
+            [0, 1, 1, 1, 0, 1, 1],
+            [1, 1, 1, 1, 1, 0, 1],
+            [0, 0, 0, 1, 1, 1, 0],
+        ], dtype=bool)
+        np.testing.assert_array_equal(adj.todense(), desired)
+
+        adj = fem_data.calculate_euclidean_hop_graph(1.5, mode='elemental')
+        desired = np.array([
+            [0, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 1, 1, 1, 1],
+            [1, 1, 0, 1, 1, 1, 1],
+            [1, 1, 1, 0, 1, 1, 1],
+            [1, 1, 1, 1, 0, 1, 1],
+            [1, 1, 1, 1, 1, 0, 1],
+            [1, 1, 1, 1, 1, 1, 0],
         ], dtype=bool)
         np.testing.assert_array_equal(adj.todense(), desired)
