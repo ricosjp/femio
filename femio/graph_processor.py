@@ -529,33 +529,46 @@ class GraphProcessorMixin:
     @staticmethod
     @njit
     def _calculate_euclidean_hop_graph_nodal(
-            indptr, indices, node_pos, max_dist):
+            indptr_v, indices_v, indptr_e, indices_e, node_pos, max_dist):
         eps = 1e-8
         max_dist += eps
-        N = len(indptr) - 1
-        visited = np.zeros(N, np.bool_)
+        V = len(indptr_v) - 1
+        E = len(indptr_e) - 1
+        visited = np.zeros(V + E, np.bool_)
         res = [0] * 0
 
-        def calc_frm(v):
+        for v in range(V):
+            x, y, z = node_pos[v]
+
+            def is_nbd(w):
+                x1, y1, z1 = node_pos[w]
+                dx, dy, dz = x - x1, y - y1, z - z1
+                return dx*dx + dy*dy + dz*dz <= max_dist**2
+
             que = [v]
             visited[v] = 1
             for frm in que:
-                for i in range(indptr[frm], indptr[frm + 1]):
-                    to = indices[i]
-                    if visited[to]:
-                        continue
-                    dx, dy, dz = node_pos[to] - node_pos[v]
-                    if dx * dx + dy * dy + dz * dz > max_dist ** 2:
-                        continue
-                    visited[to] = 1
-                    que.append(to)
-                    res.append(v)
-                    res.append(to)
+                if frm < V:
+                    TO = indices_v[indptr_v[frm]:indptr_v[frm + 1]]
+                    for to in TO:
+                        to += V
+                        if visited[to]:
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+                else:
+                    TO = indices_e[indptr_e[frm - V]:indptr_e[frm - V + 1]]
+                    for to in TO:
+                        if visited[to]:
+                            continue
+                        if not is_nbd(to):
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+                        res.append(v)
+                        res.append(to)
             for w in que:
                 visited[w] = 0
-
-        for v in range(N):
-            calc_frm(v)
         return res
 
     @staticmethod
@@ -576,7 +589,7 @@ class GraphProcessorMixin:
             def is_nbd(v):
                 x, y, z = node_pos[v]
                 for x1, y1, z1 in xyz:
-                    dx, dy, dz = x-x1, y-y1, z-z1
+                    dx, dy, dz = x - x1, y - y1, z - z1
                     if dx*dx + dy*dy + dz*dz <= max_dist**2:
                         return True
                 return False
@@ -605,7 +618,6 @@ class GraphProcessorMixin:
                         que.append(to)
             for w in que:
                 visited[w] = 0
-
         return res
 
     def calculate_euclidean_hop_graph(self, r, *, mode='elemental'):
@@ -647,31 +659,30 @@ class GraphProcessorMixin:
             Adjacency matrix in CSR expression.
         """
 
+        incidence = self.calculate_incidence_matrix()
+        n_node, n_elem = incidence.shape
+        indptr_v = incidence.indptr
+        indices_v = incidence.indices
+        incidence = incidence.T.tocsr()
+        indptr_e = incidence.indptr
+        indices_e = incidence.indices
+        pos = self.nodes.data.astype(np.float64)
+
         if mode == 'nodal':
-            G = self.calculate_adjacency_matrix(mode='nodal')
-            pos = self.nodes.data.astype(np.float64)
             adj_list = self._calculate_euclidean_hop_graph_nodal(
-                G.indptr, G.indices, pos, r)
+                indptr_v, indices_v, indptr_e, indices_e, pos, r)
             row, col = np.array(adj_list).reshape(-1, 2).T
+
             adj = sp.csr_matrix(
                 ([True] * (len(adj_list) // 2), (row, col)),
                 dtype=bool,
-                shape=G.shape
+                shape=(n_node, n_node)
             )
         elif mode == 'elemental':
-            incidence = self.calculate_incidence_matrix()
-            indptr_v = incidence.indptr
-            indices_v = incidence.indices
-            incidence = incidence.T.tocsr()
-            indptr_e = incidence.indptr
-            indices_e = incidence.indices
-            pos = self.nodes.data.astype(np.float64)
-
             adj_list = self._calculate_euclidean_hop_graph_elemental(
                 indptr_v, indices_v, indptr_e, indices_e, pos, r)
             row, col = np.array(adj_list).reshape(-1, 2).T
 
-            n_elem = incidence.shape[0]
             adj = sp.csr_matrix(
                 ([True] * (len(adj_list) // 2), (row, col)),
                 dtype=bool,
