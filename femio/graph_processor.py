@@ -2,6 +2,7 @@ import datetime as dt
 import functools
 
 import networkx as nx
+from numba import njit
 import numpy as np
 import scipy.sparse as sp
 
@@ -41,9 +42,12 @@ class GraphProcessorMixin:
     def extract_surface(self, elements=None, element_type=None):
         """Extract surface from solid mesh.
 
-        Returns:
-            surface_indices: indices of nodes (not IDs).
-            surface_positions: Positions of each nodes on the surface.
+        Returns
+        -------
+        surface_indices:
+            indices of nodes (not IDs).
+        surface_positions:
+            Positions of each nodes on the surface.
         """
         dict_facets = self.extract_facets()
         dict_facet_shapes = {'tri': [], 'quad': []}
@@ -83,27 +87,28 @@ class GraphProcessorMixin:
     def extract_surface_fistr(self):
         """Extract surface from solid mesh.
 
-        Returns:
-            surface_data: 2D array of int.
+        Returns
+        -------
+        surface_data: 2D array of int.
             row data correspond to (element_id, surface_id) of surface.
         """
         data = self.elements.data
         N = len(data)
 
         # node_0, node_1, node_2, elem_id, surf_id
-        surfs = np.empty((4*N, 5), np.int32)
-        surfs[0*N:1*N, :3] = data[:, [0, 1, 2]]
-        surfs[1*N:2*N, :3] = data[:, [0, 1, 3]]
-        surfs[2*N:3*N, :3] = data[:, [1, 2, 3]]
-        surfs[3*N:4*N, :3] = data[:, [2, 0, 3]]
-        surfs[0*N:1*N, 3] = self.elements.ids
-        surfs[1*N:2*N, 3] = self.elements.ids
-        surfs[2*N:3*N, 3] = self.elements.ids
-        surfs[3*N:4*N, 3] = self.elements.ids
-        surfs[0*N:1*N, 4] = 1
-        surfs[1*N:2*N, 4] = 2
-        surfs[2*N:3*N, 4] = 3
-        surfs[3*N:4*N, 4] = 4
+        surfs = np.empty((4 * N, 5), np.int32)
+        surfs[0 * N:1 * N, :3] = data[:, [0, 1, 2]]
+        surfs[1 * N:2 * N, :3] = data[:, [0, 1, 3]]
+        surfs[2 * N:3 * N, :3] = data[:, [1, 2, 3]]
+        surfs[3 * N:4 * N, :3] = data[:, [2, 0, 3]]
+        surfs[0 * N:1 * N, 3] = self.elements.ids
+        surfs[1 * N:2 * N, 3] = self.elements.ids
+        surfs[2 * N:3 * N, 3] = self.elements.ids
+        surfs[3 * N:4 * N, 3] = self.elements.ids
+        surfs[0 * N:1 * N, 4] = 1
+        surfs[1 * N:2 * N, 4] = 2
+        surfs[2 * N:3 * N, 4] = 3
+        surfs[3 * N:4 * N, 4] = 4
 
         surfs[:, :3].sort(axis=1)
         ind = np.lexsort(
@@ -111,7 +116,7 @@ class GraphProcessorMixin:
         surfs = surfs[ind]
 
         # select surce
-        unique = np.ones(4*N, np.bool_)
+        unique = np.ones(4 * N, np.bool_)
         distinct = (surfs[:-1, 0] != surfs[1:, 0])
         distinct |= (surfs[:-1, 1] != surfs[1:, 1])
         distinct |= (surfs[:-1, 2] != surfs[1:, 2])
@@ -268,10 +273,9 @@ class GraphProcessorMixin:
     def filter_first_order_nodes(self):
         """Obtain filter to get first order nodes.
 
-        Args:
-            None
-        Returns:
-            filter: np.array() of bool
+        Returns
+        -------
+        filter: np.array() of bool
         """
         if self.elements.is_first_order():
             return np.ones(len(self.nodes.ids), dtype=bool)
@@ -325,8 +329,9 @@ class GraphProcessorMixin:
         Calculated degrees are returned and also stored in
         the fem_data.elemental_data dict with key = 'degree' .
 
-        Returns:
-            degrees: numpy.ndarray
+        Returns
+        -------
+        degrees: numpy.ndarray
         """
         adj = self.calculate_adjacency_matrix()
         degrees = adj.sum(axis=1) - 1
@@ -339,19 +344,21 @@ class GraphProcessorMixin:
             self, *, mode='elemental', order1_only=True):
         """Calculate graph adjacency matrix.
 
-        Args:
-            mode: str, optional (['elemental'], 'nodal')
-                If 'elemental', generate (n_element, n_element) shaped
-                adjacency matrix where edges are defined by node shearing.
-                If 'nodal', generate (n_node, n_node) shaped adjacency matrix
-                with edges are defined by element shearing.
-            order1_only: bool, optional [True]
-                If True, consider only order 1 nodes. Effective only when
-                mode == 'nodal'.
+        Parameters
+        ----------
+        mode: str, optional (['elemental'], 'nodal')
+            If 'elemental', generate (n_element, n_element) shaped
+            adjacency matrix where edges are defined by node shearing.
+            If 'nodal', generate (n_node, n_node) shaped adjacency matrix
+            with edges are defined by element shearing.
+        order1_only: bool, optional [True]
+            If True, consider only order 1 nodes. Effective only when
+            mode == 'nodal'.
 
-        Returns:
-            adj: scipy.sparse.csr_matrix
-                Adjacency matrix in CSR expression.
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
         """
         if mode == 'elemental':
             adj = self.calculate_adjacency_matrix_element()
@@ -366,9 +373,10 @@ class GraphProcessorMixin:
         """Calculate graph adjacency matrix regarding elements sharing the same
         node as connected.
 
-        Returns:
-            adj: scipy.sparse.csr_matrix
-                Adjacency matrix in CSR expression.
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
         """
         print('Calculating incidence matrix')
         print(dt.datetime.now())
@@ -380,16 +388,17 @@ class GraphProcessorMixin:
     @functools.lru_cache(maxsize=1)
     def calculate_adjacency_matrix_node(self, order1_only=True):
         """Calculate graph adjacency matrix regarding nodes connected with
-        edges.
+        edges. Edges are defined by element shearing.
 
-        Args:
-            order1_only: bool, optional [True]
-                If True, consider only order 1 nodes.
-        Returns:
-            adj: scipy.sparse.csr_matrix
-                Adjacency matrix in CSR expression.
-            node2nodes: dict
-                Dictionary of node ID to adjacent node IDs.
+        Parameters
+        ----------
+        order1_only: bool, optional [True]
+            If True, consider only order 1 nodes.
+
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
         """
         print('Calculating incidence matrix')
         print(dt.datetime.now())
@@ -428,7 +437,7 @@ class GraphProcessorMixin:
             [i] * len(n) for i, n in enumerate(node_indices)])
         incidence_matrix = sp.csr_matrix(
             (
-                [True]*len(element_indices),
+                [True] * len(element_indices),
                 (np.concatenate(node_indices), element_indices)),
             shape=(len(nodes), len(elements)))
         return incidence_matrix
@@ -516,3 +525,170 @@ class GraphProcessorMixin:
     def collect_element_data_by_ids(self, node_ids):
         return self.elements.data[
             self.collect_element_indices_by_ids(node_ids)]
+
+    @staticmethod
+    @njit
+    def _calculate_euclidean_hop_graph_nodal(
+            indptr_v, indices_v, indptr_e, indices_e, node_pos, max_dist):
+        eps = 1e-8
+        max_dist += eps
+        V = len(indptr_v) - 1
+        E = len(indptr_e) - 1
+        visited = np.zeros(V + E, np.bool_)
+        res = [0] * 0
+
+        for v in range(V):
+            x, y, z = node_pos[v]
+
+            def is_nbd(w):
+                x1, y1, z1 = node_pos[w]
+                dx, dy, dz = x - x1, y - y1, z - z1
+                return dx*dx + dy*dy + dz*dz <= max_dist**2
+
+            que = [v]
+            visited[v] = 1
+            for frm in que:
+                if frm < V:
+                    TO = indices_v[indptr_v[frm]:indptr_v[frm + 1]]
+                    for to in TO:
+                        to += V
+                        if visited[to]:
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+                else:
+                    TO = indices_e[indptr_e[frm - V]:indptr_e[frm - V + 1]]
+                    for to in TO:
+                        if visited[to]:
+                            continue
+                        if not is_nbd(to):
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+                        res.append(v)
+                        res.append(to)
+            for w in que:
+                visited[w] = 0
+        return res
+
+    @staticmethod
+    @njit
+    def _calculate_euclidean_hop_graph_elemental(
+            indptr_v, indices_v, indptr_e, indices_e, node_pos, max_dist):
+        eps = 1e-8
+        max_dist += eps
+        V = len(indptr_v) - 1
+        E = len(indptr_e) - 1
+        visited = np.zeros(V + E, np.bool_)
+        res = [0] * 0
+
+        for e in range(E):
+            v_ids = indices_e[indptr_e[e]:indptr_e[e+1]]
+            xyz = node_pos[v_ids]
+
+            def is_nbd(v):
+                x, y, z = node_pos[v]
+                for x1, y1, z1 in xyz:
+                    dx, dy, dz = x - x1, y - y1, z - z1
+                    if dx*dx + dy*dy + dz*dz <= max_dist**2:
+                        return True
+                return False
+
+            que = [V + e]
+            visited[V + e] = 1
+            for frm in que:
+                if frm < V:
+                    TO = indices_v[indptr_v[frm]:indptr_v[frm + 1]]
+                    for to in TO:
+                        to += V
+                        if visited[to]:
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+                        res.append(e)
+                        res.append(to - V)
+                else:
+                    TO = indices_e[indptr_e[frm - V]:indptr_e[frm - V + 1]]
+                    for to in TO:
+                        if visited[to]:
+                            continue
+                        if not is_nbd(to):
+                            continue
+                        visited[to] = 1
+                        que.append(to)
+            for w in que:
+                visited[w] = 0
+        return res
+
+    def calculate_euclidean_hop_graph(self, r, *, mode='elemental'):
+        """
+        Calculate the adjacency matrix of graph G defined as follows.
+
+        If mode is 'nodal', G is a nodal graph and node v, v' is
+        adjacent in G if there exists a sequence of nodes
+        (v_0, v_1, ..., v_n) satisfying
+            - v_0 = v, v_n = w
+            - dist(v, v_i) < r, for all i
+            - v_i and v_{i+1} shares some element.
+
+        If mode is 'elemental', G is a elemental graph and element e, e' is
+        adjacent in G if there exists a sequence of elements
+        (e_0, e_1, ..., e_n) satisfying
+            - e_0 = e, e_n = e'
+            - dist(e, e_i) < r, for all i
+            - e_i and e_{i+1} shares some node.
+
+        In elemental case, the distance of elements is defined by Euclidean
+        distance between its vertex sets.
+
+        In both cases, self-loops are excluded.
+
+        Parameters
+        ----------
+        r : float
+            radius of the ball.
+        mode: str, optional (['elemental'], 'nodal')
+            If 'elemental', generate (n_element, n_element) shaped
+            adjacenty martix of the euclidean hop graph.
+            If 'nodal', generate (n_node, n_node) shaped
+            adjacenty martix of the euclidean hop graph.
+
+        Returns
+        -------
+        adj: scipy.sparse.csr_matrix
+            Adjacency matrix in CSR expression.
+        """
+
+        incidence = self.calculate_incidence_matrix()
+        n_node, n_elem = incidence.shape
+        indptr_v = incidence.indptr
+        indices_v = incidence.indices
+        incidence = incidence.T.tocsr()
+        indptr_e = incidence.indptr
+        indices_e = incidence.indices
+        pos = self.nodes.data.astype(np.float64)
+
+        if mode == 'nodal':
+            adj_list = self._calculate_euclidean_hop_graph_nodal(
+                indptr_v, indices_v, indptr_e, indices_e, pos, r)
+            row, col = np.array(adj_list).reshape(-1, 2).T
+
+            adj = sp.csr_matrix(
+                ([True] * (len(adj_list) // 2), (row, col)),
+                dtype=bool,
+                shape=(n_node, n_node)
+            )
+        elif mode == 'elemental':
+            adj_list = self._calculate_euclidean_hop_graph_elemental(
+                indptr_v, indices_v, indptr_e, indices_e, pos, r)
+            row, col = np.array(adj_list).reshape(-1, 2).T
+
+            adj = sp.csr_matrix(
+                ([True] * (len(adj_list) // 2), (row, col)),
+                dtype=bool,
+                shape=(n_elem, n_elem)
+            )
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+
+        return adj
