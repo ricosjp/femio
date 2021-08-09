@@ -1,6 +1,6 @@
 REGISTORY := registry.ritc.jp/ricos/simulation/femio
 GHCR_IMAGE ?= ghcr.io/ricosjp/femio
-TAG ?= 0.3.2
+TAG ?= 0.3.2py3.9
 
 all: fistr
 
