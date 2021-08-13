@@ -77,6 +77,9 @@ class FEMData(
         elif file_type == 'obj':
             from .formats.obj import obj
             cls_ = obj.ObjData
+        elif file_type == 'polyvtk':
+            from .formats.polyvtk import polyvtk
+            cls_ = polyvtk.PolyVTKData
 
         # File formats supported by meshio
         elif file_type == 'vtk':
@@ -484,6 +487,12 @@ class FEMData(
             from .formats.obj.write_obj import OBJWriter
             written_files = OBJWriter(self).write(
                 file_name=self.add_extension_if_needed(file_name, 'obj'),
+                overwrite=overwrite)
+
+        elif file_type == 'polyvtk':
+            from .formats.polyvtk.write_polyvtk import PolyVTKWriter
+            written_files = PolyVTKWriter(self).write(
+                file_name=self.add_extension_if_needed(file_name, 'polyvtk'),
                 overwrite=overwrite)
 
         # File formats supported by meshio
