@@ -168,6 +168,8 @@ class FEMData(
             extensions = ['stl']
         elif file_type == 'vtk':
             extensions = ['vtk']
+        elif file_type == 'polyvtk':
+            extensions = ['vtu']
         else:
             raise NotImplementedError(
                 f"Unknown file_type: {file_type}")
@@ -492,7 +494,7 @@ class FEMData(
         elif file_type == 'polyvtk':
             from .formats.polyvtk.write_polyvtk import PolyVTKWriter
             written_files = PolyVTKWriter(self).write(
-                file_name=self.add_extension_if_needed(file_name, 'polyvtk'),
+                file_name=self.add_extension_if_needed(file_name, 'vtu'),
                 overwrite=overwrite)
 
         # File formats supported by meshio

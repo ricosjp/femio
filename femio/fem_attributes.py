@@ -407,7 +407,9 @@ class FEMAttributes:
             self.material_overwritten = True
         return
 
-    def update_data(self, ids, data_dict, *, allow_overwrite=False):
+    def update_data(
+            self, ids, data_dict,
+            *, allow_overwrite=False, raise_overwrite=False):
         """Update data with new data_dict.
 
         Parameters
@@ -418,9 +420,15 @@ class FEMAttributes:
             Dictionary of data mapping from property names to property values.
         allow_overwrite: bool, optional
             If True, allow overwrite existing rows. The default is False.
+        raise_overwrite: bool, optional
+            If True, raise ValueError when one tries to overwrite data.
+            The default is False.
         """
         for attribute_name, attribute_value in data_dict.items():
             if attribute_name in self:
+                if raise_overwrite:
+                    raise ValueError(
+                        f"Tries to overwrite {attribute_name}")
                 self[attribute_name].update(
                     ids, attribute_value, allow_overwrite=allow_overwrite)
             else:

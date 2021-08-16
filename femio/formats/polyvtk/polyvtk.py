@@ -11,6 +11,7 @@ class PolyVTKData(FEMData):
     """FEMData of VTK with polyhedron."""
 
     DICT_VTK_ID_TO_ELEMENT_TYPE = {
+        10: 'tet',
         12: 'hex',
         13: 'wedge',
         42: 'polyhedron',
@@ -44,9 +45,9 @@ class PolyVTKData(FEMData):
 
         # Read elements
         cells = mesh.get_cells()
-        cell_types = mesh.cell_types_array.to_array()
-        connectivity = cells.connectivity_array.to_array()
-        offsets = cells.offsets_array.to_array()
+        cell_types = mesh.cell_types_array.to_array().astype(np.int32)
+        connectivity = cells.connectivity_array.to_array().astype(np.int32)
+        offsets = cells.offsets_array.to_array().astype(np.int32)
         element_connectivities = np.array(
             [connectivity[o1:o2] for o1, o2 in zip(offsets[:-1], offsets[1:])],
             dtype=object)
@@ -57,11 +58,31 @@ class PolyVTKData(FEMData):
                 cls.DICT_VTK_ID_TO_ELEMENT_TYPE[t],
                 ids=global_element_ids[cell_types == t],
                 data=stack_if_needed(
-                    t, element_connectivities[cell_types == t]))
+                    t, element_connectivities[cell_types == t]) + 1)
             for t in unique_cell_types}
         elements = FEMElementalAttribute('ELEMENT', elements_data)
 
         obj = cls(nodes=nodes, elements=elements)
+        faces = mesh.get_faces().to_array().astype(np.int32)
+        face_offsets = np.concatenate([
+            mesh.face_locations.to_array(), np.array([len(faces)])]).astype(
+                np.int32)
+        face_offsets = face_offsets[face_offsets != -1]
+        face_data = np.array([0] + [
+            list(faces[l1:l2]) for l1, l2
+            in zip(face_offsets[:-1], face_offsets[1:])], dtype=object)[1:]
+
+        # Read point data
+        obj.nodal_data.update_data(
+            obj.nodes.ids, {
+                mesh.point_data.get_array_name(i_array):
+                convert_to_2d_if_needed(mesh.point_data.get_array(
+                    mesh.point_data.get_array_name(i_array)
+                ).to_array())
+                for i_array in range(
+                    mesh.point_data.trait_get(
+                        'number_of_arrays')['number_of_arrays'])},
+            allow_overwrite=True)
 
         # Read cell data
         obj.elemental_data.update_data(
@@ -72,7 +93,15 @@ class PolyVTKData(FEMData):
                 ).to_array())
                 for i_array in range(
                     mesh.cell_data.trait_get(
-                        'number_of_arrays')['number_of_arrays'])})
+                        'number_of_arrays')['number_of_arrays'])},
+            allow_overwrite=True)
+        obj.elemental_data.update({
+            'face': FEMElementalAttribute(
+                'face', {
+                    'polyhedron':
+                    FEMAttribute(
+                        'face', ids=obj.elements.ids[cell_types == 42],
+                        data=face_data)})})
         return obj
 
 
