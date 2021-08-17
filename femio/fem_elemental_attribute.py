@@ -26,6 +26,8 @@ class FEMElementalAttribute(dict):
         'hex',
         'hex2',
         'hexprism',
+        'wedge',
+        'polyhedron',
         'unknown',
     ]
 
