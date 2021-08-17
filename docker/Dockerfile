@@ -4,6 +4,8 @@ LABEL maintainer "Masanobu Horie <yellowshippo@gmail.com>"
 RUN apt-get update \
  && apt-get install -y \
  git \
+ libglu1-mesa-dev \
+ libxrender1 \
  python3.9 \
  python3.9-dev \
  python3.9-distutils \
@@ -21,4 +23,7 @@ COPY ./pyproject.toml /src/pyproject.toml
 WORKDIR /src
 RUN \
  poetry env use /usr/bin/python3.9 \
- && poetry install
+ && poetry install \
+ && poetry run python3 -m pip install vtk==9.0.20210626.dev0 \
+ && poetry run python3 -m pip install mayavi --no-binary :all: \
+ && poetry run python3 -m pip install PyQt5
