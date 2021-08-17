@@ -576,11 +576,8 @@ class GeometryProcessorMixin:
             else:
                 raise NotImplementedError
         elif element_type in ['hexprism']:
-            if linear:
-                volumes = self._calculate_element_volumes_hexprism(
-                    elements)
-            else:
-                raise NotImplementedError
+            volumes = self._calculate_element_volumes_hexprism(
+                elements)
         elif element_type == 'mix':
             volumes = np.concatenate([
                 self.calculate_element_volumes(
