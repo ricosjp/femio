@@ -327,23 +327,17 @@ class GeometryProcessorMixin:
 
         tuple_facets = self.extract_facets(
             remove_duplicates=False, method=np.stack)[
-                self.elements.element_type][coo.row]
-        all_facets = []
-        for facets in tuple_facets:
-            all_facets += [f for f in facets]
+                self.elements.element_type]
+        tuple_all_facets = tuple(f[coo.row] for f in tuple_facets)
         all_normals = self.calculate_all_element_normals()[coo.row]
         col_facet_elements = facet_data.elements.data[coo.col]
         facet_normals = facet_data.calculate_element_normals()
         col_facet_normals = facet_normals[coo.col]
 
-        # raise ValueError(np.array([
-        #         [
-        #             np.all(np.isin(all_facet, facet_element), axis=1),
-        #             all_facet, facet_element]
-        #     for all_facet, all_normal, facet_element, facet_normal, r, c
-        #     in zip(
-        #         all_facets, all_normals,
-        #         col_facet_elements, col_facet_normals, coo.row, coo.col)]))
+        if len(tuple_all_facets) > 1:
+            raise NotImplementedError
+        else:
+            all_facets = tuple_all_facets[0]
 
         inner_prods = np.concatenate([
             np.dot(

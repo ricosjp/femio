@@ -53,10 +53,7 @@ class GraphProcessorMixin:
         dict_facet_shapes = {'tri': [], 'quad': []}
         for facet in dict_facets.values():
             for f in facet:
-                try:
-                    n_node_per_element = f.shape[-1]
-                except:
-                    raise ValueError(facet, f)
+                n_node_per_element = f.shape[-1]
                 if n_node_per_element == 3:
                     dict_facet_shapes['tri'].append(f)
                 elif n_node_per_element == 4:
@@ -190,7 +187,7 @@ class GraphProcessorMixin:
                 elements, element_type, method=method)
 
         if remove_duplicates:
-            facets = (functions.remove_duplicates(f) for f in facets)
+            facets = tuple(functions.remove_duplicates(f) for f in facets)
 
         return {element_type: facets}
 
