@@ -244,6 +244,12 @@ class TestVTK(unittest.TestCase):
         ])
         np.testing.assert_array_equal(adj.toarray().astype(int), desired_adj)
 
+        surface_fem_data = fem_data.to_surface()
+        surface_fem_data.calculate_element_normals()
+        surface_fem_data.write(
+            'vtk', 'tests/data/vtu/write_surface_pyramid/mesh.vtk',
+            overwrite=True)
+
     def test_read_wedge(self):
         file_name = Path('tests/data/vtu/wedge/mesh.vtu')
         fem_data = FEMData.read_files('vtk', [file_name])
@@ -261,3 +267,9 @@ class TestVTK(unittest.TestCase):
             [1, 0, 1, 1],
         ])
         np.testing.assert_array_equal(adj.toarray().astype(int), desired_adj)
+
+        surface_fem_data = fem_data.to_surface()
+        surface_fem_data.calculate_element_normals()
+        surface_fem_data.write(
+            'vtk', 'tests/data/vtu/write_surface_prism/mesh.vtk',
+            overwrite=True)

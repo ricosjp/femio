@@ -11,7 +11,7 @@ class GeometryProcessorMixin:
 
     def calculate_element_areas(
             self, *, linear=False, raise_negative_area=False,
-            return_abs_area=True, elements=None):
+            return_abs_area=True, elements=None, update=True):
         """Calculate areas of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated areas are returned and also stored in
@@ -59,8 +59,9 @@ class GeometryProcessorMixin:
         if return_abs_area:
             areas = np.abs(areas)
 
-        self.elemental_data.update_data(
-            self.elements.ids, {'area': areas}, allow_overwrite=True)
+        if update:
+            self.elemental_data.update_data(
+                self.elements.ids, {'area': areas}, allow_overwrite=True)
         return areas
 
     def _calculate_element_areas_tri(self, elements):
@@ -324,9 +325,12 @@ class GeometryProcessorMixin:
             facet_data, minimum_n_sharing=3)
         coo = relative_incidence.tocoo()
 
-        all_facets = self.extract_facets(
+        tuple_facets = self.extract_facets(
             remove_duplicates=False, method=np.stack)[
                 self.elements.element_type][coo.row]
+        all_facets = []
+        for facets in tuple_facets:
+            all_facets += [f for f in facets]
         all_normals = self.calculate_all_element_normals()[coo.row]
         col_facet_elements = facet_data.elements.data[coo.col]
         facet_normals = facet_data.calculate_element_normals()
@@ -352,7 +356,7 @@ class GeometryProcessorMixin:
         if np.sum(np.logical_and(
                 -1 + 1e-3 < inner_prods, inner_prods < 1 - 1e-3)) > 0:
             raise ValueError(
-                f"Normal vector computation tailed: {inner_prods}")
+                f"Normal vector computation failed: {inner_prods}")
         signed_incidence_data = np.zeros(len(inner_prods), dtype=int)
         signed_incidence_data[1. - 1e-3 < inner_prods] = 1
         signed_incidence_data[inner_prods < -1. + 1e-3] = -1
@@ -387,7 +391,8 @@ class GeometryProcessorMixin:
             normals, (len(self.elements), n_facet_per_element, 3))
 
     @functools.lru_cache(maxsize=1)
-    def calculate_element_normals(self):
+    def calculate_element_normals(
+            self, elements=None, element_type=None, update=True):
         """Calculate normal vectors of each shell elements. Please note that
         the calculated normal may not be aligned with neighbor elements. To
         make vector field smooth, use femio.extract_direction_feature() method.
@@ -397,17 +402,27 @@ class GeometryProcessorMixin:
             normals: numpy.ndarray
                 (n_element, 3)-shaped array.
         """
-        elements = self.elements
-        if self.elements.element_type in ['tri']:
+        if elements is None:
+            elements = self.elements
+        if element_type is None:
+            element_type = self.elements.element_type
+
+        if element_type in ['tri']:
             crosses = self._calculate_tri_crosses(elements)
             normals = crosses / np.linalg.norm(crosses, axis=1, keepdims=True)
-        elif self.elements.element_type in ['quad']:
+        elif element_type in ['quad']:
             normals = self._calculate_quad_normals(elements)
+        elif element_type in ['mix']:
+            normals = np.concatenate([
+                self.calculate_element_normals(
+                    elements=e, element_type=k, update=False)
+                for k, e in self.elements.items()])
         else:
-            raise NotImplementedError
+            raise NotImplementedError(self.elements.element_type)
 
-        self.elemental_data.update_data(
-            self.elements.ids, {'normal': normals}, allow_overwrite=True)
+        if update:
+            self.elemental_data.update_data(
+                self.elements.ids, {'normal': normals}, allow_overwrite=True)
         return normals
 
     def extract_direction_feature(self, vectors, *, skip_normalization=False):
@@ -472,7 +487,7 @@ class GeometryProcessorMixin:
 
     def calculate_element_metrics(
             self, *, raise_negative_metric=True, return_abs_metric=False,
-            elements=None):
+            elements=None, update=True):
         """Calculate metric (area or volume depending on the mesh dimension)
         of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
@@ -510,11 +525,15 @@ class GeometryProcessorMixin:
                 return_abs_volume=return_abs_metric, elements=elements)
         elif element_type == 'mix':
             metrics = np.concatenate([
-                self.calculate_element_metrics(elements=e)
+                self.calculate_element_metrics(elements=e, update=False)
                 for e in elements.values()], axis=0)
         else:
             raise NotImplementedError(
                 f"Unsupported element type: {element_type}")
+
+        if update:
+            self.elemental_data.update_data(
+                self.elements.ids, {'metric': metrics})
         return metrics
 
     def calculate_element_volumes(
