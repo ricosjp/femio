@@ -52,14 +52,15 @@ class GraphProcessorMixin:
         dict_facets = self.extract_facets()
         dict_facet_shapes = {'tri': [], 'quad': []}
         for facet in dict_facets.values():
-            n_node_per_element = facet.shape[-1]
-            if n_node_per_element == 3:
-                dict_facet_shapes['tri'].append(facet)
-            elif n_node_per_element == 4:
-                dict_facet_shapes['quad'].append(facet)
-            else:
-                raise ValueError(
-                    f"Unsupported element shape: {n_node_per_element}")
+            for f in facet:
+                n_node_per_element = f.shape[-1]
+                if n_node_per_element == 3:
+                    dict_facet_shapes['tri'].append(f)
+                elif n_node_per_element == 4:
+                    dict_facet_shapes['quad'].append(f)
+                else:
+                    raise ValueError(
+                        f"Unsupported element shape: {n_node_per_element}")
 
         extracted_surface_info = {
             k: self._extract_surface(np.concatenate(v, axis=0))
@@ -144,7 +145,7 @@ class GraphProcessorMixin:
 
         Returns
         -------
-        facets: Dict[numpy.ndarray]
+        facets: dict[tuple(numpy.ndarray)]
         """
         if elements is None:
             elements = self.elements
@@ -180,13 +181,13 @@ class GraphProcessorMixin:
                 elements = list(elements.values())[0]
 
         if element_type == 'tri' or element_type == 'quad':
-            facets = elements.data
+            facets = (elements.data,)
         else:
             facets = self._generate_all_faces(
                 elements, element_type, method=method)
 
         if remove_duplicates:
-            facets = functions.remove_duplicates(facets)
+            facets = tuple(functions.remove_duplicates(f) for f in facets)
 
         return {element_type: facets}
 
@@ -251,6 +252,36 @@ class GraphProcessorMixin:
                 [e[3], e[0], e[4], e[7]],
                 [e[4], e[5], e[6], e[7]]]
                 for e in elements_data])
+        elif element_type == 'pyr':
+            face_ids = (
+                method([
+                    [
+                        [e[0], e[1], e[4]],
+                        [e[1], e[2], e[4]],
+                        [e[2], e[3], e[4]],
+                        [e[3], e[0], e[4]],
+                    ]
+                    for e in elements_data]),
+                method([
+                    [
+                        [e[0], e[3], e[2], e[1]],
+                    ]
+                    for e in elements_data]))
+        elif element_type == 'prism':
+            face_ids = (
+                method([
+                    [
+                        [e[0], e[2], e[1]],
+                        [e[3], e[4], e[5]],
+                    ]
+                    for e in elements_data]),
+                method([
+                    [
+                        [e[0], e[1], e[4], e[3]],
+                        [e[1], e[2], e[5], e[4]],
+                        [e[0], e[3], e[5], e[2]],
+                    ]
+                    for e in elements_data]))
         elif element_type == 'hexprism':
             face_ids = method([[
                 [e[0], e[5], e[4], e[1]],
@@ -267,7 +298,10 @@ class GraphProcessorMixin:
         else:
             raise NotImplementedError
 
-        return face_ids
+        if isinstance(face_ids, tuple):
+            return face_ids
+        else:
+            return (face_ids,)
 
     @functools.lru_cache(maxsize=1)
     def filter_first_order_nodes(self):

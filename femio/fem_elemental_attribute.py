@@ -361,15 +361,43 @@ class FEMElementalAttribute(dict):
             FEMElementalAttribute object of the surface.
         """
         if isinstance(surface_ids, dict):
-            surfaces = [
-                self._generate_surface(ids) for ids in surface_ids.values()]
-            return FEMElementalAttribute('ELEMENT', {
-                s.name: s for s in surfaces})
+            surface_ids_tuple = self._generate_surface_ids_tuple(surface_ids)
+            surfaces = self._generate_surface(surface_ids_tuple)
+        elif isinstance(surface_ids, tuple):
+            surface_ids_tuple = surface_ids
+            surfaces = self._generate_surface(surface_ids_tuple)
         else:
-            s = self._generate_surface(surface_ids)
-            return FEMElementalAttribute('ELEMENT', {s.name: s})
+            surfaces = self._generate_surface_core(surface_ids)
 
-    def _generate_surface(self, surface_ids):
+        return FEMElementalAttribute('ELEMENT', surfaces)
+
+    def _generate_surface_ids_tuple(self, surface_ids_dict):
+        group_dict = {}
+        for surface_ids in surface_ids_dict.values():
+            if isinstance(surface_ids, tuple):
+                for si in surface_ids:
+                    size = si.shape[-1]
+                    if group_dict.get(size, None) is None:
+                        group_dict[size] = si
+                    else:
+                        group_dict[size] = np.concatenate(
+                            [group_dict[size], si])
+            else:
+                size = surface_ids.shape[-1]
+                if group_dict.get(size, None) is None:
+                    group_dict[size] = surface_ids
+                else:
+                    group_dict[size] = np.concatenate(
+                        [group_dict[size], surface_ids])
+        return tuple(group_dict.values())
+
+    def _generate_surface(self, tuple_surface_ids):
+        ret = {}
+        for surface_ids in tuple_surface_ids:
+            ret.update(self._generate_surface_core(surface_ids))
+        return ret
+
+    def _generate_surface_core(self, surface_ids):
         n_node_per_element = surface_ids.shape[1]
         if n_node_per_element == 3:
             element_type = 'tri'
@@ -379,8 +407,10 @@ class FEMElementalAttribute(dict):
             raise NotImplementedError(
                 'Unsupported # of nodes per elements: '
                 f"{self.elements.data.shape[1]}")
-        return FEMAttribute(
-            element_type, np.arange(len(surface_ids))+1, surface_ids)
+        return {
+            element_type:
+            FEMAttribute(
+                element_type, np.arange(len(surface_ids))+1, surface_ids)}
 
     def detect_element_type(self, element_data):
         n_node_per_element = element_data.shape[1]
