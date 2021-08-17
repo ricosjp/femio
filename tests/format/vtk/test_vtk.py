@@ -225,3 +225,39 @@ class TestVTK(unittest.TestCase):
                 np.ones((4, 1)) * (.3*.3 + .02) * .1,
                 np.ones((4, 1)) * ((.3 + .4) * .3 * .1 / 2 + .02 * .1)
             ]))
+
+    def test_read_pyramid(self):
+        file_name = Path('tests/data/vtu/pyramid/pyramid.vtu')
+        fem_data = FEMData.read_files('vtk', [file_name])
+
+        volumes = fem_data.calculate_element_volumes(linear=True)
+        desired_volumes = np.array([
+            1. / 2 - 1. / 3, 1. / 3, 1. / 3, 1.])[:, None]
+        np.testing.assert_almost_equal(volumes, desired_volumes)
+
+        adj = fem_data.calculate_adjacency_matrix_element()
+        desired_adj = np.array([
+            [1, 0, 1, 1],
+            [0, 1, 0, 1],
+            [1, 0, 1, 1],
+            [1, 1, 1, 1],
+        ])
+        np.testing.assert_array_equal(adj.toarray().astype(int), desired_adj)
+
+    def test_read_wedge(self):
+        file_name = Path('tests/data/vtu/wedge/mesh.vtu')
+        fem_data = FEMData.read_files('vtk', [file_name])
+
+        volumes = fem_data.calculate_element_volumes(linear=True)
+        desired_volumes = np.array([
+            1. / 2 * 1. / 3, 1. / 2 * 1. / 3, 1. / 2, 1. / 2])[:, None]
+        np.testing.assert_almost_equal(volumes, desired_volumes)
+
+        adj = fem_data.calculate_adjacency_matrix_element()
+        desired_adj = np.array([
+            [1, 0, 0, 1],
+            [0, 1, 1, 0],
+            [0, 1, 1, 1],
+            [1, 0, 1, 1],
+        ])
+        np.testing.assert_array_equal(adj.toarray().astype(int), desired_adj)
