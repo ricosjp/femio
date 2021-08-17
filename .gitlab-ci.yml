@@ -27,8 +27,8 @@ pages:
   stage: deploy
   script:
     - python3.9 -m pip install -r sphinx/requirements.txt
-    - python3.9 sphinx-apidoc -f -o ./sphinx femio
-    - python3.9 sphinx-build ./sphinx ./docs
+    - python3.9 -m sphinx-apidoc -f -o ./sphinx femio
+    - python3.9 -m sphinx-build ./sphinx ./docs
     - poetry build
     - cp -r docs public
     - mv dist/*.whl public/
