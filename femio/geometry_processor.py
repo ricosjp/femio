@@ -561,12 +561,31 @@ class GeometryProcessorMixin:
             else:
                 volumes = self._calculate_element_volumes_hex_gaussian(
                     elements)
+        elif element_type in ['pyr']:
+            if linear:
+                volumes = self._calculate_element_volumes_pyr(
+                    elements)
+            else:
+                raise NotImplementedError
+                volumes = self._calculate_element_volumes_pyr_gaussian(
+                    elements)
+        elif element_type in ['prism']:
+            if linear:
+                volumes = self._calculate_element_volumes_prism(
+                    elements)
+            else:
+                raise NotImplementedError
         elif element_type in ['hexprism']:
-            volumes = self._calculate_element_volumes_hexprism(
-                elements)
+            if linear:
+                volumes = self._calculate_element_volumes_hexprism(
+                    elements)
+            else:
+                raise NotImplementedError
         elif element_type == 'mix':
             volumes = np.concatenate([
-                self.calculate_element_volumes(elements=e)
+                self.calculate_element_volumes(
+                    elements=e, linear=linear,
+                    raise_negative_volume=raise_negative_volume)
                 for e in self.elements.values()], axis=0)
         else:
             raise NotImplementedError(element_type, elements)
@@ -600,6 +619,11 @@ class GeometryProcessorMixin:
         node1_points = self.collect_node_positions_by_ids(elements.data[:, 1])
         node2_points = self.collect_node_positions_by_ids(elements.data[:, 2])
         node3_points = self.collect_node_positions_by_ids(elements.data[:, 3])
+        return self._calculate_element_volumes_tet_like_core(
+            node0_points, node1_points, node2_points, node3_points)
+
+    def _calculate_element_volumes_tet_like_core(
+            self, node0_points, node1_points, node2_points, node3_points):
         v10 = node1_points - node0_points
         v20 = node2_points - node0_points
         v30 = node3_points - node0_points
@@ -637,6 +661,30 @@ class GeometryProcessorMixin:
             + np.linalg.det(np.stack([p7 - p3, p4 - p3, p6 - p3], axis=1))
             + np.linalg.det(np.stack([p1 - p5, p4 - p5, p6 - p5], axis=1))
         )[:, None]
+
+    def _calculate_element_volumes_pyr(self, elements):
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        return self._calculate_element_volumes_tet_like_core(
+            p0, p1, p2, p4) + self._calculate_element_volumes_tet_like_core(
+                p0, p2, p3, p4)
+
+    def _calculate_element_volumes_prism(self, elements):
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
+        return self._calculate_element_volumes_tet_like_core(
+            p0, p1, p2, p3) \
+            + self._calculate_element_volumes_tet_like_core(
+                p1, p2, p3, p4) \
+            + self._calculate_element_volumes_tet_like_core(
+                p2, p3, p4, p5)
 
     def _calculate_element_volumes_hexprism(self, elements):
         """Calculate volume of each hexprism elements.
@@ -754,7 +802,6 @@ class GeometryProcessorMixin:
         -------
         integrated_value: float number
         """
-        node_ids = self.nodes.ids
         surface = self.extract_surface()[0]
         surf_xyz = self.nodes.data[surface]
         p0, p1, p2 = surf_xyz[:, 0], surf_xyz[:, 1], surf_xyz[:, 2]

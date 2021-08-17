@@ -74,3 +74,35 @@ class TestWriteVTK(unittest.TestCase):
         np.testing.assert_almost_equal(
             written_fem_data.elements.data,
             fem_data.elements.data)
+
+    def test_io_pyramid(self):
+        file_name = Path('tests/data/vtu/pyramid/pyramid.vtu')
+        fem_data = FEMData.read_files('vtk', [file_name])
+
+        write_file_name = Path('tests/data/vtk/write_pyramid/mesh.vtk')
+        if os.path.exists(write_file_name):
+            os.remove(write_file_name)
+        fem_data.write('vtk', write_file_name)
+        written_fem_data = FEMData.read_files('vtk', file_name)
+
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+        for ae, de in zip(
+                written_fem_data.elements.data, fem_data.elements.data):
+            np.testing.assert_array_equal(ae, de)
+
+    def test_io_wedge(self):
+        file_name = Path('tests/data/vtu/wedge/mesh.vtu')
+        fem_data = FEMData.read_files('vtk', [file_name])
+
+        write_file_name = Path('tests/data/vtk/write_wedge/mesh.vtk')
+        if os.path.exists(write_file_name):
+            os.remove(write_file_name)
+        fem_data.write('vtk', write_file_name)
+        written_fem_data = FEMData.read_files('vtk', file_name)
+
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+        for ae, de in zip(
+                written_fem_data.elements.data, fem_data.elements.data):
+            np.testing.assert_array_equal(ae, de)
