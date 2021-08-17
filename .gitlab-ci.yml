@@ -21,7 +21,7 @@ autopep8:
 pytest:
   stage: test
   script:
-    - python3.9 -m pytest run pytest tests
+    - python3.9 -m pytest tests
 
 pages:
   stage: deploy
