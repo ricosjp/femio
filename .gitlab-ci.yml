@@ -2,7 +2,10 @@ image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos:0.3.2py3.9
 
 default:
   before_script:
-    - poetry env use /usr/bin/python3.9
+    - poetry config virtualenvs.create false
+    - poetry build
+    - python3.9 -m pip install dist/femio-*.whl  # Only install root project, not dependencies
+    # - poetry env use /usr/bin/python3.9
     # - pip install --upgrade pip poetry
     # - poetry install
 
@@ -10,29 +13,22 @@ stages:
   - test
   - deploy
 
-pylint:
-  stage: test
-  script:
-    - pip install pycodestyle
-    - find femio tests -name '*.py' -exec pycodestyle {} +
-    - poetry run pylint -E $(find femio/__main__ -name "*.py")
-
 autopep8:
   stage: test
   script:
-    - poetry run autopep8 --diff --exit-code $(find femio tests -name "*.py")
+    - python3.9 -m autopep8 --diff --exit-code $(find femio tests -name "*.py")
 
 pytest:
   stage: test
   script:
-    - poetry run pytest tests
+    - python3.9 -m pytest run pytest tests
 
 pages:
   stage: deploy
   script:
-    - poetry run python3 -m pip install -r sphinx/requirements.txt
-    - poetry run sphinx-apidoc -f -o ./sphinx femio
-    - poetry run sphinx-build ./sphinx ./docs
+    - python3.9 -m pip install -r sphinx/requirements.txt
+    - python3.9 sphinx-apidoc -f -o ./sphinx femio
+    - python3.9 sphinx-build ./sphinx ./docs
     - poetry build
     - cp -r docs public
     - mv dist/*.whl public/
@@ -58,7 +54,7 @@ deploy:pypi:master:
   before_script:
     - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
   script:
-    - poetry run pip install --upgrade pip poetry
+    - python3.9 -m pip install --upgrade pip poetry
     - poetry version $VERSION
     - poetry build -f wheel
     - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
@@ -70,7 +66,7 @@ deploy:pypi:tag:
   before_script:
     - export VERSION=$CI_COMMIT_REF_NAME
   script:
-    - poetry run pip install --upgrade pip poetry
+    - python3.9 -m pip install --upgrade pip poetry
     - poetry version $VERSION
     - poetry build -f wheel
     - poetry publish --username __token__ --password ${PYPI_ORG_TOKEN} --no-ansi -n -v
@@ -82,7 +78,7 @@ deploy:ricos:
   before_script:
     - export VERSION=$(grep "^version" pyproject.toml | grep -o "[0-9]\.[0-9]\.[0-9]").dev$(date +"%Y%m%d%H%M")
   script:
-    - pip install --upgrade pip poetry
+    - python3.9 -m pip install --upgrade pip poetry
     - poetry version $VERSION
     - poetry config repositories.ricos https://pypi.ritc.jp
     - poetry build -f wheel
