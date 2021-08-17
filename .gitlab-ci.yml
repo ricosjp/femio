@@ -1,9 +1,9 @@
 image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos:0.3.2py3.9
 
-default:
-  before_script:
-    - pip install --upgrade pip poetry
-    - poetry install
+# default:
+#   before_script:
+#     - pip install --upgrade pip poetry
+#     - poetry install
 
 stages:
   - test
