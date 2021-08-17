@@ -374,13 +374,21 @@ class FEMElementalAttribute(dict):
     def _generate_surface_ids_tuple(self, surface_ids_dict):
         group_dict = {}
         for surface_ids in surface_ids_dict.values():
-            for si in surface_ids:
-                size = si.shape[-1]
+            if isinstance(surface_ids, tuple):
+                for si in surface_ids:
+                    size = si.shape[-1]
+                    if group_dict.get(size, None) is None:
+                        group_dict[size] = si
+                    else:
+                        group_dict[size] = np.concatenate(
+                            [group_dict[size], si])
+            else:
+                size = surface_ids.shape[-1]
                 if group_dict.get(size, None) is None:
-                    group_dict[size] = si
+                    group_dict[size] = surface_ids
                 else:
                     group_dict[size] = np.concatenate(
-                        [group_dict[size], si])
+                        [group_dict[size], surface_ids])
         return tuple(group_dict.values())
 
     def _generate_surface(self, tuple_surface_ids):
