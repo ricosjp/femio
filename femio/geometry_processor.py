@@ -534,7 +534,7 @@ class GeometryProcessorMixin:
 
     def calculate_element_volumes(
             self, *, linear=False, raise_negative_volume=True,
-            return_abs_volume=False, elements=None):
+            return_abs_volume=False, elements=None, update=True):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated volumes are returned and also stored in
@@ -597,7 +597,7 @@ class GeometryProcessorMixin:
             volumes = np.concatenate([
                 self.calculate_element_volumes(
                     elements=e, linear=linear,
-                    raise_negative_volume=raise_negative_volume)
+                    raise_negative_volume=raise_negative_volume, update=False)
                 for e in self.elements.values()], axis=0)
         else:
             raise NotImplementedError(element_type, elements)
@@ -610,8 +610,9 @@ class GeometryProcessorMixin:
         if return_abs_volume:
             volumes = np.abs(volumes)
 
-        self.elemental_data.update_data(
-            elements.ids, {'volume': volumes}, allow_overwrite=True)
+        if update:
+            self.elemental_data.update_data(
+                elements.ids, {'volume': volumes}, allow_overwrite=True)
         return volumes
 
     def _calculate_element_volumes_tet_like(self, elements):
