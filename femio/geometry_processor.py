@@ -512,11 +512,13 @@ class GeometryProcessorMixin:
         if element_type in ['tri', 'tri2', 'quad', 'quad2']:
             metrics = self.calculate_element_areas(
                 raise_negative_area=raise_negative_metric,
-                return_abs_area=return_abs_metric, elements=elements)
+                return_abs_area=return_abs_metric, elements=elements,
+                update=update)
         elif element_type in ['tet', 'tet2', 'hex', 'hexprism']:
             metrics = self.calculate_element_volumes(
                 raise_negative_volume=raise_negative_metric,
-                return_abs_volume=return_abs_metric, elements=elements)
+                return_abs_volume=return_abs_metric, elements=elements,
+                update=update)
         elif element_type == 'mix':
             metrics = np.concatenate([
                 self.calculate_element_metrics(elements=e, update=False)
