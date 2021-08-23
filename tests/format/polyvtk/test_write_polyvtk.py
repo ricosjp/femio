@@ -91,6 +91,14 @@ class TestWriteVTK(unittest.TestCase):
     def test_write_poly_pyramid(self):
         file_name = pathlib.Path('tests/data/vtu/poly_pyramid/mesh.vtu')
         fem_data = FEMData.read_files('polyvtk', [file_name])
+        fem_data.nodal_data.update_data(
+            fem_data.nodes.ids, {
+                'vec_X':
+                fem_data.nodal_data.get_attribute_data('X')[..., None]})
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {
+                'vec_U':
+                fem_data.elemental_data.get_attribute_data('U')[..., None]})
 
         write_file_name = pathlib.Path(
             'tests/data/vtu/write_poly_pyramid/mesh.vtu')
