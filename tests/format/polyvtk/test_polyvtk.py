@@ -183,24 +183,24 @@ class TestVTK(unittest.TestCase):
         fem_data = FEMData.read_files('polyvtk', [file_name])
 
         desired_nodes = np.array([
-          [0.0, 0.0, 0.0],
-          [1.0, 0.0, 0.0],
-          [2.0, 0.0, 0.0],
-          [0.0, 1.0, 0.0],
-          [1.0, 0.0, 1.0],
-          [0.0, 1.0, 1.0],
-          [0.0, 0.0, 2.0],
-          [0.5, 0.0, 2.0],
-          [0.0, 0.5, 2.0],
-          [0.0, 0.0, 3.0],
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.0, 0.0, 1.0],
+            [0.0, 1.0, 1.0],
+            [0.0, 0.0, 2.0],
+            [0.5, 0.0, 2.0],
+            [0.0, 0.5, 2.0],
+            [0.0, 0.0, 3.0],
         ])
         np.testing.assert_almost_equal(
             fem_data.nodes.data, desired_nodes)
 
         desired_elements = np.array([
-          [0, 1, 3, 4, 5, 7, 8, 6],
-          [1, 3, 5, 4, 2],
-          [6, 7, 8, 9],
+            [0, 1, 3, 4, 5, 7, 8, 6],
+            [1, 3, 5, 4, 2],
+            [6, 7, 8, 9],
         ], dtype=object)
         for ae, de in zip(fem_data.elements.data, desired_elements):
             np.testing.assert_almost_equal(ae, np.array(de) + 1)
@@ -214,16 +214,16 @@ class TestVTK(unittest.TestCase):
             fem_data.elemental_data.get_attribute_data('U'), desired_u)
 
         desired_x = np.array([
-          [0.0, 0.0, 0.0],
-          [1.0, 0.0, 0.0],
-          [2.0, 0.0, 0.0],
-          [0.0, 1.0, 0.0],
-          [1.0, 0.0, 1.0],
-          [0.0, 1.0, 1.0],
-          [0.0, 0.0, 2.0],
-          [0.5, 0.0, 2.0],
-          [0.0, 0.5, 2.0],
-          [0.0, 0.0, 30.0],
+            [0.0, 0.0, 0.0],
+            [1.0, 0.0, 0.0],
+            [2.0, 0.0, 0.0],
+            [0.0, 1.0, 0.0],
+            [1.0, 0.0, 1.0],
+            [0.0, 1.0, 1.0],
+            [0.0, 0.0, 2.0],
+            [0.5, 0.0, 2.0],
+            [0.0, 0.5, 2.0],
+            [0.0, 0.0, 30.0],
         ])
         np.testing.assert_almost_equal(
             fem_data.nodal_data.get_attribute_data('X'), desired_x)
