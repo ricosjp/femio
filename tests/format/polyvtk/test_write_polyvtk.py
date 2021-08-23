@@ -88,6 +88,32 @@ class TestWriteVTK(unittest.TestCase):
             written_fem_data.nodal_data.get_attribute_data('X'),
             fem_data.nodal_data.get_attribute_data('X'))
 
+    def test_write_poly_pyramid(self):
+        file_name = pathlib.Path('tests/data/vtu/poly_pyramid/mesh.vtu')
+        fem_data = FEMData.read_files('polyvtk', [file_name])
+
+        write_file_name = pathlib.Path(
+            'tests/data/vtu/write_poly_pyramid/mesh.vtu')
+        if write_file_name.exists():
+            shutil.rmtree(write_file_name.parent)
+
+        fem_data.write('polyvtk', write_file_name)
+        written_fem_data = FEMData.read_files('polyvtk', [write_file_name])
+        np.testing.assert_almost_equal(
+            written_fem_data.nodes.data, fem_data.nodes.data)
+
+        ae, de = written_fem_data.elements.data, fem_data.elements.data
+        np.testing.assert_almost_equal(ae[0], np.sort(de[0]))
+        np.testing.assert_almost_equal(ae[1], de[2])
+        np.testing.assert_almost_equal(ae[2], de[1])
+
+        np.testing.assert_almost_equal(
+            written_fem_data.elemental_data.get_attribute_data('U')[[0, 2, 1]],
+            fem_data.elemental_data.get_attribute_data('U'))
+        np.testing.assert_almost_equal(
+            written_fem_data.nodal_data.get_attribute_data('X'),
+            fem_data.nodal_data.get_attribute_data('X'))
+
     # def test_io_openfoam(self):
     #     directory_name = pathlib.Path('tests/data/vtu/openfoam')
     #     fem_data = FEMData.read_directory(

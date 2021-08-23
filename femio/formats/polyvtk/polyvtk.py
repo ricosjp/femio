@@ -14,6 +14,7 @@ class PolyVTKData(FEMData):
         10: 'tet',
         12: 'hex',
         13: 'wedge',
+        14: 'pyr',
         42: 'polyhedron',
     }
 
@@ -63,14 +64,23 @@ class PolyVTKData(FEMData):
         elements = FEMElementalAttribute('ELEMENT', elements_data)
 
         obj = cls(nodes=nodes, elements=elements)
-        faces = mesh.get_faces().to_array().astype(np.int32)
-        face_offsets = np.concatenate([
-            mesh.face_locations.to_array(), np.array([len(faces)])]).astype(
-                np.int32)
-        face_offsets = face_offsets[face_offsets != -1]
-        face_data = np.array([0] + [
-            list(faces[l1:l2]) for l1, l2
-            in zip(face_offsets[:-1], face_offsets[1:])], dtype=object)[1:]
+        raw_faces = mesh.get_faces()
+        if raw_faces is not None:
+            faces = mesh.get_faces().to_array().astype(np.int32)
+            face_offsets = np.concatenate([
+                mesh.face_locations.to_array(),
+                np.array([len(faces)])]).astype(np.int32)
+            face_offsets = face_offsets[face_offsets != -1]
+            face_data = np.array([0] + [
+                list(faces[l1:l2]) for l1, l2
+                in zip(face_offsets[:-1], face_offsets[1:])], dtype=object)[1:]
+            obj.elemental_data.update({
+                'face': FEMElementalAttribute(
+                    'face', {
+                        'polyhedron':
+                        FEMAttribute(
+                            'face', ids=obj.elements.ids[cell_types == 42],
+                            data=face_data)})})
 
         # Read point data
         obj.nodal_data.update_data(
@@ -95,13 +105,6 @@ class PolyVTKData(FEMData):
                     mesh.cell_data.trait_get(
                         'number_of_arrays')['number_of_arrays'])},
             allow_overwrite=True)
-        obj.elemental_data.update({
-            'face': FEMElementalAttribute(
-                'face', {
-                    'polyhedron':
-                    FEMAttribute(
-                        'face', ids=obj.elements.ids[cell_types == 42],
-                        data=face_data)})})
         return obj
 
 
