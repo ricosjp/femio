@@ -35,13 +35,5 @@ RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-
   && poetry config virtualenvs.create false \
   && poetry install \
   && python3.9 -m pip install vtk==9.0.20210626.dev0 \
-  && python3.9 -m pip install mayavi --no-binary :all: \
+  && python3.9 -m pip install mayavi==4.7.3 --no-binary :all: \
   && python3.9 -m pip install PyQt5
-
-
-# RUN \
-#  poetry env use /usr/bin/python3.9 \
-#  && poetry install \
-#  && poetry run python3 -m pip install vtk==9.0.20210626.dev0 \
-#  && poetry run python3 -m pip install mayavi --no-binary :all: \
-#  && poetry run python3 -m pip install PyQt5
