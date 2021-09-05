@@ -1,0 +1,87 @@
+<?xml version='1.0'?>
+<!-- patch='dirichlet' time='0' index='0' -->
+<VTKFile type='PolyData' version='0.1' byte_order='LittleEndian' header_type='UInt64'>
+  <PolyData>
+    <FieldData>
+      <DataArray type='Float32' Name='TimeValue' NumberOfTuples='1' format='ascii'>
+0
+      </DataArray>
+    </FieldData>
+    <Piece NumberOfPoints='13' NumberOfPolys='4'>
+      <Points>
+        <DataArray type='Float32' Name='Points' NumberOfComponents='3' format='ascii'>
+          0.0 0.0 0.0
+          0.0 1.0 0.0
+          0.5 1.5 0.0
+          1.0 1.0 0.0
+          1.0 0.0 0.0
+          0.0 0.0 1.0
+          0.0 1.0 1.0
+          0.5 1.5 1.0
+          1.0 1.0 1.0
+          1.0 0.0 1.0
+          -0.2 0.0 0.2
+          -0.2 0.0 0.8
+          1.0 1.5 0.5
+        </DataArray>
+      </Points>
+      <Polys>
+        <DataArray type='Int32' Name='connectivity' format='ascii'>
+          0 1 2 3 4
+          5 9 8 7 6
+          0 4 9 5 11 10
+          4 3 12 8 9
+        </DataArray>
+        <DataArray type='Int32' Name='offsets' format='ascii'>
+          5 10 16 21
+        </DataArray>
+      </Polys>
+      <CellData>
+        <DataArray type='Float32' Name='p' format='ascii'>
+          0.0
+          1.0
+          2.0
+          3.0
+        </DataArray>
+        <DataArray type='Float32' Name='U' NumberOfComponents='3' format='ascii'>
+          0.0 0.0 3.0
+          0.0 1.0 2.0
+          0.0 2.0 1.0
+          0.0 3.0 0.0
+        </DataArray>
+      </CellData>
+      <PointData>
+        <DataArray type='Float32' Name='p' format='ascii'>
+          0.0
+          1.0
+          1.5
+          1.0
+          0.0
+          1.0
+          2.0
+          2.5
+          2.0
+          1.0
+          1.0
+          1.0
+          1.0
+        </DataArray>
+        <DataArray type='Float32' Name='U' NumberOfComponents='3' format='ascii'>
+          0.0 0.0 0.0
+          0.0 0.0 1.0
+          0.5 0.0 1.5
+          1.0 0.0 1.0
+          1.0 0.0 0.0
+          0.0 1.0 0.0
+          0.0 1.0 1.0
+          0.5 1.0 1.5
+          1.0 1.0 1.0
+          1.0 1.0 0.0
+          -0.2 0.2 0.0
+          -0.2 0.8 0.0
+          1.0 0.5 1.5
+        </DataArray>
+      </PointData>
+    </Piece>
+  </PolyData>
+</VTKFile>

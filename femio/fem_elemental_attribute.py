@@ -17,6 +17,7 @@ class FEMElementalAttribute(dict):
         'tri2',
         'quad',
         'quad2',
+        'polygon',
         'tet',
         'tet2',
         'pyr',
@@ -262,6 +263,10 @@ class FEMElementalAttribute(dict):
     @property
     def dict_type_ids(self):
         return self._dict_type_ids
+
+    def to_vtk(self):
+        return np.concatenate([
+            np.concatenate([[len(e)], e]) for e in self.data - 1])
 
     def update(self, *args, **kwargs):
         if isinstance(args[0], dict):
