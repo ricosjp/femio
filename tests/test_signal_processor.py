@@ -847,6 +847,76 @@ class TestSignalProcessor(unittest.TestCase):
         np.testing.assert_almost_equal(
             actual_converted_data, desired_converted_data)
 
+    def test_convert_elemental2nodal_polygon(self):
+        fem_data = FEMData.read_directory(
+            'vtp', 'tests/data/vtp/polys', read_npy=False, save=False)
+        elemental_data = np.array([
+            [1e1, 2e1, 3e1],
+            [1e2, 2e2, 3e2],
+            [1e3, 2e3, 3e3],
+            [1e4, 2e4, 3e4],
+        ])
+        actual_converted_mean_data = fem_data.convert_elemental2nodal(
+            elemental_data, mode='mean')
+        v0 = 1.25
+        v2 = 1.16
+        d = elemental_data
+        desired_converted_mean_data = np.array([
+            (d[2] * v2 + d[0] * v0) / (v2 + v0),
+            d[0],
+            d[0],
+            (d[0] + d[3]) / 2,
+            (d[0] * v0 + d[2] * v2 + d[3] * v0) / (v0 * 2 + v2),
+            (d[2] * v2 + d[1] * v0) / (v0 + v2),
+            d[1],
+            d[1],
+            (d[1] + d[3]) / 2,
+            (d[1] * v0 + d[3] * v0 + d[2] * v2) / (v0 * 2 + v2),
+            d[2],
+            d[2],
+            d[3],
+        ])
+        np.testing.assert_almost_equal(
+            actual_converted_mean_data, desired_converted_mean_data,
+            decimal=3)
+        actual_converted_effective_data = fem_data.convert_elemental2nodal(
+            elemental_data, mode='effective')
+        v0 = 1 / 5
+        v2 = 1 / 6
+        desired_converted_effective_data = np.array([
+            d[2] * v2 + d[0] * v0,
+            d[0] * v0,
+            d[0] * v0,
+            d[0] * v0 + d[3] * v0,
+            d[0] * v0 + d[2] * v2 + d[3] * v0,
+            d[2] * v2 + d[1] * v0,
+            d[1] * v0,
+            d[1] * v0,
+            d[1] * v0 + d[3] * v0,
+            d[1] * v0 + d[3] * v0 + d[2] * v2,
+            d[2] * v2,
+            d[2] * v2,
+            d[3] * v0,
+        ])
+        np.testing.assert_almost_equal(
+            actual_converted_effective_data, desired_converted_effective_data)
+
+    def test_convert_nodal2elemental_polygon(self):
+        fem_data = FEMData.read_directory(
+            'vtp', 'tests/data/vtp/polys', read_npy=False, save=False)
+        d = fem_data.nodes.data
+        actual_converted_mean_data = fem_data.convert_nodal2elemental(
+            d, calc_average=True)
+        desired_converted_mean_data = np.array([
+            (d[0] + d[1] + d[2] + d[3] + d[4]) / 5,
+            (d[5] + d[6] + d[7] + d[8] + d[9]) / 5,
+            (d[0] + d[4] + d[9] + d[5] + d[11] + d[10]) / 6,
+            (d[4] + d[3] + d[12] + d[8] + d[9]) / 5,
+        ])
+        np.testing.assert_almost_equal(
+            actual_converted_mean_data, desired_converted_mean_data,
+            decimal=3)
+
     def test_convert_elemental2nodal_mean_tet2_tet1(self):
         fem_data_tet1 = FEMData.read_directory(
             'fistr', 'tests/data/fistr/tet_3', read_npy=False,

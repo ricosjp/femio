@@ -38,7 +38,11 @@ class SignalProcessorMixin:
                 self.nodes.ids2indices(nodes), :]
             for nodes in self.elements.data])
         if calc_average:
-            return np.mean(elemental_data, axis=1)
+            shape = elemental_data.shape
+            if len(shape) == 1:
+                return np.stack([np.mean(d, axis=0) for d in elemental_data])
+            else:
+                return np.mean(elemental_data, axis=1)
         if ravel:
             return np.array([np.ravel(r) for r in elemental_data])
         return elemental_data
