@@ -3,9 +3,7 @@ import unittest
 
 import numpy as np
 
-# from femio.fem_attribute import FEMAttribute
 from femio.fem_data import FEMData
-# from femio.fem_elemental_attribute import FEMElementalAttribute
 
 
 RUN_FISTR = True
@@ -95,6 +93,19 @@ class TestFEMData(unittest.TestCase):
         ])
         actual = fem_data.calculate_element_areas(linear=False)
         np.testing.assert_almost_equal(actual, desired_areas)
+
+    def test_calculate_area_polygon(self):
+        data_directory = 'tests/data/vtp/polys'
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        desired_areas = np.array([
+            [1.25],
+            [1.25],
+            [1.16],
+            [1.25],
+        ])
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
     def test_calculate_volumes_hex_gaussian(self):
         fem_data = FEMData.read_directory(
@@ -276,6 +287,19 @@ class TestFEMData(unittest.TestCase):
                 ~filter_x_low & ~filter_x_high
                 & ~filter_y_low & ~filter_y_high
                 & ~filter_z_low & ~filter_z_high], [0., 0., 0.])
+
+    def test_calculate_elementl_normals_polygon(self):
+        data_directory = pathlib.Path('tests/data/vtp/polys')
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        normals = fem_data.calculate_element_normals()
+        desired_normals = np.array([
+            [0., 0., -1.],
+            [0., 0., 1.],
+            [0., -1., 0.],
+            [1., 0., 0.],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals)
 
     def test_calculate_edge_lengths_tri(self):
         data_directory = 'tests/data/obj/tri'

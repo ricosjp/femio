@@ -50,6 +50,8 @@ class GeometryProcessorMixin:
                 areas = self._calculate_element_areas_quad(elements)
             else:
                 areas = self._calculate_element_areas_quad_gaussian(elements)
+        elif element_type in ['polygon']:
+            areas = self._calculate_element_areas_polygon(elements)
         else:
             raise NotImplementedError(element_type)
 
@@ -119,6 +121,17 @@ class GeometryProcessorMixin:
             res += (Jx*Jx+Jy*Jy+Jz*Jz)**.5
         res /= 16
         return res.reshape(-1, 1)
+
+    def _calculate_element_areas_polygon(self, elements):
+        areas = np.stack([
+            self._calculate_element_area_polygon(e)
+            for e in elements.data], axis=0)
+        return areas
+
+    def _calculate_element_area_polygon(self, element):
+        triangle_elements = self._trianglate_polygon(element)
+        return np.sum(
+            self._calculate_element_areas_tri(triangle_elements), axis=0)
 
     def _calculate_element_volumes_hex_gaussian(self, elements):
         element_data = elements.data
@@ -283,8 +296,8 @@ class GeometryProcessorMixin:
 
     @functools.lru_cache(maxsize=2)
     def calculate_surface_normals(self, mode='mean'):
-        """Calculate elemental normal vectors of the surface of a solid mesh.
-        If an element is not on the surface, the vector will be zero.
+        """Calculate nodal normal vectors of the surface of a solid mesh.
+        If an node is not on the surface, the vector will be zero.
 
         Args:
             mode: str, optional
@@ -293,7 +306,7 @@ class GeometryProcessorMixin:
                 The default is 'mean'.
         Returns:
             normals: numpy.ndarray
-                (n_element, 3)-shaped array.
+                (n_node, 3)-shaped array.
         """
         surface_fem_data = self.to_surface()
         surface_normals = surface_fem_data.calculate_element_normals()
@@ -402,10 +415,11 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
 
         if element_type in ['tri']:
-            crosses = self._calculate_tri_crosses(elements)
-            normals = crosses / np.linalg.norm(crosses, axis=1, keepdims=True)
+            normals = self._calculate_tri_normals(elements)
         elif element_type in ['quad']:
             normals = self._calculate_quad_normals(elements)
+        elif element_type in ['polygon']:
+            normals = self._calculate_polygon_normals(elements)
         elif element_type in ['mix']:
             normals = np.concatenate([
                 self.calculate_element_normals(
@@ -453,10 +467,19 @@ class GeometryProcessorMixin:
             cos_2theta
         ], axis=1)
 
+    def _calculate_tri_normals(self, elements):
+        crosses = self._calculate_tri_crosses(elements)
+        normals = crosses / np.linalg.norm(crosses, axis=1, keepdims=True)
+        return normals
+
     def _calculate_tri_crosses(self, elements):
-        node0_points = self.collect_node_positions_by_ids(elements.data[:, 0])
-        node1_points = self.collect_node_positions_by_ids(elements.data[:, 1])
-        node2_points = self.collect_node_positions_by_ids(elements.data[:, 2])
+        if isinstance(elements, np.ndarray):
+            elements_data = elements
+        else:
+            elements_data = elements.data
+        node0_points = self.collect_node_positions_by_ids(elements_data[:, 0])
+        node1_points = self.collect_node_positions_by_ids(elements_data[:, 1])
+        node2_points = self.collect_node_positions_by_ids(elements_data[:, 2])
         v10 = node1_points - node0_points
         v20 = node2_points - node0_points
 
@@ -478,6 +501,21 @@ class GeometryProcessorMixin:
         vectors = crosses1 + crosses2
         vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
         return vectors
+
+    def _calculate_polygon_normals(self, elements):
+        vectors = np.stack([
+            self._calculate_polygon_normal(e) for e in elements.data], axis=0)
+        return vectors
+
+    def _calculate_polygon_normal(self, element):
+        triangle_elements = self._trianglate_polygon(element)
+        return np.mean(self._calculate_tri_normals(triangle_elements), axis=0)
+
+    def _trianglate_polygon(self, element):
+        n_points = len(element)
+        assert n_points > 2, f"Non facet element fed (given {n_points} points)"
+        return np.stack([
+            element[[0, i+1, i+2]] for i in range(n_points - 2)], axis=0)
 
     def calculate_element_metrics(
             self, *, raise_negative_metric=True, return_abs_metric=False,
@@ -509,7 +547,7 @@ class GeometryProcessorMixin:
                 element_type = elements.element_type
             else:
                 element_type = elements.name
-        if element_type in ['tri', 'tri2', 'quad', 'quad2']:
+        if element_type in ['tri', 'tri2', 'quad', 'quad2', 'polygon']:
             metrics = self.calculate_element_areas(
                 raise_negative_area=raise_negative_metric,
                 return_abs_area=return_abs_metric, elements=elements,
