@@ -13,7 +13,7 @@ FISTR_RES_FILE = 'tests/data/fistr/thermal/hex.res.0.1'
 FISTR_INP_FILE = 'tests/data/fistr/thermal/fistr_hex.inp'
 
 
-class TestFEMData(unittest.TestCase):
+class TestGeometryProcessor(unittest.TestCase):
 
     def test_calculate_volume_tet(self):
         fem_data = FEMData.read_directory(
@@ -104,6 +104,7 @@ class TestFEMData(unittest.TestCase):
             [1.16],
             [1.25],
         ])
+        fem_data.calculate_element_areas(linear=True)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
