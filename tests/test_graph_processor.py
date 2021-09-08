@@ -559,3 +559,79 @@ class TestGraphProcessor(unittest.TestCase):
             [1, 1, 1, 1, 1, 1, 0],
         ], dtype=bool)
         np.testing.assert_array_equal(adj.todense(), desired)
+
+    def test_nearest_neighbor_search_from_nodes_to_nodes(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        
+        indices, vectors = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+                2, target_fem_data=fem_data_1
+            )
+        desired_indices = np.array([0,3,1,0,2,0,3,0]).reshape(4,2)
+        np.testing.assert_array_equal(indices, desired_indices)
+
+        indices, vectors = fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+            5, target_fem_data=fem_data_1
+        )
+        desired_indices = np.array([
+            [0, 3, 2, 1, -1],
+            [1, 0, 3, 2, -1],
+            [2, 0, 3, 1, -1],
+            [3, 0, 2, 1, -1],
+        ])
+        np.testing.assert_array_equal(indices, desired_indices)
+
+        indices, vectors = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+                3, distance_upper_bound=1.2, target_fem_data=fem_data_1
+            )
+        desired_indices = np.array([
+            [0, 3, 2],
+            [1, 0, -1],
+            [2, 0, -1],
+            [3, 0, -1],
+        ])
+        np.testing.assert_array_equal(indices, desired_indices)
+
+
+    def test_nearest_neighbor_search_from_elements_to_nodes(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        indices, dists = \
+            fem_data_1.nearest_neighbor_search_from_elements_to_nodes(4)
+        desired = np.array([
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, (1/3)**.5],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        np.testing.assert_almost_equal(dists, desired)
+    
+
+    def test_nearest_neighbor_search_from_nodes_to_elements(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        indices, dists = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_elements(4)
+        desired = np.array([
+            [0.0, 0.0, 0.0, (1/3)**.5],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        np.testing.assert_almost_equal(dists, desired)
+    
+
+    def test_hausdorff_distance_nodes(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_2', read_npy=False, save=False)
+        
+        actual = fem_data_1.calculate_hausdorff_distance_nodes(fem_data_2)
+        desired = 2 ** .5
+        np.testing.assert_almost_equal(actual, desired)
+
+        
+

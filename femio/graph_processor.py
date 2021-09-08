@@ -1,6 +1,7 @@
 import datetime as dt
 import functools
 
+import heapq
 import networkx as nx
 from numba import njit
 import numpy as np
@@ -726,3 +727,569 @@ class GraphProcessorMixin:
             raise ValueError(f"Unexpected mode: {mode}")
 
         return adj
+    
+    @staticmethod
+    @njit
+    def distance_triangle_and_point(triangle, point):
+        """Compute the euclid distance between a triangle and a point.
+
+        Parameters
+        ----------
+        triangle : np.ndarray
+            2D array of shape (3,3) containing float data.
+            i-th row is the xyz-coorinates of i-th vertex of the input triangle.
+
+        point : np.ndarray
+            1D array containing float data.
+            The xyz-coordinates of the input point.
+
+        Returns
+        -------
+        nearest_point : np.ndarray
+            The nearest point in the triangle from the input point.
+        dist : float
+            Computed distance.
+        """
+        p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+        p = point
+        n = np.cross(p1 - p0, p2 - p0)
+        n /= (n * n).sum()**.5
+        n0 = np.cross(n, p2 - p1)
+        n1 = np.cross(n, p0 - p2)
+        n2 = np.cross(n, p1 - p0)
+        side0 = not (((n0 * (p0 - p1)).sum() > 0) ^ ((n0 * (p - p1)).sum() > 0))
+        side1 = not (((n1 * (p1 - p2)).sum() > 0) ^ ((n1 * (p - p2)).sum() > 0))
+        side2 = not (((n2 * (p2 - p0)).sum() > 0) ^ ((n2 * (p - p0)).sum() > 0))
+        if side0 and side1 and side2:
+            k = (n * (p - p0)).sum()
+            q = p - k * n
+            return q, ((p - q)**2).sum()**.5
+
+        opt_point = p0
+        min_dist = ((p - p0)**2).sum()**.5
+
+        for _ in range(3):
+            p0, p1, p2 = p1, p2, p0
+            d = p1 - p0
+            t = ((p - p0) * d).sum()
+            t /= (d * d).sum()
+            if t < 0:
+                t = 0
+            elif t > 1:
+                t = 1
+            q = p0 + t * d
+            dist = ((p - q)**2).sum()**.5
+            if min_dist > dist:
+                min_dist = dist
+                opt_point = q
+        return opt_point, min_dist
+
+    @staticmethod
+    @njit
+    def _build_octree(points):
+        """
+        Build octree from the input points.
+        Octree is a data-structure used in nearest-neighbor-search algorithm.
+
+        Parameters
+        ----------
+        points : np.ndarray
+            2D array of shape (N,3) containing float data.
+            i-th row is the xyz-coorinates of i-th point of the input point.
+        """
+
+        MAX_SIZE = len(points) * 10
+        while True:
+            MAX_SIZE *= 2
+            n_node = 1
+            child = np.zeros((MAX_SIZE, 8), np.int64)
+            node_point, sz = np.empty((MAX_SIZE, 2), np.int64), 0
+            node_xyzw = np.empty((MAX_SIZE, 4), np.float64)
+            a, b = points.min(), points.max()
+            c = (a + b) / 2
+            node_xyzw[0] = (c, c, c, (b - a) / 2)
+
+            for p in range(len(points)):
+                node_point[sz], sz = (0, p), sz + 1
+
+            node_id = -1
+            while node_id < n_node:
+                node_id += 1
+                left_i = np.searchsorted(node_point[:sz, 0], node_id, 'left')
+                right_i = np.searchsorted(node_point[:sz, 0], node_id, 'right')
+                nx, ny, nz, nw = node_xyzw[node_id]
+                if right_i - left_i == 1:
+                    node_id += 1
+                    continue
+                for k in range(8):
+                    # center of the region of the new node.
+                    cx = nx - nw / 2 if k & 4 else nx + nw / 2
+                    cy = ny - nw / 2 if k & 2 else ny + nw / 2
+                    cz = nz - nw / 2 if k & 1 else nz + nw / 2
+                    cw = nw / 2
+                    for i in range(left_i, right_i):
+                        if sz == MAX_SIZE:
+                            break
+                        p = node_point[i, 1]
+                        if bool(k & 4) ^ (points[p, 0] < nx):
+                            continue
+                        if bool(k & 2) ^ (points[p, 1] < ny):
+                            continue
+                        if bool(k & 1) ^ (points[p, 2] < nz):
+                            continue
+                        if child[node_id, k] == 0:
+                            child_id, n_node = n_node, n_node + 1
+                            node_xyzw[child_id] = (cx, cy, cz, cw)
+                            child[node_id, k] = child_id
+                        node_point[sz], sz = (child[node_id, k], p), sz + 1
+            if sz == MAX_SIZE:
+                continue
+            child = child[:n_node]
+            node_xyzw = node_xyzw[:n_node]
+            node_point = node_point[:sz]
+            idx = np.searchsorted(node_point[:, 0], np.arange(n_node + 1))
+            return points, child, node_xyzw, node_point, idx
+    
+    def octree(self):
+        if not hasattr(self, "_octree"):
+            nodes = self.nodes.data.astype(np.float64)
+            self._octree = self._build_octree(nodes)
+        return self._octree
+
+    def octree_c(self):
+        if not hasattr(self, "_octree_c"):
+            elements = self.elements.data
+            shape = elements.shape
+            elements = self.collect_node_positions_by_ids(elements.ravel())
+            elements = elements.reshape(shape + (3, ))
+            self._octree_c = self._build_octree(elements.sum(axis=1) / 3)
+        return self._octree_c
+
+
+    @staticmethod
+    @njit
+    def _nns_from_one_node_to_nodes(
+        octree, node, k, distance_upper_bound
+    ):
+        p = node
+        points, child, node_xyzw, node_point, idx = octree
+        node_id = 0
+
+        def possible_dist_min(xyzw, p):
+            nx, ny, nz, nw = xyzw
+            x = min(nx + nw, max(nx - nw, p[0]))
+            y = min(ny + nw, max(ny - nw, p[1]))
+            z = min(nz + nw, max(nz - nw, p[2]))
+            return ((p[0] - x)**2 + (p[1] - y)**2 + (p[2] - z)**2)**.5
+
+        que = [(0.0, 0)]  # priority queue min dist possible, node_id)
+        res_q = [(-np.inf, -1)] * k
+        
+        while que:
+            d, node_id = heapq.heappop(que)
+            if d > -res_q[0][0] or d > distance_upper_bound:
+                continue
+            has_child = False
+            for j in range(8):
+                child_id = child[node_id, j]
+                if child_id == 0:
+                    continue
+                has_child = True
+                d = possible_dist_min(node_xyzw[child_id], p)
+                heapq.heappush(que, (d, child_id))
+            if has_child:
+                continue
+            for point_id in node_point[idx[node_id]:idx[node_id + 1], 1]:
+                d = ((points[point_id] - p)**2).sum()**.5
+                if d > distance_upper_bound:
+                    continue
+                heapq.heappushpop(res_q, (-d, point_id))
+        nbd_indices = np.empty(k, np.int64)
+        vectors = np.empty((k, 3), np.float64)
+        for i in range(k):
+            j = heapq.heappop(res_q)[1]
+            nbd_indices[i] = j
+            if j == -1:
+                vectors[i] = (np.inf, np.inf, np.inf)
+            else:
+                vectors[i] = points[j] - p
+        return nbd_indices[::-1], vectors[::-1]
+
+    @staticmethod
+    @njit
+    def _hausdorff_distance_from_one_node(
+        octree, node, max_dist_found
+    ):
+        p = node
+        points, child, node_xyzw, node_point, idx = octree
+        node_id = 0
+
+        def possible_dist_min(xyzw, p):
+            nx, ny, nz, nw = xyzw
+            x = min(nx + nw, max(nx - nw, p[0]))
+            y = min(ny + nw, max(ny - nw, p[1]))
+            z = min(nz + nw, max(nz - nw, p[2]))
+            return ((p[0] - x)**2 + (p[1] - y)**2 + (p[2] - z)**2)**.5
+
+        que = [(0.0, 0)]  # priority queue (min dist possible, node_id)
+        min_dist = np.inf
+        while que:
+            d, node_id = heapq.heappop(que)
+            if d > min_dist:
+                continue
+            has_child = False
+            for j in range(8):
+                child_id = child[node_id, j]
+                if child_id == 0:
+                    continue
+                has_child = True
+                d = possible_dist_min(node_xyzw[child_id], p)
+                heapq.heappush(que, (d, child_id))
+            if has_child:
+                continue
+            for point_id in node_point[idx[node_id]:idx[node_id + 1], 1]:
+                d = ((points[point_id] - p)**2).sum()**.5
+                if d > min_dist:
+                    continue
+                min_dist = d
+                if min_dist < max_dist_found:
+                    return max_dist_found
+        return min_dist
+
+
+    @staticmethod
+    @njit
+    def _nns_from_one_element_to_nodes(
+        octree, triangle, k, distance_upper_bound
+    ):
+        def distance_triangle_and_point(triangle, point):
+            p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+            p = point
+            n = np.cross(p1 - p0, p2 - p0)
+            n /= (n * n).sum()**.5
+            n0 = np.cross(n, p2 - p1)
+            n1 = np.cross(n, p0 - p2)
+            n2 = np.cross(n, p1 - p0)
+            side0 = not (((n0 * (p0 - p1)).sum() > 0) ^ ((n0 * (p - p1)).sum() > 0))
+            side1 = not (((n1 * (p1 - p2)).sum() > 0) ^ ((n1 * (p - p2)).sum() > 0))
+            side2 = not (((n2 * (p2 - p0)).sum() > 0) ^ ((n2 * (p - p0)).sum() > 0))
+            if side0 and side1 and side2:
+                k = (n * (p - p0)).sum()
+                q = p - k * n
+                return ((p - q)**2).sum()**.5
+
+            min_dist = ((p - p0)**2).sum()**.5
+
+            for _ in range(3):
+                p0, p1, p2 = p1, p2, p0
+                d = p1 - p0
+                t = ((p - p0) * d).sum()
+                t /= (d * d).sum()
+                if t < 0:
+                    t = 0
+                elif t > 1:
+                    t = 1
+                q = p0 + t * d
+                dist = ((p - q)**2).sum()**.5
+                if min_dist > dist:
+                    min_dist = dist
+            return min_dist
+        
+        p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+        p = (p0 + p1 + p2) / 3
+
+        def dist(p, q):
+            return ((p - q)**2).sum() ** .5
+        d_triangle = max(dist(p, p0), dist(p, p1), dist(p, p2))
+
+        points, child, node_xyzw, node_point, idx = octree
+        node_id = 0
+
+        def possible_dist_min(xyzw, p):
+            nx, ny, nz, nw = xyzw
+            x = min(nx + nw, max(nx - nw, p[0]))
+            y = min(ny + nw, max(ny - nw, p[1]))
+            z = min(nz + nw, max(nz - nw, p[2]))
+            return ((p[0] - x)**2 + (p[1] - y)**2 + (p[2] - z)**2)**.5
+
+        que = [(-d_triangle, 0)]  # priority queue min dist possible, node_id)
+        res_q = [(-np.inf, -1)] * k
+        while que:
+            d, node_id = heapq.heappop(que)
+            if d > -res_q[0][0] or d > distance_upper_bound:
+                continue
+            has_child = False
+            for j in range(8):
+                child_id = child[node_id, j]
+                if child_id == 0:
+                    continue
+                has_child = True
+                d = possible_dist_min(node_xyzw[child_id], p) - d_triangle
+                heapq.heappush(que, (d, child_id))
+            if has_child:
+                continue
+            for point_id in node_point[idx[node_id]:idx[node_id + 1], 1]:
+                d = distance_triangle_and_point(triangle, points[point_id])
+                if d > distance_upper_bound:
+                    continue
+                heapq.heappushpop(res_q, (-d, point_id))
+        nbd_indices = np.empty(k, np.int64)
+        distances = np.empty(k, np.float64)
+        for i in range(k):
+            distances[i], nbd_indices[i] = heapq.heappop(res_q)
+            distances[i] *= -1
+        return nbd_indices[::-1], distances[::-1]
+
+
+    def _nns_from_one_node_to_elements(
+        self, octree_c, triangles, node, k, distance_upper_bound
+    ):
+        k2 = k + k + 10
+        nbd_ids, _ = self._nns_from_one_node_to_nodes(
+            octree_c, node, k2, distance_upper_bound)
+        distances = np.empty(k2, np.float64)
+        for i in range(k2):
+            if nbd_ids[i] == -1:
+                distances[i] = np.inf
+            else:
+                triangle = triangles[nbd_ids[i]]
+                distances[i] = self.distance_triangle_and_point(triangle, node)[1]
+        order = np.argsort(distances)[:k]
+        return nbd_ids[order], distances[order]
+
+
+    @staticmethod
+    @njit
+    def _hausdorff_distance_between_two_triangles(triangle1, triangle2):
+        def distance_triangle_and_point(triangle, point):
+            p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+            p = point
+            n = np.cross(p1 - p0, p2 - p0)
+            n /= (n * n).sum()**.5
+            n0 = np.cross(n, p2 - p1)
+            n1 = np.cross(n, p0 - p2)
+            n2 = np.cross(n, p1 - p0)
+            side0 = not (((n0 * (p0 - p1)).sum() > 0) ^ ((n0 * (p - p1)).sum() > 0))
+            side1 = not (((n1 * (p1 - p2)).sum() > 0) ^ ((n1 * (p - p2)).sum() > 0))
+            side2 = not (((n2 * (p2 - p0)).sum() > 0) ^ ((n2 * (p - p0)).sum() > 0))
+            if side0 and side1 and side2:
+                k = (n * (p - p0)).sum()
+                q = p - k * n
+                return q, ((p - q)**2).sum()**.5
+
+            min_dist = ((p - p0)**2).sum()**.5
+
+            for _ in range(3):
+                p0, p1, p2 = p1, p2, p0
+                d = p1 - p0
+                t = ((p - p0) * d).sum()
+                t /= (d * d).sum()
+                if t < 0:
+                    t = 0
+                elif t > 1:
+                    t = 1
+                q = p0 + t * d
+                dist = ((p - q)**2).sum()**.5
+                if min_dist > dist:
+                    min_dist = dist
+            return min_dist
+        
+        p0, p1, p2 = triangle1[0], triangle1[1], triangle1[2]
+        q0, q1, q2 = triangle2[0], triangle2[1], triangle2[2]
+        x0 = distance_triangle_and_point(triangle2, p0)
+        x1 = distance_triangle_and_point(triangle2, p1)
+        x2 = distance_triangle_and_point(triangle2, p2)
+        y0 = distance_triangle_and_point(triangle1, q0)
+        y1 = distance_triangle_and_point(triangle1, q1)
+        y2 = distance_triangle_and_point(triangle1, q2)
+        return max(x0, x1, x2, y0, y1, y2)        
+
+
+    def nearest_neighbor_search_from_nodes_to_nodes(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None
+    ):
+        """
+        Compute 1-st to k-th nearest nodes in target_fem_data
+        from each nodes in this fem_data.
+        
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+        
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        vectors : np.ndarray
+            3D array of shape (N, k, 3) containing float data.
+            The vector from input point to neighbors.
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        if target_fem_data is None:
+            target_fem_data = self
+        octree = target_fem_data.octree()
+        nodes = self.nodes.data
+        N = len(nodes)
+        nbd_indices = np.empty((N, k), np.int64)
+        vectors = np.empty((N, k, 3), np.float64)
+        for i in range(N):
+            nbd_indices[i], vectors[i] = \
+                self._nns_from_one_node_to_nodes(
+                    octree, nodes[i], k, distance_upper_bound)
+        return nbd_indices, vectors
+
+
+    def nearest_neighbor_search_from_elements_to_nodes(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None
+    ):
+        """
+        Compute 1-st to k-th nearest nodes in target_fem_data
+        from each elements in this fem_data.
+        
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        dists : np.ndarray
+            2D array of shape (N, k, 3) containing float data.
+            Distances between the elements and neighborhood nodes in
+            target_fem_data. 
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        if target_fem_data is None:
+            target_fem_data = self
+        elements = self.elements.data
+        shape = elements.shape
+        elements = self.collect_node_positions_by_ids(elements.ravel())
+        elements = elements.reshape(shape + (3, ))
+        octree = target_fem_data.octree()
+        N = len(elements)
+        nbd_indices = np.empty((N, k), np.int64)
+        dists = np.empty((N, k), np.float64)
+        for i in range(N):
+            nbd_indices[i], dists[i] = \
+                self._nns_from_one_element_to_nodes(
+                    octree, elements[i], k, distance_upper_bound)
+        return nbd_indices, dists
+
+
+    def nearest_neighbor_search_from_nodes_to_elements(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None, 
+    ):
+        """
+        Compute 1-st to k-th nearest elements in target_fem_data
+        from each nodes in this fem_data.
+        
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        dists : np.ndarray
+            2D array of shape (N, k, 3) containing float data.
+            Distances between the elements and neighborhood nodes in
+            target_fem_data. 
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        nodes = self.nodes.data
+        if target_fem_data is None:
+            target_fem_data = self
+        elements = self.elements.data
+        shape = elements.shape
+        elements = self.collect_node_positions_by_ids(elements.ravel())
+        elements = elements.reshape(shape + (3, ))
+
+        octree_c = target_fem_data.octree_c()
+        
+        N = len(nodes)
+        nbd_indices = np.empty((N, k), np.int64)
+        distances = np.empty((N, k), np.float64)
+
+        for i in range(N):
+            nbd_indices[i], distances[i] = \
+                self._nns_from_one_node_to_elements(
+                    octree_c, elements, nodes[i],
+                    k, distance_upper_bound)
+        return nbd_indices, distances
+    
+
+    def calculate_hausdorff_distance_nodes(
+            self, target_fem_data, directed=False):
+        """
+        Calculate Hausdorff distance from this fem_data to
+        target_fem_data.
+        
+        Directed Hausdorff distance from X to Y is difined by:
+            HD(X to Y) := sup_{x} inf_{y} |x-y|.
+        
+        (Bidirected) Hausdorff distance is defined by
+            min(HD(X to Y), HD(Y to X)). 
+        
+        Here, X and Y are point could (i.e. only nodes are considered).
+        
+        Parameters
+        ----------
+        target_fem_data : FEMData Object.
+
+        directed : bool
+            If True, calculate directed Hausdorff distance. 
+
+        Returns
+        -------
+        dist : float
+            Calculated Hausdorff distance. 
+        """
+        if directed:
+            dist = -np.inf
+            octree = target_fem_data.octree()
+            for node in self.nodes.data:
+                x = self._hausdorff_distance_from_one_node(
+                    octree, node, dist)
+                dist = max(dist, x)
+            return dist
+        else:
+            HD1 = self.calculate_hausdorff_distance_nodes(
+                target_fem_data, True)
+            HD2 = target_fem_data.calculate_hausdorff_distance_nodes(
+                self, True)
+            return max(HD1, HD2)
