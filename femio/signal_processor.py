@@ -811,7 +811,8 @@ class SignalProcessorMixin:
     def calculate_spatial_gradient_adjacency_matrices(
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
-            consider_volume=True, normals=None, normal_weight_factor=None,
+            consider_volume=True, normals=None, normal_weight=1.,
+            normal_weight_factor=None,
             **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
@@ -835,6 +836,8 @@ class SignalProcessorMixin:
             If True, take into account surface normal vectors to consider
             Neumann boundary condition. If numpy.ndarray is fed,
             use them as normal vectors.
+        normal_weight: float, optional [1.]
+            Weight of the normal vector.
         normal_weight_factor: float, optional [False]
             If fed, weight the normal vector. The weight is calculated with
             normal_weight_factor * sum_i volume_i, where the index i runs
@@ -935,22 +938,39 @@ class SignalProcessorMixin:
                 normal_moment_tensors = np.einsum(
                     'ij,ik->ijk', surface_normals, surface_normals)
                 if normal_weight_factor is None:
-                    normal_weight = 1.
+                    weighted_normal_moment_tensors = normal_moment_tensors \
+                        * normal_weight
+                    weighted_surface_normals = normal_weight * surface_normals
                 else:
                     assert kernel is None, \
                         'Cannot feed kernel when normal_weight_factor is fed'
-                    normal_weight = volumes + np.sum(volume_adj, axis=1)
+                    if consider_volume:
+                        normal_weight = (volumes + np.asarray(
+                            np.sum(volume_adj, axis=1))) * normal_weight_factor
+                    else:
+                        normal_weight = (1 + np.asarray(
+                            np.sum(volume_adj, axis=1))) * normal_weight_factor
+                    weighted_normal_moment_tensors = np.einsum(
+                        'i,ijk->ijk',
+                        normal_weight[:, 0], normal_moment_tensors)
+                    weighted_surface_normals = np.einsum(
+                        'i,ij->ij', normal_weight[:, 0], surface_normals)
 
                 if mode == 'elemental':
                     self.elemental_data.update_data(
-                        ids, {'normal_weight': normal_weight},
+                        ids, {
+                            'weighted_surface_normals':
+                            weighted_surface_normals},
                         allow_overwrite=True)
                 elif mode == 'nodal':
                     self.nodal_data.update_data(
-                        ids, {'normal_weight': normal_weight},
+                        ids, {
+                            'weighted_surface_normals':
+                            weighted_surface_normals},
                         allow_overwrite=True)
+
                 moment_tensors = moment_tensors \
-                    + normal_weight * normal_moment_tensors
+                    + weighted_normal_moment_tensors
 
             inversed_moment_tensors = self._inverse_tensors(moment_tensors)
             grad_adj_wo_selfs = self._dot_ndarray_sparse(
