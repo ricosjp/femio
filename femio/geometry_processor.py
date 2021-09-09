@@ -665,10 +665,8 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError(element_type, elements)
 
-        # Handle negative volumes according to the settings
         volumes = self._validate_metric(
-            self.elemental_data.get_attribute_data('volume'),
-            raise_negative_metric=raise_negative_volume,
+            volumes, raise_negative_metric=raise_negative_volume,
             return_abs_metric=return_abs_volume)
 
         if update:
