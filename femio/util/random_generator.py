@@ -83,6 +83,8 @@ def generate_random_mesh(
 
     fd.make_elements_positive()
     fd.remove_useless_nodes()
+    fd.elemental_data.pop('metric')
+    fd.elemental_data.pop('volume')
     return fd
 
 
