@@ -68,6 +68,7 @@ class TestBrickGenerator(unittest.TestCase):
             np.min(fem_data.nodes.data, axis=0), [0., 0., 0.], decimal=2)
 
         volumes = fem_data.calculate_element_volumes()
+        raise ValueError(volumes)
         np.testing.assert_almost_equal(
             np.sum(volumes), x_length * y_length * z_length, decimal=1)
 
