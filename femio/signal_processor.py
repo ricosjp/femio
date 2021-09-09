@@ -811,7 +811,8 @@ class SignalProcessorMixin:
     def calculate_spatial_gradient_adjacency_matrices(
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
-            consider_volume=True, normals=None, **kwargs):
+            consider_volume=True, normals=None, normal_weight_factor=None,
+            **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
         Parameters
@@ -834,6 +835,10 @@ class SignalProcessorMixin:
             If True, take into account surface normal vectors to consider
             Neumann boundary condition. If numpy.ndarray is fed,
             use them as normal vectors.
+        normal_weight_factor: float, optional [False]
+            If fed, weight the normal vector. The weight is calculated with
+            normal_weight_factor * sum_i volume_i, where the index i runs
+            overt the graph neighbor including the self loop.
 
         Returns
         -------
@@ -929,7 +934,23 @@ class SignalProcessorMixin:
                         allow_overwrite=True)
                 normal_moment_tensors = np.einsum(
                     'ij,ik->ijk', surface_normals, surface_normals)
-                moment_tensors = moment_tensors + normal_moment_tensors
+                if normal_weight_factor is None:
+                    normal_weight = 1.
+                else:
+                    assert kernel is None, \
+                        'Cannot feed kernel when normal_weight_factor is fed'
+                    normal_weight = volumes + np.sum(volume_adj, axis=1)
+
+                if mode == 'elemental':
+                    self.elemental_data.update_data(
+                        ids, {'normal_weight': normal_weight},
+                        allow_overwrite=True)
+                elif mode == 'nodal':
+                    self.nodal_data.update_data(
+                        ids, {'normal_weight': normal_weight},
+                        allow_overwrite=True)
+                moment_tensors = moment_tensors \
+                    + normal_weight * normal_moment_tensors
 
             inversed_moment_tensors = self._inverse_tensors(moment_tensors)
             grad_adj_wo_selfs = self._dot_ndarray_sparse(
