@@ -36,7 +36,10 @@ class GeometryProcessorMixin:
         """
         if elements is None:
             if 'area' in self.elemental_data:
-                return self.elemental_data.get_attribute_data('area')
+                return self._validate_metric(
+                    self.elemental_data.get_attribute_data('area'),
+                    raise_negative_metric=raise_negative_area,
+                    return_abs_metric=return_abs_area)
             element_type = self.elements.element_type
             elements = self.elements
         else:
@@ -57,11 +60,9 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError(element_type)
 
-        # Handle negative volumes according to the settings
-        if raise_negative_area and np.any(areas < 0.):
-            raise ValueError('Negative area found.')
-        if return_abs_area:
-            areas = np.abs(areas)
+        areas = self._validate_metric(
+            areas, raise_negative_metric=raise_negative_area,
+            return_abs_metric=return_abs_area)
 
         if update:
             self.elemental_data.update_data(
@@ -543,7 +544,10 @@ class GeometryProcessorMixin:
         """
         if elements is None:
             if 'metric' in self.elemental_data:
-                return self.elemental_data.get_attribute_data('metric')
+                return self._validate_metric(
+                    self.elemental_data.get_attribute_data('metric'),
+                    raise_negative_metric=raise_negative_metric,
+                    return_abs_metric=return_abs_metric)
             element_type = self.elements.element_type
             elements = self.elements
         else:
@@ -568,11 +572,23 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError(
                 f"Unsupported element type: {element_type}")
+        metrics = self._validate_metric(
+            metrics, raise_negative_metric=raise_negative_metric,
+            return_abs_metric=return_abs_metric)
 
         if update:
             self.elemental_data.update_data(
                 self.elements.ids, {'metric': metrics})
         return metrics
+
+    def _validate_metric(
+            self, metric, *, raise_negative_metric, return_abs_metric):
+        if raise_negative_metric and np.any(metric < 0.):
+            raise ValueError(
+                f"Negative metric found: {metric[metric < 0]}")
+        if return_abs_metric:
+            metric = np.abs(metric)
+        return metric
 
     def calculate_element_volumes(
             self, *, linear=False, raise_negative_volume=True,
@@ -601,7 +617,10 @@ class GeometryProcessorMixin:
         """
         if elements is None:
             if 'volume' in self.elemental_data:
-                return self.elemental_data.get_attribute_data('volume')
+                return self._validate_metric(
+                    self.elemental_data.get_attribute_data('volume'),
+                    raise_negative_metric=raise_negative_volume,
+                    return_abs_metric=return_abs_volume)
             element_type = self.elements.element_type
             elements = self.elements
         else:
@@ -646,13 +665,9 @@ class GeometryProcessorMixin:
         else:
             raise NotImplementedError(element_type, elements)
 
-        # Handle negative volumes according to the settings
-        if raise_negative_volume and np.any(volumes < 0.):
-            raise ValueError(
-                'Negative volume found for element IDs: '
-                f"{elements.ids[volumes[:, 0] < 0]}")
-        if return_abs_volume:
-            volumes = np.abs(volumes)
+        volumes = self._validate_metric(
+            volumes, raise_negative_metric=raise_negative_volume,
+            return_abs_metric=return_abs_volume)
 
         if update:
             self.elemental_data.update_data(
