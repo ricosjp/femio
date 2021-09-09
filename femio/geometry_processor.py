@@ -35,6 +35,8 @@ class GeometryProcessorMixin:
         areas: numpy.ndarray
         """
         if elements is None:
+            if 'area' in self.elemental_data:
+                return self.elemental_data.get_attribute_data('area')
             element_type = self.elements.element_type
             elements = self.elements
         else:
@@ -540,6 +542,8 @@ class GeometryProcessorMixin:
         metrics: numpy.ndarray
         """
         if elements is None:
+            if 'metric' in self.elemental_data:
+                return self.elemental_data.get_attribute_data('metric')
             element_type = self.elements.element_type
             elements = self.elements
         else:
@@ -596,6 +600,8 @@ class GeometryProcessorMixin:
         volumes: numpy.ndarray
         """
         if elements is None:
+            if 'volume' in self.elemental_data:
+                return self.elemental_data.get_attribute_data('volume')
             element_type = self.elements.element_type
             elements = self.elements
         else:
