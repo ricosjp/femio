@@ -299,6 +299,34 @@ class TestGraphProcessor(unittest.TestCase):
         ])
         np.testing.assert_array_equal(ids, desired)
 
+    def test_extract_surface_polyhedron(self):
+        data_directory = pathlib.Path('tests/data/vtu/polyhedron_tet')
+        fem_data = FEMData.read_directory(
+            'polyvtk', data_directory, read_npy=False, save=False)
+        indices, _ = fem_data.extract_surface()
+        desired_indices = {
+            'tri': np.array([
+                [0, 2, 1],
+                [0, 3, 2],
+                [7, 8, 11],
+                [10, 7, 11],
+                [8, 9, 11],
+                [10, 11, 9],
+            ]),
+            'quad': np.array([
+                [1, 2, 5, 4],
+                [2, 3, 6, 5],
+                [4, 5, 9, 8],
+                [5, 6, 10, 9],
+            ]),
+            'polygon': np.array([
+                [0, 1, 4, 8, 7],
+                [0, 7, 10, 6, 3],
+            ])
+        }
+        for k in desired_indices.keys():
+            np.testing.assert_almost_equal(indices[k], desired_indices[k])
+
     def test_extract_surface_tet_normal_correct(self):
         tet_data = FEMData.read_files(
             'fistr', ['tests/data/fistr/tet_volume/tet.msh'])
