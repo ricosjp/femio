@@ -77,12 +77,8 @@ class GraphProcessorMixin:
         unique_sorted_facets, unique_indices, unique_counts = np.unique(
             sorted_facets, return_index=True, return_counts=True, axis=0)
         surface_ids = facets[unique_indices[np.where(unique_counts == 1)]]
-        surface_indices = np.array(
-            [[self.dict_node_id2index[node_id] for node_id in facet]
-             for facet in surface_ids])
-        surface_positions = np.array(
-            [[self.nodes.data[index] for index in facet]
-             for facet in surface_indices])
+        surface_indices = self.nodes.ids2indices(surface_ids)
+        surface_positions = self.nodes.data[surface_indices]
         return surface_indices, surface_positions
 
     def extract_surface_fistr(self):

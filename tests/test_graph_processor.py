@@ -280,6 +280,25 @@ class TestGraphProcessor(unittest.TestCase):
                    [2, 3, 4]]
         np.testing.assert_array_equal(ids, desired)
 
+    def test_extract_surface_after_useless_nodes_removal(self):
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/hex_with_useless_nodes/mesh.vtk')
+        fem_data.remove_useless_nodes()
+        ids, _ = fem_data.extract_surface()
+        desired = np.array([
+            [0, 3, 2, 1],
+            [0, 1, 5, 4],
+            [3, 0, 4, 7],
+            [1, 2, 6, 5],
+            [2, 3, 7, 6],
+            [4, 5, 9, 8],
+            [7, 4, 8, 11],
+            [5, 6, 10, 9],
+            [6, 7, 11, 10],
+            [8, 9, 10, 11],
+        ])
+        np.testing.assert_array_equal(ids, desired)
+
     def test_extract_surface_tet_normal_correct(self):
         tet_data = FEMData.read_files(
             'fistr', ['tests/data/fistr/tet_volume/tet.msh'])

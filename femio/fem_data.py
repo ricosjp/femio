@@ -399,14 +399,18 @@ class FEMData(
         if self.nodes is None or self.elements is None:
             return
 
-        self.dict_node_id2index = {
-            _id: ind for ind, _id in enumerate(self.nodes.ids)}
-        self.dict_element_id2index = {
-            id_val: i for i, id_val in enumerate(self.elements.ids)}
+        self._update_dict_id2index()
 
         # Add node position to nodal data
         self.nodal_data['NODE'] = self.nodes
 
+        return
+
+    def _update_dict_id2index(self):
+        self.dict_node_id2index = {
+            _id: ind for ind, _id in enumerate(self.nodes.ids)}
+        self.dict_element_id2index = {
+            id_val: i for i, id_val in enumerate(self.elements.ids)}
         return
 
     def overwritten_material_exists(self):
@@ -600,7 +604,8 @@ class FEMData(
         # Overwrite data
         self.nodes = FEMAttribute(
             self.nodes.name, self.nodes.ids[useful_indices],
-            self.nodes.data[useful_indices])
+            self.nodes.data[useful_indices], generate_id2index=True)
+        self._update_dict_id2index()
         for key, value in self.nodal_data.items():
             self.nodal_data[key] = FEMAttribute(
                 value.name, self.nodes.ids, value.data[useful_indices])
