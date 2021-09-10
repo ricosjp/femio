@@ -652,7 +652,16 @@ class FEMData(
             unique_indices = np.unique(np.concatenate([
                 np.ravel(s) for s in surface_indices.values()]))
             surface_ids = {
-                t: self.nodes.ids[ids] for t, ids in surface_indices.items()}
+                t: self.nodes.ids[ids] for t, ids in surface_indices.items()
+                if t != 'polygon'}
+            if 'polygon' in surface_indices \
+                    and len(surface_indices['polygon']) > 0:
+                polygon_data = np.empty(
+                    len(surface_indices['polygon']), object)
+                polygon_data[:] = [
+                    self.nodes.ids[i].astype(object)
+                    for i in surface_indices['polygon']]
+                surface_ids.update({'polygon': polygon_data})
         else:
             unique_indices = np.unique(surface_indices)
             surface_ids = self.nodes.ids[surface_indices]

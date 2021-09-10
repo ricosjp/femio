@@ -300,6 +300,32 @@ class TestGeometryProcessor(unittest.TestCase):
                 & ~filter_y_low & ~filter_y_high
                 & ~filter_z_low & ~filter_z_high], [0., 0., 0.])
 
+    def test_calculate_surface_normals_polyhedron(self):
+        data_directory = pathlib.Path('tests/data/vtu/polyhedron_tet')
+        fem_data = FEMData.read_directory(
+            'polyvtk', data_directory, read_npy=False, save=False)
+        normals = fem_data.calculate_surface_normals()
+        fem_data.write(
+            'polyvtk', 'tests/data/vtu/write_polyhedron_tet/mesh.vtu',
+            overwrite=True)
+        desired_normals = np.array([
+            [0.00000000e+00, -9.61523948e-01, -2.74721128e-01],
+            [7.42781385e-01, -5.57085973e-01, -3.71390674e-01],
+            [0.00000000e+00, 8.94427200e-01, -4.47213578e-01],
+            [-7.42781385e-01, -5.57085973e-01, -3.71390674e-01],
+            [9.77802415e-01, 4.04625215e-08, 2.09529086e-01],
+            [0.00000000e+00, 9.77802415e-01, 2.09529086e-01],
+            [-9.77802415e-01, 4.04625215e-08, 2.09529086e-01],
+            [0.00000000e+00, -1.00000000e+00, 0.00000000e+00],
+            [6.66666684e-01, -6.66666645e-01, 3.33333342e-01],
+            [0.00000000e+00, 8.94427191e-01, 4.47213595e-01],
+            [-6.66666684e-01, -6.66666645e-01, 3.33333342e-01],
+            [0.00000000e+00, 5.96046431e-08, 1.00000000e+00],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals)
+        np.testing.assert_almost_equal(
+            np.linalg.norm(normals, axis=1), 1.)
+
     def test_calculate_elementl_normals_polygon(self):
         data_directory = pathlib.Path('tests/data/vtp/polys')
         fem_data = FEMData.read_directory(

@@ -1,0 +1,62 @@
+<?xml version='1.0'?>
+<!-- case='sample' region='region0' time='1' index='1' -->
+<VTKFile type='UnstructuredGrid' version='0.1' byte_order='LittleEndian' header_type='UInt64'>
+  <UnstructuredGrid>
+    <FieldData>
+      <DataArray type='Float32' Name='TimeValue' NumberOfTuples='1' format='ascii'>
+1
+      </DataArray>
+    </FieldData>
+    <Piece NumberOfPoints='12' NumberOfCells='4'>
+      <Points>
+        <DataArray type='Float32' Name='Points' NumberOfComponents='3' format='ascii'>
+           0.0 0.0 0.0
+           1.0 0.0 0.0
+           0.0 1.0 0.0
+          -1.0 0.0 0.0
+           1.0 0.0 1.0
+           0.0 1.0 1.0
+          -1.0 0.0 1.0
+           0.0 0.0 2.0
+           0.5 0.0 2.0
+           0.0 0.5 2.0
+          -0.5 0.0 2.0
+           0.0 0.0 3.0
+        </DataArray>
+      </Points>
+      <Cells>
+        <DataArray type='Int32' Name='connectivity' format='ascii'>
+          0 1 2 4 5 7 8 9
+          0 2 3 5 6 7 9 10
+          7 8 9 11
+          10 7 9 11
+        </DataArray>
+        <DataArray type='Int32' Name='offsets' format='ascii'>
+          8 16 20 24
+        </DataArray>
+        <DataArray type='UInt8' Name='types' format='ascii'>
+          42 42 10 10
+        </DataArray>
+        <DataArray type='Int32' Name='faces' format='ascii'>
+          6
+          5 0 1 4 8 7
+          4 1 2 5 4
+          5 0 7 9 5 2
+          4 4 5 9 8
+          3 7 8 9
+          3 0 2 1
+          6
+          5 0 7 10 6 3
+          4 2 3 6 5
+          5 0 2 5 9 7
+          4 5 6 10 9
+          3 7 9 10
+          3 0 3 2
+        </DataArray>
+        <DataArray type='Int32' Name='faceoffsets' format='ascii'>
+          31 62 -1 -1
+        </DataArray>
+      </Cells>
+    </Piece>
+  </UnstructuredGrid>
+</VTKFile>
