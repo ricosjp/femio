@@ -403,15 +403,18 @@ class FEMElementalAttribute(dict):
         return ret
 
     def _generate_surface_core(self, surface_ids):
-        n_node_per_element = surface_ids.shape[1]
-        if n_node_per_element == 3:
-            element_type = 'tri'
-        elif n_node_per_element == 4:
-            element_type = 'quad'
+        shape = surface_ids.shape
+        if len(shape) == 1:
+            element_type = 'polygon'
         else:
-            raise NotImplementedError(
-                'Unsupported # of nodes per elements: '
-                f"{self.elements.data.shape[1]}")
+            n_node_per_element = shape[1]
+            if n_node_per_element == 3:
+                element_type = 'tri'
+            elif n_node_per_element == 4:
+                element_type = 'quad'
+            else:
+                raise NotImplementedError(
+                    f"Unsupported shape of elements: {shape}")
         return {
             element_type:
             FEMAttribute(
