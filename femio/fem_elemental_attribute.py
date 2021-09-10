@@ -27,7 +27,6 @@ class FEMElementalAttribute(dict):
         'hex',
         'hex2',
         'hexprism',
-        'wedge',
         'polyhedron',
         'unknown',
     ]
@@ -264,9 +263,10 @@ class FEMElementalAttribute(dict):
     def dict_type_ids(self):
         return self._dict_type_ids
 
-    def to_vtk(self):
+    def to_vtk(self, nodes):
         return np.concatenate([
-            np.concatenate([[len(e)], e]) for e in self.data - 1])
+            np.concatenate([[len(e)], nodes.ids2indices(e)])
+            for e in self.data])
 
     def update(self, *args, **kwargs):
         if isinstance(args[0], dict):
@@ -388,17 +388,27 @@ class FEMElementalAttribute(dict):
                         group_dict[size] = np.concatenate(
                             [group_dict[size], si])
             else:
-                size = surface_ids.shape[-1]
-                if group_dict.get(size, None) is None:
-                    group_dict[size] = surface_ids
+                shape = surface_ids.shape
+                if len(shape) == 1:
+                    if 'polygon' in group_dict:
+                        group_dict['polygon'] = np.concatenate(
+                            [group_dict['polygon'], surface_ids])
+                    else:
+                        group_dict['polygon'] = surface_ids
                 else:
-                    group_dict[size] = np.concatenate(
-                        [group_dict[size], surface_ids])
+                    size = surface_ids.shape[-1]
+                    if size in group_dict:
+                        group_dict[size] = np.concatenate(
+                            [group_dict[size], surface_ids])
+                    else:
+                        group_dict[size] = surface_ids
         return tuple(group_dict.values())
 
     def _generate_surface(self, tuple_surface_ids):
         ret = {}
         for surface_ids in tuple_surface_ids:
+            if len(surface_ids) == 0:
+                continue
             ret.update(self._generate_surface_core(surface_ids))
         return ret
 

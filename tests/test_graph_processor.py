@@ -320,12 +320,14 @@ class TestGraphProcessor(unittest.TestCase):
                 [5, 6, 10, 9],
             ]),
             'polygon': np.array([
-                [0, 1, 4, 8, 7],
-                [0, 7, 10, 6, 3],
+                np.array([0, 1, 4, 8, 7]),
+                np.array([0, 7, 10, 6, 3]),
             ])
         }
         for k in desired_indices.keys():
-            np.testing.assert_almost_equal(indices[k], desired_indices[k])
+            for actual_i, desired_i in zip(
+                    indices[k], desired_indices[k]):
+                np.testing.assert_array_equal(actual_i, desired_i)
 
     def test_extract_surface_tet_normal_correct(self):
         tet_data = FEMData.read_files(

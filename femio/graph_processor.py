@@ -82,12 +82,8 @@ class GraphProcessorMixin:
     def _extract_surface(self, facets, facet_type):
         sorted_facets = np.array([np.sort(f) for f in facets])
         if facet_type == 'polygon':
-            unique_sorted_facets, unique_indices, unique_counts \
-                = self._unique_polygon(sorted_facets)
-            surface_ids = facets[unique_indices[np.where(unique_counts == 1)]]
-            surface_indices = self.nodes.ids2indices(surface_ids)
-            surface_positions = np.array([
-                self.nodes.data[si] for si in surface_indices], dtype=object)
+            surface_indices, surface_positions \
+                = self._extract_surface_polygon(facets, sorted_facets)
         else:
             unique_sorted_facets, unique_indices, unique_counts = np.unique(
                 sorted_facets, return_index=True, return_counts=True, axis=0)
@@ -96,24 +92,35 @@ class GraphProcessorMixin:
             surface_positions = self.nodes.data[surface_indices]
         return surface_indices, surface_positions
 
-    def _unique_polygon(self, sorted_facets):
+    def _extract_surface_polygon(self, facets, sorted_facets):
         n_nodes = np.array([len(f) for f in sorted_facets])
         unique_n_nodes = np.unique(n_nodes)
-        list_unique_sorted_facets = []
-        list_unique_indices = []
-        list_unique_counts = []
+        list_surface_indices = []
+        list_surface_positions = []
+        n_surface = 0
         for n_node in unique_n_nodes:
+            focus_sorted_facets = sorted_facets[n_nodes == n_node]
             unique_sorted_facets, unique_indices, unique_counts = np.unique(
-                np.stack(sorted_facets[n_nodes == n_node]),
+                np.stack(focus_sorted_facets),
                 return_index=True, return_counts=True, axis=0)
-            list_unique_sorted_facets.append(unique_sorted_facets)
-            list_unique_indices.append(unique_indices)
-            list_unique_counts.append(unique_counts)
-        return np.concatenate([
-            np.array([f_ for f_ in f], dtype=object)
-            for f in list_unique_sorted_facets]), \
-            np.concatenate(list_unique_indices), \
-            np.concatenate(list_unique_counts)
+
+            focus_facets = facets[n_nodes == n_node]
+            surface_ids = focus_facets[
+                unique_indices[np.where(unique_counts == 1)]]
+            surface_indices = self.nodes.ids2indices(surface_ids)
+            surface_positions = np.array([
+                self.nodes.data[si] for si in surface_indices], dtype=object)
+            n_surface += len(surface_ids)
+            list_surface_indices.append(surface_indices)
+            list_surface_positions.append(surface_positions)
+
+        ret_surface_indices = np.empty(n_surface, object)
+        ret_surface_indices[:] = [
+            f_ for f in list_surface_indices for f_ in f]
+        ret_surface_positions = np.empty(n_surface, object)
+        ret_surface_positions[:] = [
+            f_ for f in list_surface_positions for f_ in f]
+        return ret_surface_indices, ret_surface_positions
 
     def extract_surface_fistr(self):
         """Extract surface from solid mesh.
@@ -333,7 +340,8 @@ class GraphProcessorMixin:
                 self._parse_polyhedron_faces(f)
                 for f in self.elemental_data.get_attribute_data('face')])
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                f"Unexpected element type: {element_type}")
 
         if isinstance(face_ids, tuple):
             return face_ids
@@ -349,7 +357,9 @@ class GraphProcessorMixin:
         for i in range(faces[0]):
             face, d = split(d[0], d[1:])
             parsed_faces.append(np.array(face) + 1)
-        return np.array(parsed_faces, dtype=object)
+        ret_faces = np.empty(len(parsed_faces), object)
+        ret_faces[:] = parsed_faces
+        return ret_faces
 
     @functools.lru_cache(maxsize=1)
     def filter_first_order_nodes(self):
