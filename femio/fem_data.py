@@ -659,8 +659,8 @@ class FEMData(
                 polygon_data = np.empty(
                     len(surface_indices['polygon']), object)
                 polygon_data[:] = [
-                        self.nodes.ids[i].astype(object)
-                        for i in surface_indices['polygon']]
+                    self.nodes.ids[i].astype(object)
+                    for i in surface_indices['polygon']]
                 surface_ids.update({'polygon': polygon_data})
         else:
             unique_indices = np.unique(surface_indices)
