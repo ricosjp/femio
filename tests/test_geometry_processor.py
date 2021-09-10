@@ -308,6 +308,9 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data.write(
             'polyvtk', 'tests/data/vtu/write_polyhedron_tet/mesh.vtu',
             overwrite=True)
+        fem_data.to_surface().write(
+            'vtp', 'tests/data/vtp/write_surface_polyhedron_tet/mesh.vtp',
+            overwrite=True)
         desired_normals = np.array([
             [0.00000000e+00, -9.61523948e-01, -2.74721128e-01],
             [7.42781385e-01, -5.57085973e-01, -3.71390674e-01],
@@ -325,6 +328,86 @@ class TestGeometryProcessor(unittest.TestCase):
         np.testing.assert_almost_equal(normals, desired_normals)
         np.testing.assert_almost_equal(
             np.linalg.norm(normals, axis=1), 1.)
+
+    def test_calculate_surface_normals_polyhedron_complex(self):
+        data_file = pathlib.Path('tests/data/vtu/complex/mesh.vtu')
+        fem_data = FEMData.read_files('polyvtk', data_file)
+        normals = fem_data.calculate_surface_normals()
+        fem_data.write(
+            'polyvtk', 'tests/data/vtu/write_complex/mesh.vtu',
+            overwrite=True)
+        surface_fem_data = fem_data.to_surface()
+        surface_fem_data.write(
+            'vtp', 'tests/data/vtp/write_surface_complex/mesh.vtp',
+            overwrite=True)
+        desired_normals = np.array([
+            [-0.57735027, -0.57735027, -0.57735027],
+            [0., -0.6, -0.8],
+            [0., -0.4472136, -0.89442719],
+            [0.40824829, -0.40824829, -0.81649658],
+            [-0.57735027, 0.57735027, -0.57735027],
+            [0., 0.6, -0.8],
+            [0., 0.4472136, -0.89442719],
+            [0.40824829, 0.40824829, -0.81649658],
+            [0., -1., 0.],
+            [0., -1., 0.],
+            [0.51449576, -0.85749292, 0.],
+            [0., 1., 0.],
+            [0., 1., 0.],
+            [0.51449575, 0.85749293, 0.],
+            [0., 0., 0.],
+            [0., 0., 0.],
+            [1., 0., 0.],
+            [1., 0., 0.],
+            [-0.57735027, -0.57735027, 0.57735027],
+            [0., -0.6, 0.8],
+            [0., -0.64018439, 0.76822128],
+            [0.1825742, -0.91287092, 0.3651484],
+            [-0.57735027, 0.57735027, 0.57735027],
+            [0., 0.6, 0.8],
+            [0., 0.6401844, 0.76822128],
+            [0.18257418, 0.91287094, 0.36514835],
+            [0., 0., 1.],
+            [0., 0., 1.],
+            [0.4472136, 0., 0.89442719],
+            [0.4472136, 0., 0.89442719],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals)
+        norms = np.linalg.norm(normals, axis=1)
+        np.testing.assert_almost_equal(norms[norms > .5], 1.)
+        np.testing.assert_almost_equal(norms[norms <= .5], 0.)
+
+        desired_surfaces = {
+            'quad': np.array([
+                [1, 5, 6, 2],
+                [1, 19, 23, 5],
+                [2, 6, 7, 3],
+                [2, 3, 10, 9],
+                [3, 7, 8, 4],
+                [3, 4, 11, 10],
+                [6, 12, 13, 7],
+                [7, 13, 14, 8],
+                [9, 10, 21, 20],
+                [10, 11, 22, 21],
+                [11, 17, 29, 22],
+                [12, 24, 25, 13],
+                [13, 25, 26, 14],
+                [18, 14, 26, 30],
+                [17, 18, 30, 29],
+                [19, 20, 24, 23],
+                [21, 22, 29, 27],
+                [28, 30, 26, 25],
+                [27, 29, 30, 28]]),
+            'polygon': np.array([
+                np.array([1, 2, 9, 20, 19]),
+                np.array([5, 23, 24, 12,  6]),
+                np.array([4, 8, 14, 18, 17, 11]),
+                np.array([20, 21, 27, 28, 25, 24])], dtype=object)
+        }
+        for k in desired_surfaces.keys():
+            for actual_e, desired_e in zip(
+                    surface_fem_data.elements[k].data, desired_surfaces[k]):
+                np.testing.assert_array_equal(actual_e, desired_e)
 
     def test_calculate_elementl_normals_polygon(self):
         data_directory = pathlib.Path('tests/data/vtp/polys')

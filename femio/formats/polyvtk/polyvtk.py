@@ -13,7 +13,7 @@ class PolyVTKData(FEMData):
     DICT_VTK_ID_TO_ELEMENT_TYPE = {
         10: 'tet',
         12: 'hex',
-        13: 'wedge',
+        13: 'prism',
         14: 'pyr',
         42: 'polyhedron',
     }

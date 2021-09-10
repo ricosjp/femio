@@ -27,22 +27,9 @@ class VTPWriter(fem_writer.FEMWriter):
         """
         poly_data = tvtk.PolyData(
             points=self.fem_data.nodes.data)
-        # if 'polygon' in self.fem_data.elements:
-        #     poly_data.set_cells(
-        #         self.DICT_ELEMENT_TYPE_TO_VTK_ID['polygon'],
-        #         list(self.fem_data.elemental_data['face'][
-        #             'polyhedron'].data))
-        # raise ValueError(
-        #     len(self.fem_data.elements), self.fem_data.elements.to_vtk())
         poly_data.polys.set_cells(
-            len(self.fem_data.elements), self.fem_data.elements.to_vtk())
-
-        # for element_type, element_data in self.fem_data.elements.items():
-        #     # if element_type == 'polyhedron':
-        #     #     continue
-        #     element_type_id = self.DICT_ELEMENT_TYPE_TO_VTK_ID[element_type]
-        #     for element in element_data.data - 1:
-        #         poly_data.insert_next_cell(element_type_id, element)
+            len(self.fem_data.elements), self.fem_data.elements.to_vtk(
+                self.fem_data.nodes))
 
         # Add cell data
         n_element = len(self.fem_data.elements)
