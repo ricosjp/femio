@@ -128,13 +128,13 @@ class GeometryProcessorMixin:
     def _calculate_element_areas_polygon(self, elements):
         areas = np.stack([
             self._calculate_element_area_polygon(e)
-            for e in elements.data], axis=0)
+            for e in elements.data], axis=0)[..., None]
         return areas
 
     def _calculate_element_area_polygon(self, element):
         triangle_elements = self._trianglate_polygon(element)
-        return np.sum(
-            self._calculate_element_areas_tri(triangle_elements), axis=0)
+        return np.linalg.norm(np.sum(
+            self._calculate_tri_crosses(triangle_elements), axis=0)) * .5
 
     def _calculate_element_volumes_hex_gaussian(self, elements):
         element_data = elements.data
@@ -430,6 +430,7 @@ class GeometryProcessorMixin:
                 for k, e in self.elements.items()])
         else:
             raise NotImplementedError(self.elements.element_type)
+        normals = functions.normalize(normals)
 
         if update:
             self.elemental_data.update_data(

@@ -108,6 +108,17 @@ class TestGeometryProcessor(unittest.TestCase):
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
+    def test_calculate_area_nonconvex(self):
+        data_directory = 'tests/data/vtp/nonconvex'
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        desired_areas = np.array([
+            [3.],
+        ])
+        fem_data.calculate_element_areas(linear=True)
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
+
     def test_calculate_volumes_hex_gaussian(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
