@@ -11,7 +11,8 @@ class GeometryProcessorMixin:
 
     def calculate_element_areas(
             self, *, linear=False, raise_negative_area=False,
-            return_abs_area=True, elements=None, update=True):
+            return_abs_area=True, elements=None, element_type=None,
+            update=True):
         """Calculate areas of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated areas are returned and also stored in
@@ -43,10 +44,11 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            if elements.name == 'ELEMENT':
-                element_type = elements.element_type
-            else:
-                element_type = elements.name
+            if element_type is None:
+                if elements.name == 'ELEMENT':
+                    element_type = elements.element_type
+                else:
+                    element_type = elements.name
 
         if element_type in ['tri']:
             areas = self._calculate_element_areas_tri(elements)
@@ -57,6 +59,12 @@ class GeometryProcessorMixin:
                 areas = self._calculate_element_areas_quad_gaussian(elements)
         elif element_type in ['polygon']:
             areas = self._calculate_element_areas_polygon(elements)
+        elif element_type in ['mix']:
+            areas = np.zeros((len(self.elements), 1))
+            for k, e in self.elements.items():
+                partial_areas = self.calculate_element_areas(
+                    elements=e, element_type=k, update=False)
+                areas[self.elements.types == k] = partial_areas
         else:
             raise NotImplementedError(element_type)
 
@@ -424,10 +432,11 @@ class GeometryProcessorMixin:
         elif element_type in ['polygon']:
             normals = self._calculate_polygon_normals(elements)
         elif element_type in ['mix']:
-            normals = np.concatenate([
-                self.calculate_element_normals(
+            normals = np.zeros((len(self.elements), 3))
+            for k, e in self.elements.items():
+                partial_normals = self.calculate_element_normals(
                     elements=e, element_type=k, update=False)
-                for k, e in self.elements.items()])
+                normals[self.elements.types == k] = partial_normals
         else:
             raise NotImplementedError(self.elements.element_type)
         normals = functions.normalize(normals)
@@ -523,7 +532,7 @@ class GeometryProcessorMixin:
 
     def calculate_element_metrics(
             self, *, raise_negative_metric=True, return_abs_metric=False,
-            elements=None, update=True):
+            elements=None, element_type=None, update=True):
         """Calculate metric (area or volume depending on the mesh dimension)
         of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
@@ -552,10 +561,11 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            if elements.name == 'ELEMENT':
-                element_type = elements.element_type
-            else:
-                element_type = elements.name
+            if element_type is None:
+                if elements.name == 'ELEMENT':
+                    element_type = elements.element_type
+                else:
+                    element_type = elements.name
         if element_type in ['tri', 'tri2', 'quad', 'quad2', 'polygon']:
             metrics = self.calculate_element_areas(
                 raise_negative_area=raise_negative_metric,
@@ -567,9 +577,11 @@ class GeometryProcessorMixin:
                 return_abs_volume=return_abs_metric, elements=elements,
                 update=update)
         elif element_type == 'mix':
-            metrics = np.concatenate([
-                self.calculate_element_metrics(elements=e, update=False)
-                for e in elements.values()], axis=0)
+            metrics = np.zeros((len(self.elements), 1))
+            for k, e in self.elements.items():
+                partial_metrics = self.calculate_element_metrics(
+                    elements=e, element_type=k, update=False)
+                metrics[self.elements.types == k] = partial_metrics
         else:
             raise NotImplementedError(
                 f"Unsupported element type: {element_type}")
@@ -593,7 +605,8 @@ class GeometryProcessorMixin:
 
     def calculate_element_volumes(
             self, *, linear=False, raise_negative_volume=True,
-            return_abs_volume=False, elements=None, update=True):
+            return_abs_volume=False, elements=None, element_type=None,
+            update=True):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated volumes are returned and also stored in
@@ -625,10 +638,11 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            if elements.name == 'ELEMENT':
-                element_type = elements.element_type
-            else:
-                element_type = elements.name
+            if element_type is None:
+                if elements.name == 'ELEMENT':
+                    element_type = elements.element_type
+                else:
+                    element_type = elements.name
 
         if element_type in ['tet', 'tet2']:
             volumes = self._calculate_element_volumes_tet_like(
@@ -641,28 +655,18 @@ class GeometryProcessorMixin:
                 volumes = self._calculate_element_volumes_hex_gaussian(
                     elements)
         elif element_type in ['pyr']:
-            if linear:
-                volumes = self._calculate_element_volumes_pyr(
-                    elements)
-            else:
-                raise NotImplementedError
-                volumes = self._calculate_element_volumes_pyr_gaussian(
-                    elements)
+            volumes = self._calculate_element_volumes_pyr(elements)
         elif element_type in ['prism']:
-            if linear:
-                volumes = self._calculate_element_volumes_prism(
-                    elements)
-            else:
-                raise NotImplementedError
+            volumes = self._calculate_element_volumes_prism(elements)
         elif element_type in ['hexprism']:
             volumes = self._calculate_element_volumes_hexprism(
                 elements)
         elif element_type == 'mix':
-            volumes = np.concatenate([
-                self.calculate_element_volumes(
-                    elements=e, linear=linear,
-                    raise_negative_volume=raise_negative_volume, update=False)
-                for e in self.elements.values()], axis=0)
+            volumes = np.zeros((len(self.elements), 1))
+            for k, e in self.elements.items():
+                partial_volumes = self.calculate_element_volumes(
+                    elements=e, element_type=k, update=False, linear=linear)
+                volumes[self.elements.types == k] = partial_volumes
         else:
             raise NotImplementedError(element_type, elements)
 

@@ -422,6 +422,49 @@ class TestGeometryProcessor(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(normals, desired_normals)
 
+    def test_calculate_elemental_normals_mixed_polygon(self):
+        data_directory = pathlib.Path('tests/data/vtp/closed')
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        normals = fem_data.calculate_element_normals()
+        fem_data.write(
+            'vtp', 'tests/data/vtp/write_closed_normal/mesh.vtp',
+            overwrite=True)
+        desired_normals = np.array([
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [0., -1., 0.],
+            [1., 0., 0.],
+            [1., 0., -0.],
+            [0.70710678, 0.70710678, -0.],
+            [0.70710678, 0.70710678, -0.],
+            [-0.70710678, 0.70710678,  0.],
+            [-1., 0., 0.],
+            [0., 0., 1.],
+            [0., 0., 1.],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals)
+
+    def test_calculate_elemental_areas_mixed_polygon(self):
+        data_directory = pathlib.Path('tests/data/vtp/closed')
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        areas = fem_data.calculate_element_areas()
+        desired_areas = np.array([
+            [1.25],
+            [0.5],
+            [0.5],
+            [0.5],
+            [0.5],
+            [0.35355338],
+            [0.35355338],
+            [0.70710677],
+            [1.],
+            [1.],
+            [0.25],
+        ])
+        np.testing.assert_almost_equal(areas, desired_areas)
+
     def test_calculate_edge_lengths_tri(self):
         data_directory = 'tests/data/obj/tri'
         fem_data = FEMData.read_directory(
