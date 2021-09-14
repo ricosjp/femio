@@ -6,7 +6,7 @@ import numpy as np
 from femio.fem_data import FEMData
 
 
-class TestVTK(unittest.TestCase):
+class TestPolyVTK(unittest.TestCase):
 
     def test_read_vtk_polyhedron(self):
         file_name = pathlib.Path('tests/data/vtu/polyhedron/polyhedron.vtu')
@@ -240,6 +240,10 @@ class TestVTK(unittest.TestCase):
                 vtk_fem_data.elements.data):
             np.testing.assert_almost_equal(ae, np.array(de))
 
+        volumes = fem_data.calculate_element_volumes(linear=True)
+        fem_data.write('polyvtk', 'tmp.vtu', overwrite=True)
+        vtk_fem_data.calculate_element_volumes(linear=True)
+        vtk_fem_data.write('vtk', 'tmp.vtk', overwrite=True)
         np.testing.assert_almost_equal(
-            fem_data.calculate_element_volumes(linear=True),
+            volumes[[3, 1, 2, 0]],
             vtk_fem_data.calculate_element_volumes(linear=True))

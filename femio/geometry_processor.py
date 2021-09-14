@@ -532,7 +532,7 @@ class GeometryProcessorMixin:
 
     def calculate_element_metrics(
             self, *, raise_negative_metric=True, return_abs_metric=False,
-            elements=None, update=True):
+            elements=None, element_type=None, update=True):
         """Calculate metric (area or volume depending on the mesh dimension)
         of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
@@ -561,10 +561,11 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            if elements.name == 'ELEMENT':
-                element_type = elements.element_type
-            else:
-                element_type = elements.name
+            if element_type is None:
+                if elements.name == 'ELEMENT':
+                    element_type = elements.element_type
+                else:
+                    element_type = elements.name
         if element_type in ['tri', 'tri2', 'quad', 'quad2', 'polygon']:
             metrics = self.calculate_element_areas(
                 raise_negative_area=raise_negative_metric,
@@ -654,19 +655,9 @@ class GeometryProcessorMixin:
                 volumes = self._calculate_element_volumes_hex_gaussian(
                     elements)
         elif element_type in ['pyr']:
-            if linear:
-                volumes = self._calculate_element_volumes_pyr(
-                    elements)
-            else:
-                raise NotImplementedError
-                volumes = self._calculate_element_volumes_pyr_gaussian(
-                    elements)
+            volumes = self._calculate_element_volumes_pyr(elements)
         elif element_type in ['prism']:
-            if linear:
-                volumes = self._calculate_element_volumes_prism(
-                    elements)
-            else:
-                raise NotImplementedError
+            volumes = self._calculate_element_volumes_prism(elements)
         elif element_type in ['hexprism']:
             volumes = self._calculate_element_volumes_hexprism(
                 elements)
@@ -674,7 +665,7 @@ class GeometryProcessorMixin:
             volumes = np.zeros((len(self.elements), 1))
             for k, e in self.elements.items():
                 partial_volumes = self.calculate_element_volumes(
-                    elements=e, element_type=k, update=False)
+                    elements=e, element_type=k, update=False, linear=linear)
                 volumes[self.elements.types == k] = partial_volumes
         else:
             raise NotImplementedError(element_type, elements)
