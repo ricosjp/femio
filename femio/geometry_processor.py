@@ -604,7 +604,8 @@ class GeometryProcessorMixin:
 
     def calculate_element_volumes(
             self, *, linear=False, raise_negative_volume=True,
-            return_abs_volume=False, elements=None, update=True):
+            return_abs_volume=False, elements=None, element_type=None,
+            update=True):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated volumes are returned and also stored in
@@ -636,10 +637,11 @@ class GeometryProcessorMixin:
             element_type = self.elements.element_type
             elements = self.elements
         else:
-            if elements.name == 'ELEMENT':
-                element_type = elements.element_type
-            else:
-                element_type = elements.name
+            if element_type is None:
+                if elements.name == 'ELEMENT':
+                    element_type = elements.element_type
+                else:
+                    element_type = elements.name
 
         if element_type in ['tet', 'tet2']:
             volumes = self._calculate_element_volumes_tet_like(
