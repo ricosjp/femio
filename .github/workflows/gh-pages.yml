@@ -16,8 +16,8 @@ jobs:
         shell: bash
         run: |
           poetry build
-          python3 -m pip install dist/femio-*.whl
-          python3 -m pip install -r sphinx/requirements.txt
+          python3.9 -m pip install dist/femio-*.whl
+          python3.9 -m pip install -r sphinx/requirements.txt
           sphinx-apidoc -f -o ./sphinx femio
           sphinx-build ./sphinx ./docs
           cp -r docs public
