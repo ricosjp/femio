@@ -38,7 +38,7 @@ class FEMAttribute():
         -------
         FEMAttribute
         """
-        dict_data = np.load(file_)
+        dict_data = np.load(file_, allow_pickle=True)
         return cls.from_dict(name, dict_data, **kwargs)
 
     @classmethod
