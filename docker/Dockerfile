@@ -34,6 +34,6 @@ RUN curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-
   && python3.9 -m pip install -U wheel \
   && poetry config virtualenvs.create false \
   && poetry install \
-  && python3.9 -m pip install vtk==9.0.20210626.dev0 \
+  && python3.9 -m pip install vtk==9.0.3 \
   && python3.9 -m pip install mayavi==4.7.3 --no-binary :all: \
   && python3.9 -m pip install PyQt5

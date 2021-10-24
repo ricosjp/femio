@@ -22,7 +22,7 @@ scikit-learn = "^0.24.0"
 scipy        = "^1.7.0"
 lxml = "^4.6.3"
 PyQt5 = {version = "^5.14.0", optional = true}
-vtk = {version = "==9.0.20210626.dev0", optional = true}
+vtk = {version = "^9.0.3", optional = true}
 mayavi = {version = "^4.7.3", optional = true}
 
 [tool.poetry.extras]
