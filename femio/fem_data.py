@@ -952,3 +952,42 @@ class FEMData(
         return FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+
+    def resolve_degeneracy(self):
+        """Resolve degeneracy in hex elements."""
+        hex_ids = self.elements['hex'].ids
+        hex_data = self.elements['hex'].data
+        equal_01 = hex_data[:, 0] == hex_data[:, 1]
+        equal_12 = hex_data[:, 1] == hex_data[:, 2]
+        equal_23 = hex_data[:, 2] == hex_data[:, 3]
+        equal_30 = hex_data[:, 3] == hex_data[:, 0]
+        nondegenerate = ~(equal_01 | equal_12 | equal_23 | equal_30)
+
+        if 'prism' in self.elements:
+            prism_ids = self.elements['prism'].ids
+            prism_data = self.elements['prism'].data
+        else:
+            prism_ids = np.empty(0, hex_ids.dtype)
+            prism_data = np.empty((0, 6), hex_data.dtype)
+
+        prism_ids = np.concatenate([
+            prism_ids,
+            hex_ids[equal_01],
+            hex_ids[equal_12],
+            hex_ids[equal_23],
+            hex_ids[equal_30],
+        ])
+        prism_data = np.concatenate([
+            prism_data,
+            hex_data[equal_01][:, [0, 2, 3, 4, 6, 7]],
+            hex_data[equal_12][:, [0, 1, 3, 4, 5, 7]],
+            hex_data[equal_23][:, [0, 1, 2, 4, 5, 6]],
+            hex_data[equal_30][:, [0, 1, 2, 4, 5, 6]],
+        ])
+
+        hex_ids = hex_ids[nondegenerate]
+        hex_data = hex_data[nondegenerate]
+
+        prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
+        hex = FEMAttribute('hex', ids=hex_ids, data=hex_data)
+        self.elements.update({'prism': prism, 'hex': hex})
