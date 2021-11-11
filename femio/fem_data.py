@@ -955,6 +955,9 @@ class FEMData(
 
     def resolve_degeneracy(self):
         """Resolve degeneracy in hex elements."""
+        if 'hex' not in self.elements:
+            return
+
         hex_ids = self.elements['hex'].ids
         hex_data = self.elements['hex'].data
         equal_01 = hex_data[:, 0] == hex_data[:, 1]
@@ -988,6 +991,12 @@ class FEMData(
         hex_ids = hex_ids[nondegenerate]
         hex_data = hex_data[nondegenerate]
 
-        prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
-        hex = FEMAttribute('hex', ids=hex_ids, data=hex_data)
-        self.elements.update({'prism': prism, 'hex': hex})
+        if len(prism_ids) > 0:
+            prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
+            self.elements.update({'prism': prism})
+
+        if len(hex_ids) > 0:
+            hex = FEMAttribute('hex', ids=hex_ids, data=hex_data)
+            self.elements.update({'hex': hex})
+        else:
+            del self.elements['hex']
