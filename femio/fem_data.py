@@ -629,9 +629,13 @@ class FEMData(
                 time_series=v.time_series)
             for k, v in self.nodal_data.items() if len(filter_) == len(v.ids)})
         elemental_data = self.elemental_data
-        return FEMData(
+        fem_data = FEMData(
             nodes, elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+        fem_data.materials = self.materials
+        fem_data.constraints = self.constraints
+        fem_data.settings = self.settings
+        return fem_data
 
     def to_surface(self, *, remove_unnecessary_nodes=True):
         """Convert the FEMData object to the surface data.
