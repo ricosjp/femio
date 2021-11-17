@@ -278,7 +278,7 @@ class FEMData(
         fem_data: FEMData
         """
         nodes = FEMAttribute(
-            'NODE', ids=np.arange(len(meshio_data.points))+1,
+            'NODE', ids=np.arange(len(meshio_data.points)) + 1,
             data=meshio_data.points)
 
         # NOTE: So far only tetra10 is supported
@@ -859,14 +859,14 @@ class FEMData(
             [positions, middle_positions], axis=0)
 
         positions_attribute = FEMAttribute(
-            'NODE', ids=np.arange(len(all_positions))+1,
+            'NODE', ids=np.arange(len(all_positions)) + 1,
             data=all_positions)
         n_positions = len(positions)
         segments = np.array([
             [edge[0], n_positions + i]
             for i, edge in enumerate(graphs[0].edges())]) + 1
         segments_attribute = FEMAttribute(
-            'line', ids=np.arange(len(segments))+1, data=segments)
+            'line', ids=np.arange(len(segments)) + 1, data=segments)
         graph_fem_data = FEMData(
             nodes=positions_attribute, elements={'line': segments_attribute})
         graph_fem_data.elemental_data.update_data(
@@ -987,6 +987,9 @@ class FEMData(
             hex_data[equal_23][:, [0, 1, 2, 4, 5, 6]],
             hex_data[equal_30][:, [0, 1, 2, 4, 5, 6]],
         ])
+        IDX = np.argsort(prism_ids)
+        prism_ids = prism_ids[IDX]
+        prism_data = prism_data[IDX]
 
         hex_ids = hex_ids[nondegenerate]
         hex_data = hex_data[nondegenerate]
