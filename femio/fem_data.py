@@ -278,7 +278,7 @@ class FEMData(
         fem_data: FEMData
         """
         nodes = FEMAttribute(
-            'NODE', ids=np.arange(len(meshio_data.points))+1,
+            'NODE', ids=np.arange(len(meshio_data.points)) + 1,
             data=meshio_data.points)
 
         # NOTE: So far only tetra10 is supported
@@ -863,14 +863,14 @@ class FEMData(
             [positions, middle_positions], axis=0)
 
         positions_attribute = FEMAttribute(
-            'NODE', ids=np.arange(len(all_positions))+1,
+            'NODE', ids=np.arange(len(all_positions)) + 1,
             data=all_positions)
         n_positions = len(positions)
         segments = np.array([
             [edge[0], n_positions + i]
             for i, edge in enumerate(graphs[0].edges())]) + 1
         segments_attribute = FEMAttribute(
-            'line', ids=np.arange(len(segments))+1, data=segments)
+            'line', ids=np.arange(len(segments)) + 1, data=segments)
         graph_fem_data = FEMData(
             nodes=positions_attribute, elements={'line': segments_attribute})
         graph_fem_data.elemental_data.update_data(
@@ -956,3 +956,54 @@ class FEMData(
         return FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+
+    def resolve_degeneracy(self):
+        """Resolve degeneracy in hex elements."""
+        if 'hex' not in self.elements:
+            return
+
+        hex_ids = self.elements['hex'].ids
+        hex_data = self.elements['hex'].data
+        equal_01 = hex_data[:, 0] == hex_data[:, 1]
+        equal_12 = hex_data[:, 1] == hex_data[:, 2]
+        equal_23 = hex_data[:, 2] == hex_data[:, 3]
+        equal_30 = hex_data[:, 3] == hex_data[:, 0]
+        nondegenerate = ~(equal_01 | equal_12 | equal_23 | equal_30)
+
+        if 'prism' in self.elements:
+            prism_ids = self.elements['prism'].ids
+            prism_data = self.elements['prism'].data
+        else:
+            prism_ids = np.empty(0, hex_ids.dtype)
+            prism_data = np.empty((0, 6), hex_data.dtype)
+
+        prism_ids = np.concatenate([
+            prism_ids,
+            hex_ids[equal_01],
+            hex_ids[equal_12],
+            hex_ids[equal_23],
+            hex_ids[equal_30],
+        ])
+        prism_data = np.concatenate([
+            prism_data,
+            hex_data[equal_01][:, [0, 2, 3, 4, 6, 7]],
+            hex_data[equal_12][:, [0, 1, 3, 4, 5, 7]],
+            hex_data[equal_23][:, [0, 1, 2, 4, 5, 6]],
+            hex_data[equal_30][:, [0, 1, 2, 4, 5, 6]],
+        ])
+        IDX = np.argsort(prism_ids)
+        prism_ids = prism_ids[IDX]
+        prism_data = prism_data[IDX]
+
+        hex_ids = hex_ids[nondegenerate]
+        hex_data = hex_data[nondegenerate]
+
+        if len(prism_ids) > 0:
+            prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
+            self.elements.update({'prism': prism})
+
+        if len(hex_ids) > 0:
+            hex = FEMAttribute('hex', ids=hex_ids, data=hex_data)
+            self.elements.update({'hex': hex})
+        else:
+            del self.elements['hex']

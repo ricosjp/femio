@@ -131,7 +131,7 @@ class TestFEMData(unittest.TestCase):
             [0., 0., -1.],
             [0., -1., 0.],
             [-1., 0., 0.],
-            [1/3**.5, 1/3**.5, 1/3**.5],
+            [1 / 3**.5, 1 / 3**.5, 1 / 3**.5],
         ])
         desired_initial_temperature = np.array([[10., 20., 30., 40.]]).T
         np.testing.assert_almost_equal(
@@ -571,3 +571,48 @@ class TestFEMData(unittest.TestCase):
         with pytest.raises(ValueError):
             fem_data.create_element_group_from_node_group(
                 'element_1234', 'node_1234', 'all')
+
+    def test_resolve_degeneracy(self):
+        """Resolve degeneracy in hex elements."""
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/degeneracy_1/mesh.vtk')
+        fem_data.resolve_degeneracy()
+        assert 'hex' not in fem_data.elements
+        assert 'prism' in fem_data.elements
+        np.testing.assert_equal(
+            fem_data.elements['prism'].ids, np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            fem_data.elements['prism'].data, np.array(
+                [[2, 5, 4, 7, 10, 9], [1, 4, 3, 6, 9, 8], [1, 2, 4, 6, 7, 9]]))
+
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/degeneracy_2/mesh.vtk')
+        fem_data.resolve_degeneracy()
+        assert 'hex' in fem_data.elements
+        assert 'prism' in fem_data.elements
+        np.testing.assert_equal(
+            fem_data.elements['hex'].ids, np.array([2]))
+        np.testing.assert_equal(
+            fem_data.elements['hex'].data, np.array(
+                [[1, 2, 4, 3, 6, 7, 9, 8]]))
+        np.testing.assert_equal(
+            fem_data.elements['prism'].ids, np.array([1]))
+        np.testing.assert_equal(
+            fem_data.elements['prism'].data, np.array(
+                [[2, 5, 4, 7, 10, 9]]))
+
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/degeneracy_3/mesh.vtk')
+        fem_data.resolve_degeneracy()
+        assert 'hex' in fem_data.elements
+        assert 'prism' in fem_data.elements
+        np.testing.assert_equal(
+            fem_data.elements['hex'].ids, np.array([1]))
+        np.testing.assert_equal(
+            fem_data.elements['hex'].data, np.array(
+                [[1, 2, 5, 4, 7, 8, 11, 10]]))
+        np.testing.assert_equal(
+            fem_data.elements['prism'].ids, np.array([2, 3]))
+        np.testing.assert_equal(
+            fem_data.elements['prism'].data, np.array(
+                [[2, 3, 5, 8, 9, 11], [3, 6, 5, 9, 12, 11]]))
