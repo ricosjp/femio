@@ -4,7 +4,9 @@ import unittest
 
 import numpy as np
 
+from femio.fem_attribute import FEMAttribute
 from femio.fem_data import FEMData
+from femio.fem_elemental_attribute import FEMElementalAttribute
 
 
 class TestWriteVTK(unittest.TestCase):
@@ -130,3 +132,35 @@ class TestWriteVTK(unittest.TestCase):
     #     if write_directory_name.exists():
     #         shutil.rmtree(write_directory_name)
     #     fem_data.write('polyvtk', write_directory_name / 'mesh.vtu')
+
+    def test_write_disordered_nodes(self):
+        write_file_name = pathlib.Path(
+            'tests/data/vtu/write_disorderd/mesh.vtu')
+        if write_file_name.exists():
+            shutil.rmtree(write_file_name.parent)
+
+        nodes = FEMAttribute(
+            'NODE', ids=np.array([10, 20, 30, 40, 50]),
+            data=np.array(
+                [[0, 0, 0], [1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, -1]],
+                float))
+        tet = FEMAttribute(
+            'tet', ids=np.array([100, 200]),
+            data=np.array([
+                [10, 20, 30, 40],
+                [10, 30, 20, 50],
+            ]))
+        elements = FEMElementalAttribute('ELEMENT', {'tet': tet})
+
+        fem_data = FEMData(nodes=nodes, elements=elements)
+        fem_data.write('polyvtk', write_file_name)
+        written_fem_data = FEMData.read_files("polyvtk", write_file_name)
+        np.testing.assert_array_equal(
+            written_fem_data.nodes.ids, [1, 2, 3, 4, 5])
+        np.testing.assert_array_equal(
+            written_fem_data.elements.ids, [1, 2])
+        np.testing.assert_array_equal(
+            written_fem_data.elements.data, np.array([
+                [1, 2, 3, 4],
+                [1, 3, 2, 5],
+            ]))
