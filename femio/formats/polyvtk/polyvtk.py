@@ -1,4 +1,6 @@
 
+import pathlib
+
 import numpy as np
 from tvtk.api import tvtk
 
@@ -34,6 +36,9 @@ class PolyVTKData(FEMData):
             file_name = file_names
         else:
             file_name = file_names[0]
+
+        if not pathlib.Path(file_name).is_file():
+            raise ValueError(f"{file_name} not found")
 
         reader = tvtk.XMLUnstructuredGridReader(file_name=file_name)
         reader.update()

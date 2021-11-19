@@ -37,7 +37,7 @@ class PolyVTKWriter(fem_writer.FEMWriter):
             if element_type == 'polyhedron':
                 continue
             element_type_id = self.DICT_ELEMENT_TYPE_TO_VTK_ID[element_type]
-            for element in element_data.data - 1:
+            for element in self.fem_data.nodes.ids2indices(element_data.data):
                 unstructured_grid.insert_next_cell(element_type_id, element)
 
         # Add cell data
