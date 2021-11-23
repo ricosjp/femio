@@ -112,11 +112,12 @@ def _generate_brick_3d(
             i7 = i + n_xy + n_x + 1
             i8 = i + n_xy + n_x
             return np.array([
-                [i1, i2, i4, i5],
-                [i6, i5, i7, i2],
-                [i2, i5, i7, i4],
-                [i2, i3, i4, i7],
-                [i5, i8, i7, i4],
+                [i1, i2, i3, i5],
+                [i2, i7, i5, i6],
+                [i2, i3, i5, i7],
+                [i1, i3, i4, i8],
+                [i1, i3, i8, i5],
+                [i3, i8, i5, i7],
             ])
     elif element_type == 'hex':
         def generate_element(i):
