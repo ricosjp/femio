@@ -571,7 +571,7 @@ class GeometryProcessorMixin:
                 raise_negative_area=raise_negative_metric,
                 return_abs_area=return_abs_metric, elements=elements,
                 update=update)
-        elif element_type in ['tet', 'tet2', 'hex', 'hexprism']:
+        elif element_type in ['tet', 'tet2', 'hex', 'hexprism', 'prism']:
             metrics = self.calculate_element_volumes(
                 raise_negative_volume=raise_negative_metric,
                 return_abs_volume=return_abs_metric, elements=elements,
