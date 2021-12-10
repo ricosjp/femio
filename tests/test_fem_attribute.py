@@ -70,9 +70,9 @@ class TestFemAttribute(unittest.TestCase):
             fem_data.elemental_data.get_attribute_data('lte'), data)
 
     def test_time_series_interfaces(self):
-        data = np.reshape(np.arange(10.*5*3), (10, 5, 3))
+        data = np.reshape(np.arange(10. * 5 * 3), (10, 5, 3))
         time_series = FEMAttribute(
-            'TIME_SERIES', ids=np.arange(5)+1, data=data, time_series=True)
+            'TIME_SERIES', ids=np.arange(5) + 1, data=data, time_series=True)
         np.testing.assert_array_equal(time_series.ids, [1, 2, 3, 4, 5])
 
         np.testing.assert_almost_equal(
@@ -122,3 +122,17 @@ class TestFemAttribute(unittest.TestCase):
         fem_attribute.loc[['E']].data = 100 * np.ones((1, 3, 3))
         np.testing.assert_array_equal(
             fem_attribute.loc['E'].data, 100 * np.ones((1, 3, 3)))
+
+    def test_update_elemental_data(self):
+        fem_data = FEMData.read_directory("obj", "tests/data/obj/quad")
+        new_ids = np.array([3, 5])
+        new_data = np.array([
+            [1, 3, 6, 4],
+            [3, 7, 8, 6]
+        ])
+        new_quad = FEMAttribute('quad', ids=new_ids, data=new_data)
+        fem_data.elements.update({'quad': new_quad})
+
+        np.testing.assert_array_equal(fem_data.elements.ids, np.array([3, 5]))
+        np.testing.assert_array_equal(
+            fem_data.elements.types, np.array(['quad', 'quad']))

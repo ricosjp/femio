@@ -105,7 +105,7 @@ class FEMElementalAttribute(dict):
             cell = data
         return FEMAttribute(
             config.DICT_MESHIO_ELEMENT_TO_FEMIO_ELEMENT[cell_type],
-            ids=np.arange(len(cell))+1, data=cell+1)
+            ids=np.arange(len(cell)) + 1, data=cell + 1)
 
     @classmethod
     def _from_meshio_tet2(cls, data):
@@ -275,6 +275,7 @@ class FEMElementalAttribute(dict):
                 super().update(dict_data, *args[1:], **kwargs)
             else:
                 super().update(dict_data, **kwargs)
+            self._update_self()
         else:
             self._update(*args, **kwargs)
         return
@@ -428,7 +429,7 @@ class FEMElementalAttribute(dict):
         return {
             element_type:
             FEMAttribute(
-                element_type, np.arange(len(surface_ids))+1, surface_ids)}
+                element_type, np.arange(len(surface_ids)) + 1, surface_ids)}
 
     def detect_element_type(self, element_data):
         n_node_per_element = element_data.shape[1]
