@@ -923,8 +923,6 @@ class FEMData(
             selected = np.any(isin, axis=1)
         else:
             raise ValueError('kind must be all or any')
-        print(isin)
-        print(selected)
         elem_group = element_ids[selected]
         if element_group_name in self.element_groups:
             raise ValueError(
@@ -958,21 +956,36 @@ class FEMData(
             elemental_data=elemental_data)
 
     def resolve_degeneracy(self):
-        """Resolve degeneracy in hex elements."""
-        if 'hex' not in self.elements:
-            return
+        """Resolve degeneracy in hex elements, and
+        return resolved new FEMData."""
 
-        hex_ids = self.elements['hex'].ids
-        hex_data = self.elements['hex'].data
+        fem_data = FEMData(
+            nodes=self.nodes, elements=self.elements,
+            nodal_data=self.nodal_data, elemental_data={}
+        )
+        elements = fem_data.elements
+
+        if 'hex' not in self.elements:
+            return fem_data
+
+        hex_ids = elements['hex'].ids
+        hex_data = elements['hex'].data
         equal_01 = hex_data[:, 0] == hex_data[:, 1]
         equal_12 = hex_data[:, 1] == hex_data[:, 2]
         equal_23 = hex_data[:, 2] == hex_data[:, 3]
         equal_30 = hex_data[:, 3] == hex_data[:, 0]
+        if not all((
+            np.all(hex_data[equal_01, 4] == hex_data[equal_01, 5]),
+            np.all(hex_data[equal_12, 5] == hex_data[equal_12, 6]),
+            np.all(hex_data[equal_23, 6] == hex_data[equal_23, 7]),
+            np.all(hex_data[equal_30, 7] == hex_data[equal_30, 4]),
+        )):
+            raise ValueError("Unknown degeneracy pattern in hex")
         nondegenerate = ~(equal_01 | equal_12 | equal_23 | equal_30)
 
-        if 'prism' in self.elements:
-            prism_ids = self.elements['prism'].ids
-            prism_data = self.elements['prism'].data
+        if 'prism' in elements:
+            prism_ids = elements['prism'].ids
+            prism_data = elements['prism'].data
         else:
             prism_ids = np.empty(0, hex_ids.dtype)
             prism_data = np.empty((0, 6), hex_data.dtype)
@@ -998,12 +1011,15 @@ class FEMData(
         hex_ids = hex_ids[nondegenerate]
         hex_data = hex_data[nondegenerate]
 
-        if len(prism_ids) > 0:
-            prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
-            self.elements.update({'prism': prism})
-
         if len(hex_ids) > 0:
             hex = FEMAttribute('hex', ids=hex_ids, data=hex_data)
-            self.elements.update({'hex': hex})
+            elements.update({'hex': hex})
         else:
-            del self.elements['hex']
+            del elements['hex']
+            fem_data.elements._update_self()
+
+        if len(prism_ids) > 0:
+            prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
+            elements.update({'prism': prism})
+
+        return fem_data
