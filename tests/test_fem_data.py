@@ -573,46 +573,93 @@ class TestFEMData(unittest.TestCase):
                 'element_1234', 'node_1234', 'all')
 
     def test_resolve_degeneracy(self):
-        """Resolve degeneracy in hex elements."""
+        # prism, hex, hex -> prism, prism, prism
         fem_data = FEMData.read_files(
             'vtk', 'tests/data/vtk/degeneracy_1/mesh.vtk')
-        fem_data.resolve_degeneracy()
-        assert 'hex' not in fem_data.elements
-        assert 'prism' in fem_data.elements
-        np.testing.assert_equal(
-            fem_data.elements['prism'].ids, np.array([1, 2, 3]))
-        np.testing.assert_equal(
-            fem_data.elements['prism'].data, np.array(
-                [[2, 5, 4, 7, 10, 9], [1, 4, 3, 6, 9, 8], [1, 2, 4, 6, 7, 9]]))
+        new_fem_data = fem_data.resolve_degeneracy()
 
-        fem_data = FEMData.read_files(
-            'vtk', 'tests/data/vtk/degeneracy_2/mesh.vtk')
-        fem_data.resolve_degeneracy()
         assert 'hex' in fem_data.elements
         assert 'prism' in fem_data.elements
-        np.testing.assert_equal(
-            fem_data.elements['hex'].ids, np.array([2]))
-        np.testing.assert_equal(
-            fem_data.elements['hex'].data, np.array(
-                [[1, 2, 4, 3, 6, 7, 9, 8]]))
+        assert 'hex' not in new_fem_data.elements
+        assert 'prism' in new_fem_data.elements
         np.testing.assert_equal(
             fem_data.elements['prism'].ids, np.array([1]))
         np.testing.assert_equal(
             fem_data.elements['prism'].data, np.array(
                 [[2, 5, 4, 7, 10, 9]]))
-
-        fem_data = FEMData.read_files(
-            'vtk', 'tests/data/vtk/degeneracy_3/mesh.vtk')
-        fem_data.resolve_degeneracy()
-        assert 'hex' in fem_data.elements
-        assert 'prism' in fem_data.elements
         np.testing.assert_equal(
-            fem_data.elements['hex'].ids, np.array([1]))
+            fem_data.elements['hex'].ids, np.array([2, 3]))
         np.testing.assert_equal(
             fem_data.elements['hex'].data, np.array(
-                [[1, 2, 5, 4, 7, 8, 11, 10]]))
+                [[1, 1, 4, 3, 6, 6, 9, 8], [1, 2, 2, 4, 6, 7, 7, 9]]))
         np.testing.assert_equal(
-            fem_data.elements['prism'].ids, np.array([2, 3]))
+            fem_data.elements.ids, np.array([1, 2, 3]))
         np.testing.assert_equal(
-            fem_data.elements['prism'].data, np.array(
-                [[2, 3, 5, 8, 9, 11], [3, 6, 5, 9, 12, 11]]))
+            fem_data.elements.types, np.array(['prism', 'hex', 'hex']))
+
+        np.testing.assert_equal(
+            new_fem_data.elements['prism'].ids, np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            new_fem_data.elements['prism'].data, np.array(
+                [[2, 5, 4, 7, 10, 9], [1, 4, 3, 6, 9, 8], [1, 2, 4, 6, 7, 9]]))
+        np.testing.assert_equal(
+            new_fem_data.elements.ids, np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            new_fem_data.elements.types, np.array(['prism', 'prism', 'prism']))
+
+        # prism, hex -> prism, hex (nodegeneracy)
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/degeneracy_2/mesh.vtk')
+
+        new_fem_data = fem_data.resolve_degeneracy()
+        assert 'hex' in new_fem_data.elements
+        assert 'prism' in new_fem_data.elements
+        np.testing.assert_equal(
+            new_fem_data.elements['hex'].ids, np.array([2]))
+        np.testing.assert_equal(
+            new_fem_data.elements['hex'].data, np.array(
+                [[1, 2, 4, 3, 6, 7, 9, 8]]))
+        np.testing.assert_equal(
+            new_fem_data.elements['prism'].ids, np.array([1]))
+        np.testing.assert_equal(
+            new_fem_data.elements['prism'].data, np.array(
+                [[2, 5, 4, 7, 10, 9]]))
+        np.testing.assert_equal(
+            new_fem_data.elements.ids, np.array([1, 2]))
+        np.testing.assert_equal(
+            new_fem_data.elements.types, np.array(['prism', 'hex']))
+
+        # hex, hex, hex -> hex, prism, prism
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/degeneracy_3/mesh.vtk')
+        new_fem_data = fem_data.resolve_degeneracy()
+        assert 'hex' in fem_data.elements
+        assert 'prism' not in fem_data.elements
+        assert 'hex' in new_fem_data.elements
+        assert 'prism' in new_fem_data.elements
+        np.testing.assert_equal(
+            fem_data.elements['hex'].ids, np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            fem_data.elements['hex'].data, np.array([
+                [1, 2, 5, 4, 7, 8, 11, 10],
+                [2, 3, 5, 5, 8, 9, 11, 11],
+                [3, 6, 5, 3, 9, 12, 11, 9]]))
+        np.testing.assert_equal(
+            fem_data.elements.ids, np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            fem_data.elements.types, np.array(['hex', 'hex', 'hex']))
+
+        np.testing.assert_equal(
+            new_fem_data.elements['prism'].ids, np.array([2, 3]))
+        np.testing.assert_equal(
+            new_fem_data.elements['prism'].data, np.array([
+                [2, 3, 5, 8, 9, 11], [3, 6, 5, 9, 12, 11]]))
+        np.testing.assert_equal(
+            new_fem_data.elements['hex'].ids, np.array([1]))
+        np.testing.assert_equal(
+            new_fem_data.elements['hex'].data, np.array([
+                [1, 2, 5, 4, 7, 8, 11, 10]]))
+        np.testing.assert_equal(
+            new_fem_data.elements.ids, np.array([1, 2, 3]))
+        np.testing.assert_equal(
+            new_fem_data.elements.types, np.array(['hex', 'prism', 'prism']))
