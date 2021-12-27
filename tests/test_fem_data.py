@@ -383,7 +383,7 @@ class TestFEMData(unittest.TestCase):
         desired_element_data = [
             np.array([1, 2, 4, 3, 5, 6, 8, 7]),
             np.array([12, 2, 6, 9]),
-            np.array([1, 5, 17, 2, 6, 12]),
+            np.array([1, 17, 5, 2, 12, 6]),
         ]
         np.testing.assert_array_equal(
             cut_fem_data.nodes.ids, node_ids)
@@ -442,7 +442,7 @@ class TestFEMData(unittest.TestCase):
             1, 2, 3, 4, 5, 6, 7, 8, 12, 13, 14, 15, 16, 17])
         desired_element_data = [
             np.array([1, 2, 4, 3, 5, 6, 8, 7]),
-            np.array([1, 5, 17, 2, 6, 12]),
+            np.array([1, 17, 5, 2, 12, 6]),
             np.array([13, 3, 4, 14, 15, 7, 8, 16]),
         ]
         np.testing.assert_array_equal(
