@@ -558,7 +558,7 @@ class TestFEMDataFISTR(unittest.TestCase):
         desired_elements = [
             np.array([1, 2, 4, 3, 5, 6, 8, 7]),
             np.array([12, 2, 6, 9]),
-            np.array([1, 5, 17, 2, 6, 12]),
+            np.array([1, 17, 5, 2, 12, 6]),
             np.array([13, 3, 4, 14, 15, 7, 8, 16]),
         ]
         for e, de in zip(fem_data.elements.data, desired_elements):
