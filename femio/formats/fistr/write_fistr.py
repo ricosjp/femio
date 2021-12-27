@@ -69,9 +69,13 @@ class FistrWriter():
         print(dt.now())
         for element_type, elements in self.fem_data.elements.items():
             fistr_element_type = self.detect_fistr_element_type(element_type)
+            if fistr_element_type in ['351', '352']:
+                elements_data = self._reorder_prism_data(elements.data)
+            else:
+                elements_data = elements.data
             self.write_data(
                 self.write_msh_file, f"!ELEMENT,TYPE={fistr_element_type}\n",
-                elements.ids, elements.data, str_format='%d')
+                elements.ids, elements_data, str_format='%d')
 
         # TODO: Write node groups
 
@@ -194,6 +198,11 @@ class FistrWriter():
                 self.fem_data.nodal_data['INITIAL_TEMPERATURE'].data)
 
         self.write_string(self.write_msh_file, '!END\n')
+
+    def _reorder_prism_data(self, prism_data):
+        d = prism_data
+        return np.stack(
+            [d[:, 0], d[:, 2], d[:, 1], d[:, 3], d[:, 5], d[:, 4]], axis=-1)
 
     def _generate_constraints(self, constraint_attribute):
         data = constraint_attribute.data

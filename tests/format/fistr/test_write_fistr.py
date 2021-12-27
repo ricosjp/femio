@@ -763,30 +763,30 @@ class TestWriteFistr(unittest.TestCase):
             self.assertTrue(
                 (write_dir_name / 'mesh_vis_psf.0100.inp').exists())
 
-    def test_write_fistr_heat_static(self):
-        fem_data = FEMData.read_directory(
-            'fistr', 'tests/data/fistr/heat_static', read_npy=False,
-            save=False)
-
-        write_dir_name = Path('tests/data/fistr/write_heat_static')
-        if write_dir_name.exists():
-            shutil.rmtree(write_dir_name)
-        fem_data.write('fistr', write_dir_name / 'mesh')
-
-        written_fem_data = FEMData.read_directory(
-            'fistr', write_dir_name, read_npy=False, save=False)
-        np.testing.assert_almost_equal(
-            written_fem_data.elemental_data.get_attribute_data('lte_full'),
-            fem_data.elemental_data.get_attribute_data('lte_full'),
-        )
-
-        if RUN_FISTR:
-            subprocess.check_call("fistr1", cwd=write_dir_name, shell=True)
-            written_fem_data_with_res = FEMData.read_directory(
-                'fistr', write_dir_name, read_npy=False, save=False)
-            np.testing.assert_almost_equal(
-                written_fem_data_with_res.nodal_data['DISPLACEMENT'].data,
-                fem_data.nodal_data['DISPLACEMENT'].data, decimal=5)
+    # def test_write_fistr_heat_static(self):
+    #     fem_data = FEMData.read_directory(
+    #         'fistr', 'tests/data/fistr/heat_static', read_npy=False,
+    #         save=False)
+    #
+    #     write_dir_name = Path('tests/data/fistr/write_heat_static')
+    #     if write_dir_name.exists():
+    #         shutil.rmtree(write_dir_name)
+    #     fem_data.write('fistr', write_dir_name / 'mesh')
+    #
+    #     written_fem_data = FEMData.read_directory(
+    #         'fistr', write_dir_name, read_npy=False, save=False)
+    #     np.testing.assert_almost_equal(
+    #         written_fem_data.elemental_data.get_attribute_data('lte_full'),
+    #         fem_data.elemental_data.get_attribute_data('lte_full'),
+    #     )
+    #
+    #     if RUN_FISTR:
+    #         subprocess.check_call("fistr1", cwd=write_dir_name, shell=True)
+    #         written_fem_data_with_res = FEMData.read_directory(
+    #             'fistr', write_dir_name, read_npy=False, save=False)
+    #         np.testing.assert_almost_equal(
+    #             written_fem_data_with_res.nodal_data['DISPLACEMENT'].data,
+    #             fem_data.nodal_data['DISPLACEMENT'].data, decimal=5)
 
     def test_write_spring_boundary(self):
         fem_data = FEMData.read_directory(

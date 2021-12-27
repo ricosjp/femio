@@ -193,3 +193,23 @@ class TestFEMDataUCD(unittest.TestCase):
         data_directory = 'tests/data/ucd/no_nodal'
         FEMData.read_directory(
             'ucd', data_directory, read_npy=False, save=False)
+
+    def test_read_prism(self):
+        data_directory = 'tests/data/ucd/prism'
+        fem_data = FEMData.read_directory(
+            'ucd', data_directory, read_npy=False, save=False)
+        v = fem_data.calculate_element_volumes()
+        np.testing.assert_almost_equal(v, 0.125)
+        surface = fem_data.to_surface()
+        normals = surface.calculate_element_normals()
+        surface.write(
+            'ucd', 'tests/data/ucd/write_prism_surface/mesh.inp',
+            overwrite=True)
+        desired_normals = np.array([
+            [0., -1., 0.],
+            [0., 1., -0.],
+            [-0.4472136, 0., -0.89442719],
+            [1., 0., 0.],
+            [0., 0., 1.],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals)

@@ -676,7 +676,9 @@ class GeometryProcessorMixin:
             volumes = np.zeros((len(self.elements), 1))
             for k, e in self.elements.items():
                 partial_volumes = self.calculate_element_volumes(
-                    elements=e, element_type=k, update=False, linear=linear)
+                    elements=e, element_type=k, update=False, linear=linear,
+                    raise_negative_volume=raise_negative_volume,
+                    return_abs_volume=return_abs_volume)
                 volumes[self.elements.types == k] = partial_volumes
         else:
             raise NotImplementedError(element_type, elements)
@@ -768,11 +770,11 @@ class GeometryProcessorMixin:
         p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
         p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
         return self._calculate_element_volumes_tet_like_core(
-            p0, p1, p2, p3) \
+            p0, p2, p1, p3) \
             + self._calculate_element_volumes_tet_like_core(
-                p1, p2, p3, p4) \
+                p1, p3, p2, p4) \
             + self._calculate_element_volumes_tet_like_core(
-                p2, p3, p4, p5)
+                p2, p4, p3, p5)
 
     def _calculate_element_volumes_hexprism(self, elements):
         """Calculate volume of each hexprism elements.

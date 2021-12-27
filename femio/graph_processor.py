@@ -309,15 +309,15 @@ class GraphProcessorMixin:
             face_ids = (
                 method([
                     [
-                        [e[0], e[2], e[1]],
-                        [e[3], e[4], e[5]],
+                        [e[0], e[1], e[2]],
+                        [e[3], e[5], e[4]],
                     ]
                     for e in elements_data]),
                 method([
                     [
-                        [e[0], e[1], e[4], e[3]],
-                        [e[1], e[2], e[5], e[4]],
-                        [e[0], e[3], e[5], e[2]],
+                        [e[0], e[3], e[4], e[1]],
+                        [e[1], e[4], e[5], e[2]],
+                        [e[0], e[2], e[5], e[3]],
                     ]
                     for e in elements_data]))
         elif element_type == 'hexprism':

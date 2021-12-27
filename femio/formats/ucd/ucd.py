@@ -111,7 +111,7 @@ class UCDData(FEMData):
                 'ELEMENT',
                 string_series.iloc[start:end].to_fem_attribute(
                     'ELEMENT', 0, slice(3, None),
-                    delimiter=r'\s+', data_type=int))
+                    delimiter=r'\s+', data_type=int), element_type=types[0])
         else:
             dict_string = {t: [] for t in np.unique(types)}
             for s, type_ in zip(string_series[start:end], types):

@@ -137,7 +137,8 @@ class FEMElementalAttribute(dict):
         """
         self.time_series = time_series
         if isinstance(data, FEMAttribute):
-            element_type = self.detect_element_type(data.data)
+            if element_type is None:
+                element_type = self.detect_element_type(data.data)
             self.update({element_type: data})
         elif isinstance(data, FEMElementalAttribute):
             self.update(data)

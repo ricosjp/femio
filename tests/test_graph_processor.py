@@ -484,7 +484,7 @@ class TestGraphProcessor(unittest.TestCase):
                         [12, 2, 6, 9]])
                 np.testing.assert_array_equal(
                     fd.elements['prism'].data, [
-                        [1, 5, 17, 2, 6, 12]])
+                        [1, 17, 5, 2, 12, 6]])
 
             elif i == 1:
                 np.testing.assert_array_equal(
@@ -505,7 +505,7 @@ class TestGraphProcessor(unittest.TestCase):
                         [112, 102, 106, 109]])
                 np.testing.assert_array_equal(
                     fd.elements['prism'].data, [
-                        [101, 105, 117, 102, 106, 112]])
+                        [101, 117, 105, 102, 112, 106]])
 
             else:
                 raise ValueError('Separation failed')
