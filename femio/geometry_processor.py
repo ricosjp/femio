@@ -770,11 +770,11 @@ class GeometryProcessorMixin:
         p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
         p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
         return self._calculate_element_volumes_tet_like_core(
-            p0, p1, p2, p3) \
+            p0, p2, p1, p3) \
             + self._calculate_element_volumes_tet_like_core(
-                p1, p2, p3, p4) \
+                p1, p3, p2, p4) \
             + self._calculate_element_volumes_tet_like_core(
-                p2, p3, p4, p5)
+                p2, p4, p3, p5)
 
     def _calculate_element_volumes_hexprism(self, elements):
         """Calculate volume of each hexprism elements.

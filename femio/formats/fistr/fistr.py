@@ -43,8 +43,8 @@ class FrontISTRData(FEMData):
         '311': 'spring',
         '341': 'tet',
         '342': 'tet2',
-        '351': 'prism',
-        '352': 'prism2',
+        # '351': 'prism',  # the order of nodes to be adjusted
+        # '352': 'prism2',
         '361': 'hex',
         '362': 'hex2',
         '641': 'line',
