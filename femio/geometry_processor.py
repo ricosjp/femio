@@ -676,7 +676,9 @@ class GeometryProcessorMixin:
             volumes = np.zeros((len(self.elements), 1))
             for k, e in self.elements.items():
                 partial_volumes = self.calculate_element_volumes(
-                    elements=e, element_type=k, update=False, linear=linear)
+                    elements=e, element_type=k, update=False, linear=linear,
+                    raise_negative_volume=raise_negative_volume,
+                    return_abs_volume=return_abs_volume)
                 volumes[self.elements.types == k] = partial_volumes
         else:
             raise NotImplementedError(element_type, elements)
