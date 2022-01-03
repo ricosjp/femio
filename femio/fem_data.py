@@ -999,10 +999,10 @@ class FEMData(
         ])
         prism_data = np.concatenate([
             prism_data,
-            hex_data[equal_01][:, [0, 2, 3, 4, 6, 7]],
-            hex_data[equal_12][:, [0, 1, 3, 4, 5, 7]],
-            hex_data[equal_23][:, [0, 1, 2, 4, 5, 6]],
-            hex_data[equal_30][:, [0, 1, 2, 4, 5, 6]],
+            hex_data[equal_01][:, [0, 3, 2, 4, 7, 6]],
+            hex_data[equal_12][:, [0, 3, 1, 4, 7, 5]],
+            hex_data[equal_23][:, [0, 2, 1, 4, 6, 5]],
+            hex_data[equal_30][:, [0, 2, 1, 4, 6, 5]],
         ])
         IDX = np.argsort(prism_ids)
         prism_ids = prism_ids[IDX]
