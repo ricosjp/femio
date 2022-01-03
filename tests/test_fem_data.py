@@ -572,11 +572,12 @@ class TestFEMData(unittest.TestCase):
             fem_data.create_element_group_from_node_group(
                 'element_1234', 'node_1234', 'all')
 
-    def test_resolve_degeneracy(self):
+    def test_resolve_degeneracy_hex2prism(self):
         # prism, hex, hex -> prism, prism, prism
         fem_data = FEMData.read_files(
-            'vtk', 'tests/data/vtk/degeneracy_1/mesh.vtk')
+            'ucd', 'tests/data/ucd/degeneracy_1/mesh.inp')
         new_fem_data = fem_data.resolve_degeneracy()
+        volumes = new_fem_data.calculate_element_volumes()
 
         assert 'hex' in fem_data.elements
         assert 'prism' in fem_data.elements
@@ -586,7 +587,7 @@ class TestFEMData(unittest.TestCase):
             fem_data.elements['prism'].ids, np.array([1]))
         np.testing.assert_equal(
             fem_data.elements['prism'].data, np.array(
-                [[2, 5, 4, 7, 10, 9]]))
+                [[2, 4, 5, 7, 9, 10]]))
         np.testing.assert_equal(
             fem_data.elements['hex'].ids, np.array([2, 3]))
         np.testing.assert_equal(
@@ -600,18 +601,24 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_equal(
             new_fem_data.elements['prism'].ids, np.array([1, 2, 3]))
         np.testing.assert_equal(
-            new_fem_data.elements['prism'].data, np.array(
-                [[2, 5, 4, 7, 10, 9], [1, 4, 3, 6, 9, 8], [1, 2, 4, 6, 7, 9]]))
+            new_fem_data.elements['prism'].data, np.array([
+                [2, 4, 5, 7, 9, 10],
+                [1, 3, 4, 6, 8, 9],
+                [1, 4, 2, 6, 9, 7]
+            ]))
         np.testing.assert_equal(
             new_fem_data.elements.ids, np.array([1, 2, 3]))
         np.testing.assert_equal(
             new_fem_data.elements.types, np.array(['prism', 'prism', 'prism']))
+        np.testing.assert_almost_equal(volumes, .5)
 
+    def test_resolve_degeneracy_no_degeneracy(self):
         # prism, hex -> prism, hex (nodegeneracy)
         fem_data = FEMData.read_files(
-            'vtk', 'tests/data/vtk/degeneracy_2/mesh.vtk')
+            'ucd', 'tests/data/ucd/degeneracy_2/mesh.inp')
 
         new_fem_data = fem_data.resolve_degeneracy()
+        volumes = new_fem_data.calculate_element_volumes()
         assert 'hex' in new_fem_data.elements
         assert 'prism' in new_fem_data.elements
         np.testing.assert_equal(
@@ -623,16 +630,20 @@ class TestFEMData(unittest.TestCase):
             new_fem_data.elements['prism'].ids, np.array([1]))
         np.testing.assert_equal(
             new_fem_data.elements['prism'].data, np.array(
-                [[2, 5, 4, 7, 10, 9]]))
+                [[2, 4, 5, 7, 9, 10]]))
         np.testing.assert_equal(
             new_fem_data.elements.ids, np.array([1, 2]))
         np.testing.assert_equal(
             new_fem_data.elements.types, np.array(['prism', 'hex']))
+        np.testing.assert_almost_equal(volumes[:, 0], [.5, 1.])
 
+    def test_resolve_degeneracy_hex2prism_2(self):
         # hex, hex, hex -> hex, prism, prism
         fem_data = FEMData.read_files(
-            'vtk', 'tests/data/vtk/degeneracy_3/mesh.vtk')
+            'ucd', 'tests/data/ucd/degeneracy_3/mesh.inp')
+
         new_fem_data = fem_data.resolve_degeneracy()
+        volumes = new_fem_data.calculate_element_volumes()
         assert 'hex' in fem_data.elements
         assert 'prism' not in fem_data.elements
         assert 'hex' in new_fem_data.elements
@@ -653,7 +664,7 @@ class TestFEMData(unittest.TestCase):
             new_fem_data.elements['prism'].ids, np.array([2, 3]))
         np.testing.assert_equal(
             new_fem_data.elements['prism'].data, np.array([
-                [2, 3, 5, 8, 9, 11], [3, 6, 5, 9, 12, 11]]))
+                [2, 5, 3, 8, 11, 9], [3, 5, 6, 9, 11, 12]]))
         np.testing.assert_equal(
             new_fem_data.elements['hex'].ids, np.array([1]))
         np.testing.assert_equal(
@@ -663,3 +674,4 @@ class TestFEMData(unittest.TestCase):
             new_fem_data.elements.ids, np.array([1, 2, 3]))
         np.testing.assert_equal(
             new_fem_data.elements.types, np.array(['hex', 'prism', 'prism']))
+        np.testing.assert_almost_equal(volumes[:, 0], [1., .5, .5])
