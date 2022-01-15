@@ -42,3 +42,5 @@ class STLWriter():
         mesh = stl.mesh.Mesh(empty_data, remove_empty_areas=False)
         mesh.vectors = self.surface_points
         mesh.save(file_name)
+
+        return file_name
