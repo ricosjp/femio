@@ -527,6 +527,8 @@ class FEMData(
         elif isinstance(written_files, list):
             for written_file in written_files:
                 print(f"File written in: {written_file}")
+        else:
+            raise ValueError(f"No written file found: {written_file}")
         return
 
     def add_extension_if_needed(self, file_name, ext):
