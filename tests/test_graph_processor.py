@@ -25,6 +25,22 @@ class TestGraphProcessor(unittest.TestCase):
         ], dtype=bool)
         np.testing.assert_array_equal(adjacency_matrix.toarray(), desired)
 
+    def test_calculate_laplacian_matrix(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
+        laplacian_matrix = fem_data.calculate_laplacian_matrix(mode='nodal')
+        desired = np.array([
+            [-5, 1, 1, 1, 0, 0, 1, 1],
+            [1, -6, 1, 1, 1, 0, 1, 1],
+            [1, 1, -6, 1, 1, 1, 0, 1],
+            [1, 1, 1, -5, 1, 1, 0, 0],
+            [0, 1, 1, 1, -4, 1, 0, 0],
+            [0, 0, 1, 1, 1, -3, 0, 0],
+            [1, 1, 0, 0, 0, 0, -3, 1],
+            [1, 1, 1, 0, 0, 0, 1, -4],
+        ])
+        np.testing.assert_array_equal(laplacian_matrix.toarray(), desired)
+
     def test_calculate_adjacency_matrix_node_tet2(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/graph_tet2', read_npy=False)
@@ -701,3 +717,32 @@ class TestGraphProcessor(unittest.TestCase):
         actual = fem_data_1.calculate_hausdorff_distance_elements(fem_data_2)
         desired = (4 / 3) ** .5
         np.testing.assert_almost_equal(actual, desired, decimal=1)
+
+    def test_calculate_edge_gradient_matrix(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
+        gradient_matrix = fem_data.calculate_edge_gradient_matrix()
+        desired = np.array([
+            [1,  0,  0,  0,  0,  0, -1,  0],
+            [1,  0,  0, -1,  0,  0,  0,  0],
+            [1,  0,  0,  0,  0,  0,  0, -1],
+            [1,  0, -1,  0,  0,  0,  0,  0],
+            [1, -1,  0,  0,  0,  0,  0,  0],
+            [0,  1,  0,  0,  0,  0, -1,  0],
+            [0,  1,  0,  0, -1,  0,  0,  0],
+            [0,  1,  0, -1,  0,  0,  0,  0],
+            [0,  1,  0,  0,  0,  0,  0, -1],
+            [0,  1, -1,  0,  0,  0,  0,  0],
+            [0,  0,  1,  0,  0, -1,  0,  0],
+            [0,  0,  1,  0, -1,  0,  0,  0],
+            [0,  0,  1, -1,  0,  0,  0,  0],
+            [0,  0,  1,  0,  0,  0,  0, -1],
+            [0,  0,  0,  1,  0, -1,  0,  0],
+            [0,  0,  0,  1, -1,  0,  0,  0],
+            [0,  0,  0,  0,  1, -1,  0,  0],
+            [0,  0,  0,  0,  0,  0,  1, -1],
+        ])
+        np.testing.assert_array_equal(gradient_matrix.toarray(), desired)
+        np.testing.assert_array_equal(
+            -(gradient_matrix.T @ gradient_matrix).toarray(),
+            fem_data.calculate_laplacian_matrix(mode='nodal').toarray())

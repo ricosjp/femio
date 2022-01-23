@@ -535,6 +535,69 @@ class GraphProcessorMixin:
             shape=(len(nodes), len(elements)))
         return incidence_matrix
 
+    @functools.lru_cache(maxsize=2)
+    def calculate_laplacian_matrix(self, mode='nodal', order1_only=True):
+        """Calculate edge-based graph incidence matrix, which is
+        (n_edge, n_node)-shaped matrix with bool.
+
+        Parameters
+        ----------
+        mode: str, optional, ['nodal', 'elemental']
+        order1_only: bool, optional
+            If True, generate incidence matrix based on only order-one nodes.
+
+        Returns
+        -------
+        incidence_matrix: scipy.sparse.csr_matrix
+            (n_edge, n_node)-shaped sparse matrix.
+        """
+        if mode == 'nodal':
+            adj = self.calculate_adjacency_matrix_node(
+                order1_only=order1_only)
+        elif mode == 'elemental':
+            adj = self.calculate_adjacency_matrix_element(
+                order1_only=order1_only)
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+        adj_wo_loop = adj.astype(int) - sp.eye(*adj.shape, dtype=int)
+        degree = sp.diags(np.ravel(adj_wo_loop.sum(axis=1)), dtype=int)
+        return adj_wo_loop - degree
+
+    @functools.lru_cache(maxsize=1)
+    def calculate_edge_gradient_matrix(self, mode='nodal', order1_only=True):
+        """Calculate edge-based graph gradient matrix, which is
+        (n_edge, n_vertex)-shaped matrix with bool. n_vertex can be either
+        n_node or n_element, depending on the `mode` option.
+
+        Parameters
+        ----------
+        mode: str, optional, ['nodal', 'elemental']
+        order1_only: bool, optional
+            If True, generate incidence matrix based on only order-one nodes.
+
+        Returns
+        -------
+        gradient_matrix: scipy.sparse.csr_matrix
+            (n_edge, n_node)-shaped sparse matrix.
+        """
+        if mode == 'nodal':
+            adj = self.calculate_adjacency_matrix_node(
+                order1_only=order1_only).tocoo()
+        elif mode == 'elemental':
+            adj = self.calculate_adjacency_matrix_element(
+                order1_only=order1_only).tocoo()
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+        col = np.concatenate([
+            np.array([r, c]) for r, c in zip(adj.row, adj.col) if c > r])
+        row = np.arange(len(col)) // 2
+        data = np.ones(len(col))
+        data[1::2] = -1
+        gradient_matrix = sp.csr_matrix(
+            (data, (row, col)), shape=(int(len(col) / 2), adj.shape[0]),
+            dtype=int)
+        return gradient_matrix
+
     @functools.lru_cache(maxsize=15)
     def calculate_n_hop_adj(
             self, mode='elemental', n_hop=1, include_self_loop=True,
