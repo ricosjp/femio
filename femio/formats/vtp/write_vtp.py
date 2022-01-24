@@ -63,7 +63,7 @@ class VTPWriter(fem_writer.FEMWriter):
         with fileinput.input(file_name, inplace=True) as file:
             for line in file:
                 print(line.replace('Int64', 'Int32'), end='')
-        return
+        return file_name
 
     def _reorder_cell_data(self, data):
         return np.concatenate(

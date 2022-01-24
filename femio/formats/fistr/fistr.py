@@ -44,7 +44,7 @@ class FrontISTRData(FEMData):
         '341': 'tet',
         '342': 'tet2',
         '351': 'prism',
-        '352': 'prism2',
+        # '352': 'prism2',  # the order of nodes to be adjusted
         '361': 'hex',
         '362': 'hex2',
         '641': 'line',
@@ -160,6 +160,7 @@ class FrontISTRData(FEMData):
             self._read_initial_condisions(header_data)
             print('msh finish')
             print(dt.now())
+        return
 
     def _read_cnt_solution_type(self, string_series):
         if string_series is None:
@@ -309,7 +310,6 @@ class FrontISTRData(FEMData):
                         slice_data_columns=slice(1, None),
                         data_type=int)
                 })
-            return
         else:
             # Mixed element
             element_contents = header_data.extract_data(
@@ -332,7 +332,19 @@ class FrontISTRData(FEMData):
                         ids=np.concatenate(dict_id[element_type]),
                         data=np.concatenate(dict_data[element_type]))
                     for element_type in element_types})
+
+        self._reorder_prism()
+        return
+
+    def _reorder_prism(self):
+        if 'prism' not in self.elements:
             return
+        prism = self.elements['prism']
+        d = prism.data
+        prism.data = np.stack(
+            [d[:, 0], d[:, 2], d[:, 1], d[:, 3], d[:, 5], d[:, 4]], axis=-1)
+        self.elements['prism'] = prism
+        return
 
     def _convert_fistr_element_type(self, fistr_element_type):
         if fistr_element_type in self.DICT_FISTR_ELEMENTS:

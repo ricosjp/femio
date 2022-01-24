@@ -278,7 +278,7 @@ class FEMData(
         fem_data: FEMData
         """
         nodes = FEMAttribute(
-            'NODE', ids=np.arange(len(meshio_data.points))+1,
+            'NODE', ids=np.arange(len(meshio_data.points)) + 1,
             data=meshio_data.points)
 
         # NOTE: So far only tetra10 is supported
@@ -527,6 +527,8 @@ class FEMData(
         elif isinstance(written_files, list):
             for written_file in written_files:
                 print(f"File written in: {written_file}")
+        else:
+            raise ValueError(f"No written file found: {written_files}")
         return
 
     def add_extension_if_needed(self, file_name, ext):
@@ -629,9 +631,13 @@ class FEMData(
                 time_series=v.time_series)
             for k, v in self.nodal_data.items() if len(filter_) == len(v.ids)})
         elemental_data = self.elemental_data
-        return FEMData(
+        fem_data = FEMData(
             nodes, elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+        fem_data.materials = self.materials
+        fem_data.constraints = self.constraints
+        fem_data.settings = self.settings
+        return fem_data
 
     def to_surface(self, *, remove_unnecessary_nodes=True):
         """Convert the FEMData object to the surface data.
@@ -859,14 +865,14 @@ class FEMData(
             [positions, middle_positions], axis=0)
 
         positions_attribute = FEMAttribute(
-            'NODE', ids=np.arange(len(all_positions))+1,
+            'NODE', ids=np.arange(len(all_positions)) + 1,
             data=all_positions)
         n_positions = len(positions)
         segments = np.array([
             [edge[0], n_positions + i]
             for i, edge in enumerate(graphs[0].edges())]) + 1
         segments_attribute = FEMAttribute(
-            'line', ids=np.arange(len(segments))+1, data=segments)
+            'line', ids=np.arange(len(segments)) + 1, data=segments)
         graph_fem_data = FEMData(
             nodes=positions_attribute, elements={'line': segments_attribute})
         graph_fem_data.elemental_data.update_data(
@@ -919,8 +925,6 @@ class FEMData(
             selected = np.any(isin, axis=1)
         else:
             raise ValueError('kind must be all or any')
-        print(isin)
-        print(selected)
         elem_group = element_ids[selected]
         if element_group_name in self.element_groups:
             raise ValueError(
@@ -952,3 +956,72 @@ class FEMData(
         return FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
             elemental_data=elemental_data)
+
+    def resolve_degeneracy(self):
+        """Resolve degeneracy in hex elements, and
+        return resolved new FEMData."""
+
+        fem_data = FEMData(
+            nodes=self.nodes, elements=self.elements,
+            nodal_data=self.nodal_data, elemental_data={}
+        )
+        elements = fem_data.elements
+
+        if 'hex' not in self.elements:
+            return fem_data
+
+        hex_ids = elements['hex'].ids
+        hex_data = elements['hex'].data
+        equal_01 = hex_data[:, 0] == hex_data[:, 1]
+        equal_12 = hex_data[:, 1] == hex_data[:, 2]
+        equal_23 = hex_data[:, 2] == hex_data[:, 3]
+        equal_30 = hex_data[:, 3] == hex_data[:, 0]
+        if not all((
+            np.all(hex_data[equal_01, 4] == hex_data[equal_01, 5]),
+            np.all(hex_data[equal_12, 5] == hex_data[equal_12, 6]),
+            np.all(hex_data[equal_23, 6] == hex_data[equal_23, 7]),
+            np.all(hex_data[equal_30, 7] == hex_data[equal_30, 4]),
+        )):
+            raise ValueError("Unknown degeneracy pattern in hex")
+        nondegenerate = ~(equal_01 | equal_12 | equal_23 | equal_30)
+
+        if 'prism' in elements:
+            prism_ids = elements['prism'].ids
+            prism_data = elements['prism'].data
+        else:
+            prism_ids = np.empty(0, hex_ids.dtype)
+            prism_data = np.empty((0, 6), hex_data.dtype)
+
+        prism_ids = np.concatenate([
+            prism_ids,
+            hex_ids[equal_01],
+            hex_ids[equal_12],
+            hex_ids[equal_23],
+            hex_ids[equal_30],
+        ])
+        prism_data = np.concatenate([
+            prism_data,
+            hex_data[equal_01][:, [0, 3, 2, 4, 7, 6]],
+            hex_data[equal_12][:, [0, 3, 1, 4, 7, 5]],
+            hex_data[equal_23][:, [0, 2, 1, 4, 6, 5]],
+            hex_data[equal_30][:, [0, 2, 1, 4, 6, 5]],
+        ])
+        IDX = np.argsort(prism_ids)
+        prism_ids = prism_ids[IDX]
+        prism_data = prism_data[IDX]
+
+        hex_ids = hex_ids[nondegenerate]
+        hex_data = hex_data[nondegenerate]
+
+        if len(hex_ids) > 0:
+            hex = FEMAttribute('hex', ids=hex_ids, data=hex_data)
+            elements.update({'hex': hex})
+        else:
+            del elements['hex']
+            fem_data.elements._update_self()
+
+        if len(prism_ids) > 0:
+            prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
+            elements.update({'prism': prism})
+
+        return fem_data

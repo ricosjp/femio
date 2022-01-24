@@ -1009,6 +1009,153 @@ class SignalProcessorMixin:
             for grad_adj_wo_self in grad_adj_wo_selfs]
         return grad_adjs
 
+    def calculate_spatial_gradient_incidence_matrix(
+            self, mode='nodal', order1_only=True,
+            moment_matrix=True, normals=None, normal_weight=1., **kwargs):
+        """Calculate spatial gradient (not graph gradient) incidence matrix.
+
+        Parameters
+        ----------
+        mode: str, optional ['nodal', 'elemental']
+        order1_only: bool, optional [True]
+            If True, consider only order 1 nodes.
+        moment_matrix: bool, optional [True]
+            If True, scale the matrix with moment matrices, which are
+            tensor products of relative position tensors.
+        normals: bool or numpy.ndarray, optional [False]
+            If True, take into account surface normal vectors to consider
+            Neumann boundary condition. If numpy.ndarray is fed,
+            use them as normal vectors.
+        normal_weight: float, optional [1.]
+            Weight of the normal vector.
+
+        Returns
+        -------
+        spatial_gradient_matrix: scipy.sparse.csr_matrix
+            Spatial gradient matrix with [n_edge, n_vertex] shape.
+        edge_integration_matrix: list[scipy.sparse.csr_matrix]
+            Three sparse matrices whose shapes are [n_vertex, n_edge].
+        """
+        dim = 3
+
+        if mode == 'elemental':
+            raise NotImplementedError
+            positions = self.convert_nodal2elemental(
+                'NODE', calc_average=True)
+
+        elif mode == 'nodal':
+            if order1_only:
+                filter_ = self.filter_first_order_nodes()
+            else:
+                filter_ = np.ones(len(self.nodes.ids), dtype=bool)
+            ids = self.nodes.ids[filter_]
+            positions = self.nodal_data.get_attribute_data('NODE')[filter_]
+
+        else:
+            raise ValueError(f"Unknown mode: {mode}")
+
+        edge_gradient_matrix = self.calculate_edge_gradient_matrix(
+            mode=mode, order1_only=order1_only)
+        diff_positions = edge_gradient_matrix.dot(positions)
+        norm_diff_ppsitions = np.linalg.norm(
+            diff_positions, axis=1, keepdims=True)
+        normalized_diff_positions = diff_positions / norm_diff_ppsitions
+        edge_incidence_matrix = np.abs(edge_gradient_matrix)
+
+        spatial_gradient_matrix = edge_gradient_matrix.multiply(
+            1 / norm_diff_ppsitions)
+        edge_integration_matrix = [
+            edge_incidence_matrix.multiply(
+                normalized_diff_positions[:, [i]]).T for i in range(dim)]
+
+        if moment_matrix:
+            tensor_normalized_diff_positions = np.einsum(
+                'ij,ik->ijk',
+                normalized_diff_positions, normalized_diff_positions)
+            moment_tensors = np.stack([
+                np.stack([
+                    edge_incidence_matrix.T.dot(
+                        tensor_normalized_diff_positions[:, i, j])
+                    for i in range(dim)], axis=-1)
+                for j in range(dim)], axis=-1)
+
+            if not (normals is None or normals is False):
+                if mode == 'elemental':
+                    if normals is True:
+                        surface_normals = functions.normalize(
+                            self.convert_nodal2elemental(
+                                self.calculate_surface_normals()),
+                            keep_zeros=True)
+                    elif isinstance(normals, np.ndarray):
+                        surface_normals = normals
+                    else:
+                        raise ValueError(
+                            f"Unexpected normals' format: {normals}")
+                    self.elemental_data.update_data(
+                        ids, {'elemental_normals': surface_normals},
+                        allow_overwrite=True)
+                else:
+                    if normals is True:
+                        surface_normals = self.calculate_surface_normals()[
+                            filter_]
+                    elif isinstance(normals, np.ndarray):
+                        surface_normals = normals
+                    else:
+                        raise ValueError(
+                            f"Unexpected normals' format: {normals}")
+                    self.nodal_data.update_data(
+                        ids, {'filtered_surface_normals': surface_normals},
+                        allow_overwrite=True)
+
+                normal_moment_tensors = np.einsum(
+                    'ij,ik->ijk', surface_normals, surface_normals)
+                weighted_normal_moment_tensors = normal_moment_tensors \
+                    * normal_weight
+                weighted_surface_normals = normal_weight * surface_normals
+
+                if mode == 'elemental':
+                    self.elemental_data.update_data(
+                        ids, {
+                            'weighted_surface_normals':
+                            weighted_surface_normals},
+                        allow_overwrite=True)
+                elif mode == 'nodal':
+                    self.nodal_data.update_data(
+                        ids, {
+                            'weighted_surface_normals':
+                            weighted_surface_normals},
+                        allow_overwrite=True)
+
+                moment_tensors = moment_tensors \
+                    + weighted_normal_moment_tensors
+
+            inversed_moment_tensors = self._inverse_tensors(moment_tensors)
+            edge_integration_matrix = [
+                np.sum([
+                    d.T.multiply(inversed_moment_tensors[:, k, l]).T
+                    for d, l in zip(edge_integration_matrix, range(dim))])
+                for k in range(dim)]
+
+            if mode == 'elemental':
+                self.elemental_data.update_data(
+                    ids, {'inversed_moment_tensors': inversed_moment_tensors},
+                    allow_overwrite=True)
+            elif mode == 'nodal':
+                self.nodal_data.update_data(
+                    ids, {'inversed_moment_tensors': inversed_moment_tensors},
+                    allow_overwrite=True)
+            else:
+                raise ValueError(f"Unknown mode: {mode}")
+
+        else:
+            adj = self.calculate_adjacency_matrix_node(order1_only=order1_only)
+            degree = (adj - sp.eye(*adj.shape)).sum(axis=1)
+            inv_degree = 1 / degree
+            edge_integration_matrix = [
+                dim * d.multiply(inv_degree) for d in edge_integration_matrix]
+
+        return spatial_gradient_matrix, edge_integration_matrix
+
     def calculate_distance_kernel_adj(
             self, kernel, distance_adj, **kwargs):
         if kernel == 'exp':

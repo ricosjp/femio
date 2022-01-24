@@ -37,7 +37,7 @@ class PolyVTKWriter(fem_writer.FEMWriter):
             if element_type == 'polyhedron':
                 continue
             element_type_id = self.DICT_ELEMENT_TYPE_TO_VTK_ID[element_type]
-            for element in element_data.data - 1:
+            for element in self.fem_data.nodes.ids2indices(element_data.data):
                 unstructured_grid.insert_next_cell(element_type_id, element)
 
         # Add cell data
@@ -70,7 +70,7 @@ class PolyVTKWriter(fem_writer.FEMWriter):
         with fileinput.input(file_name, inplace=True) as file:
             for line in file:
                 print(line.replace('Int64', 'Int32'), end='')
-        return
+        return file_name
 
     def _reorder_cell_data(self, data):
         return np.concatenate(

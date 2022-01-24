@@ -1,6 +1,7 @@
 import datetime as dt
 import functools
 
+import heapq
 import networkx as nx
 from numba import njit
 import numpy as np
@@ -134,7 +135,7 @@ class GraphProcessorMixin:
         N = len(data)
 
         # node_0, node_1, node_2, elem_id, surf_id
-        surfs = np.empty((4 * N, 5), np.int32)
+        surfs = np.empty((4 * N, 5), np.int64)
         surfs[0 * N:1 * N, :3] = data[:, [0, 1, 2]]
         surfs[1 * N:2 * N, :3] = data[:, [0, 1, 3]]
         surfs[2 * N:3 * N, :3] = data[:, [1, 2, 3]]
@@ -308,15 +309,15 @@ class GraphProcessorMixin:
             face_ids = (
                 method([
                     [
-                        [e[0], e[2], e[1]],
-                        [e[3], e[4], e[5]],
+                        [e[0], e[1], e[2]],
+                        [e[3], e[5], e[4]],
                     ]
                     for e in elements_data]),
                 method([
                     [
-                        [e[0], e[1], e[4], e[3]],
-                        [e[1], e[2], e[5], e[4]],
-                        [e[0], e[3], e[5], e[2]],
+                        [e[0], e[3], e[4], e[1]],
+                        [e[1], e[4], e[5], e[2]],
+                        [e[0], e[2], e[5], e[3]],
                     ]
                     for e in elements_data]))
         elif element_type == 'hexprism':
@@ -534,6 +535,69 @@ class GraphProcessorMixin:
             shape=(len(nodes), len(elements)))
         return incidence_matrix
 
+    @functools.lru_cache(maxsize=2)
+    def calculate_laplacian_matrix(self, mode='nodal', order1_only=True):
+        """Calculate edge-based graph incidence matrix, which is
+        (n_edge, n_node)-shaped matrix with bool.
+
+        Parameters
+        ----------
+        mode: str, optional, ['nodal', 'elemental']
+        order1_only: bool, optional
+            If True, generate incidence matrix based on only order-one nodes.
+
+        Returns
+        -------
+        incidence_matrix: scipy.sparse.csr_matrix
+            (n_edge, n_node)-shaped sparse matrix.
+        """
+        if mode == 'nodal':
+            adj = self.calculate_adjacency_matrix_node(
+                order1_only=order1_only)
+        elif mode == 'elemental':
+            adj = self.calculate_adjacency_matrix_element(
+                order1_only=order1_only)
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+        adj_wo_loop = adj.astype(int) - sp.eye(*adj.shape, dtype=int)
+        degree = sp.diags(np.ravel(adj_wo_loop.sum(axis=1)), dtype=int)
+        return adj_wo_loop - degree
+
+    @functools.lru_cache(maxsize=1)
+    def calculate_edge_gradient_matrix(self, mode='nodal', order1_only=True):
+        """Calculate edge-based graph gradient matrix, which is
+        (n_edge, n_vertex)-shaped matrix with bool. n_vertex can be either
+        n_node or n_element, depending on the `mode` option.
+
+        Parameters
+        ----------
+        mode: str, optional, ['nodal', 'elemental']
+        order1_only: bool, optional
+            If True, generate incidence matrix based on only order-one nodes.
+
+        Returns
+        -------
+        gradient_matrix: scipy.sparse.csr_matrix
+            (n_edge, n_node)-shaped sparse matrix.
+        """
+        if mode == 'nodal':
+            adj = self.calculate_adjacency_matrix_node(
+                order1_only=order1_only).tocoo()
+        elif mode == 'elemental':
+            adj = self.calculate_adjacency_matrix_element(
+                order1_only=order1_only).tocoo()
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+        col = np.concatenate([
+            np.array([r, c]) for r, c in zip(adj.row, adj.col) if c > r])
+        row = np.arange(len(col)) // 2
+        data = np.ones(len(col))
+        data[1::2] = -1
+        gradient_matrix = sp.csr_matrix(
+            (data, (row, col)), shape=(int(len(col) / 2), adj.shape[0]),
+            dtype=int)
+        return gradient_matrix
+
     @functools.lru_cache(maxsize=15)
     def calculate_n_hop_adj(
             self, mode='elemental', n_hop=1, include_self_loop=True,
@@ -635,7 +699,7 @@ class GraphProcessorMixin:
             def is_nbd(w):
                 x1, y1, z1 = node_pos[w]
                 dx, dy, dz = x - x1, y - y1, z - z1
-                return dx*dx + dy*dy + dz*dz <= max_dist**2
+                return dx * dx + dy * dy + dz * dz <= max_dist**2
 
             que = [v]
             visited[v] = 1
@@ -675,14 +739,14 @@ class GraphProcessorMixin:
         res = [0] * 0
 
         for e in range(E):
-            v_ids = indices_e[indptr_e[e]:indptr_e[e+1]]
+            v_ids = indices_e[indptr_e[e]:indptr_e[e + 1]]
             xyz = node_pos[v_ids]
 
             def is_nbd(v):
                 x, y, z = node_pos[v]
                 for x1, y1, z1 in xyz:
                     dx, dy, dz = x - x1, y - y1, z - z1
-                    if dx*dx + dy*dy + dz*dz <= max_dist**2:
+                    if dx * dx + dy * dy + dz * dz <= max_dist**2:
                         return True
                 return False
 
@@ -784,3 +848,1132 @@ class GraphProcessorMixin:
             raise ValueError(f"Unexpected mode: {mode}")
 
         return adj
+
+    @staticmethod
+    @njit
+    def build_octree_node(points, boundingbox):
+        N = len(points)
+        xmin, xmax, ymin, ymax, zmin, zmax = boundingbox
+        w0 = max(xmax - xmin, ymax - ymin, zmax - zmin) * 0.51
+        maxsize = 19173961
+        node_xyzw = np.empty((maxsize, 4))
+        node_xyzw[0] = (
+            (xmin + xmax) / 2,
+            (ymin + ymax) / 2,
+            (zmin + zmax) / 2,
+            w0)
+        for v in range(1, maxsize):
+            p = (v - 1) >> 3
+            r = (v - 1) & 7
+            px, py, pz, pw = node_xyzw[p]
+            vw = pw / 2
+            vx = px - vw if r & 4 else px + vw
+            vy = py - vw if r & 2 else py + vw
+            vz = pz - vw if r & 1 else pz + vw
+            node_xyzw[v] = (vx, vy, vz, vw)
+
+        node_pt, sz = np.empty((9 * N, 2), np.int64), 0
+
+        def add(v, i):
+            nonlocal sz
+            node_pt[sz], sz = (v, i), sz + 1
+
+        for i in range(N):
+            x, y, z = points[i]
+            v = 0
+            add(v, i)
+            for _ in range(8):
+                vx, vy, vz, vw = node_xyzw[v]
+                assert vx - vw <= x <= vx + vw
+                assert vy - vw <= y <= vy + vw
+                assert vz - vw <= z <= vz + vw
+                for r in range(8):
+                    c = (v << 3) + r + 1
+                    cx, cy, cz, cw = node_xyzw[c]
+                    if not (cx - cw <= x <= cx + cw):
+                        continue
+                    if not (cy - cw <= y <= cy + cw):
+                        continue
+                    if not (cz - cw <= z <= cz + cw):
+                        continue
+                    v = c
+                    break
+                add(v, i)
+        ID = np.argsort(node_pt[:, 0])
+        node_pt = node_pt[ID]
+        idx = np.searchsorted(node_pt[:, 0], np.arange(maxsize + 1))
+        return (points, node_xyzw, node_pt, idx)
+
+    @staticmethod
+    @njit
+    def build_octree_element(triangles, boundingbox):
+        N = len(triangles)
+        n_sample = min(100 * N, 1 << 24)
+        areas = np.empty(N)
+        for n in range(N):
+            A, B, C = triangles[n]
+            x1, y1, z1 = B - A
+            x2, y2, z2 = C - A
+            x3 = y1 * z2 - y2 * z1
+            y3 = z1 * x2 - z2 * x1
+            z3 = x1 * y2 - x2 * y1
+            areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
+        sample_sz = (np.append(0, np.cumsum(areas)) * n_sample //
+                     areas.sum()).astype(np.int64)
+        sample_sz = sample_sz[1:] - sample_sz[:-1]
+        sample_sz = np.maximum(sample_sz, 1)
+        n_sample = sample_sz.sum()
+
+        xmin, xmax, ymin, ymax, zmin, zmax = boundingbox
+        w0 = max(xmax - xmin, ymax - ymin, zmax - zmin) * 0.51
+        maxsize = 19173961
+        node_xyzw = np.empty((maxsize, 4))
+        node_xyzw[0] = (
+            (xmin + xmax) / 2,
+            (ymin + ymax) / 2,
+            (zmin + zmax) / 2,
+            w0)
+        for v in range(1, maxsize):
+            p = (v - 1) >> 3
+            r = (v - 1) & 7
+            px, py, pz, pw = node_xyzw[p]
+            vw = pw / 2
+            vx = px - vw if r & 4 else px + vw
+            vy = py - vw if r & 2 else py + vw
+            vz = pz - vw if r & 1 else pz + vw
+            node_xyzw[v] = (vx, vy, vz, vw)
+
+        node_tri, sz = np.empty((9 * n_sample, 2), np.int64), 0
+
+        def create_sample(n):
+            s, t = np.random.random(2)
+            if s + t >= 1.0:
+                s, t = 1.0 - s, 1.0 - t
+            A, B, C = triangles[n]
+            return (1 - s - t) * A + s * B + t * C
+
+        def add(v, i):
+            nonlocal sz
+            node_tri[sz], sz = (v, i), sz + 1
+
+        for i in range(N):
+            for _ in range(sample_sz[i]):
+                x, y, z = create_sample(i)
+                v = 0
+                add(v, i)
+                for _ in range(8):
+                    vx, vy, vz, vw = node_xyzw[v]
+                    for r in range(8):
+                        c = (v << 3) + r + 1
+                        cx, cy, cz, cw = node_xyzw[c]
+                        if not (cx - cw <= x <= cx + cw):
+                            continue
+                        if not (cy - cw <= y <= cy + cw):
+                            continue
+                        if not (cz - cw <= z <= cz + cw):
+                            continue
+                        v = c
+                        break
+                    add(v, i)
+
+        ID = np.argsort(node_tri[:, 1], kind='mergesort')
+        node_tri = node_tri[ID]
+        ID = np.argsort(node_tri[:, 0], kind='mergesort')
+        node_tri = node_tri[ID]
+        use = np.ones(len(node_tri), np.bool_)
+        for i in range(1, len(node_tri)):
+            if node_tri[i - 1, 0] != node_tri[i, 0]:
+                continue
+            if node_tri[i - 1, 1] != node_tri[i, 1]:
+                continue
+            use[i] = False
+        node_tri = node_tri[use]
+        idx = np.searchsorted(node_tri[:, 0], np.arange(maxsize + 1))
+        return (triangles, node_xyzw, node_tri, idx)
+
+    @staticmethod
+    @njit
+    def _nns_from_nodes_to_nodes(
+        nodes, octree, k, distance_upper_bound=np.inf
+    ):
+        points, node_xyzw, node_pt, idx = octree
+
+        def possible_dist_min(node_id, x, y, z):
+            nx, ny, nz, nw = node_xyzw[node_id]
+            x1 = min(nx + nw, max(nx - nw, x))
+            y1 = min(ny + nw, max(ny - nw, y))
+            z1 = min(nz + nw, max(nz - nw, z))
+            return ((x - x1) ** 2 + (y - y1) ** 2 + (z - z1) ** 2) ** .5
+
+        def calc_frm(x, y, z):
+            que = [(0.0, 0)]  # priority queue min dist possible, node_id)
+            res_q = [(-np.inf, -1)] * k
+
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > -res_q[0][0] or d > distance_upper_bound:
+                    continue
+
+                if 8 * node_id + 1 < len(node_xyzw):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx[to + 1] - idx[to] == 0:
+                            continue
+                        d = possible_dist_min(to, x, y, z)
+                        heapq.heappush(que, (d, to))
+                    continue
+                # leaf node
+                for point_id in node_pt[idx[node_id]: idx[node_id + 1], 1]:
+                    px, py, pz = points[point_id]
+                    d = ((x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2) ** .5
+                    if d > distance_upper_bound:
+                        continue
+                    heapq.heappushpop(res_q, (-d, point_id))
+            nbd_indices = np.empty(k, np.int64)
+            vectors = np.empty((k, 3), np.float64)
+            for i in range(k):
+                j = heapq.heappop(res_q)[1]
+                nbd_indices[i] = j
+                if j == -1:
+                    vectors[i] = (np.inf, np.inf, np.inf)
+                else:
+                    vectors[i][0] = points[j, 0] - x
+                    vectors[i][1] = points[j, 1] - y
+                    vectors[i][2] = points[j, 2] - z
+            return nbd_indices[::-1], vectors[::-1]
+
+        N = len(nodes)
+        nbd_indices = np.empty((N, k), np.int64)
+        vectors = np.empty((N, k, 3), np.float64)
+        for i in range(N):
+            x, y, z = nodes[i]
+            nbd_indices[i], vectors[i] = calc_frm(x, y, z)
+        return nbd_indices, vectors
+
+    @staticmethod
+    @njit
+    def _calc_directed_hausdorff_nodes(
+        octree_A, octree_B
+    ):
+        points_A, node_xyzw_A, node_pt_A, idx_A = octree_A
+        points_B, node_xyzw_B, node_pt_B, idx_B = octree_B
+
+        def possible_dist_max_node(i, j):
+            dw = node_xyzw_A[i, 3] + node_xyzw_B[j, 3]
+            dx = abs(node_xyzw_A[i, 0] - node_xyzw_B[j, 0]) + dw
+            dy = abs(node_xyzw_A[i, 1] - node_xyzw_B[j, 1]) + dw
+            dz = abs(node_xyzw_A[i, 2] - node_xyzw_B[j, 2]) + dw
+            return (dx * dx + dy * dy + dz * dz) ** .5
+
+        def possible_dist_range(node_id, x, y, z):
+            nx, ny, nz, nw = node_xyzw_B[node_id]
+            dx1 = abs(min(nx + nw, max(nx - nw, x)) - x)
+            dy1 = abs(min(ny + nw, max(ny - nw, y)) - y)
+            dz1 = abs(min(nz + nw, max(nz - nw, z)) - z)
+            dx2 = max(abs(nx - nw - x), abs(nx + nw - x))
+            dy2 = max(abs(ny - nw - y), abs(ny + nw - y))
+            dz2 = max(abs(nz - nw - z), abs(nz + nw - z))
+            lo = (dx1 * dx1 + dy1 * dy1 + dz1 * dz1) ** .5
+            hi = (dx2 * dx2 + dy2 * dy2 + dz2 * dz2) ** .5
+            return lo, hi
+
+        def calc_frm_node(i):
+            que = [(0.0, 0)]
+            dist = np.inf
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > dist:
+                    continue
+                if 8 * node_id + 1 < len(node_xyzw_B):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx_B[to + 1] - idx_B[to] == 0:
+                            continue
+                        d = possible_dist_max_node(i, to)
+                        if d < dist:
+                            heapq.heappush(que, (d, to))
+                    continue
+                # leaf node
+                dist = min(dist, possible_dist_max_node(i, node_id))
+            return dist
+
+        que = [(0.0, 0)] * 0
+        maxsize = len(node_xyzw_A)
+        for i in range(maxsize):
+            if 8 * i + 1 < maxsize or idx_A[i + 1] == idx_A[i]:
+                continue
+            que.append((-calc_frm_node(i), i))
+        heapq.heapify(que)
+
+        HD = 0.0
+
+        def calc_frm(x, y, z):
+            que = [(0.0, 0)]  # priority queue min dist possible, node_id)
+            dist = np.inf
+
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > dist:
+                    continue
+
+                if 8 * node_id + 1 < len(node_xyzw_B):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx_B[to + 1] - idx_B[to] == 0:
+                            continue
+                        lo, hi = possible_dist_range(to, x, y, z)
+                        if hi <= HD:
+                            return 0.0
+                        heapq.heappush(que, (lo, to))
+                    continue
+                # leaf node
+                PID = node_pt_B[idx_B[node_id]: idx_B[node_id + 1], 1]
+                for point_id in PID:
+                    px, py, pz = points_B[point_id]
+                    d = ((x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2) ** .5
+                    dist = min(dist, d)
+            return dist
+
+        while que:
+            x, i = heapq.heappop(que)
+            dist_upper = -x
+            if dist_upper <= HD:
+                break
+            for point_id in node_pt_A[idx_A[i]:idx_A[i + 1], 1]:
+                x, y, z = points_A[point_id]
+                HD = max(HD, calc_frm(x, y, z))
+        return HD
+
+    @staticmethod
+    @njit
+    def _nns_from_elements_to_nodes(
+        tris, octree, k, distance_upper_bound=np.inf
+    ):
+        N = len(tris)
+        n_sample = min(100 * N, 1 << 24)
+        areas = np.empty(N)
+        for n in range(N):
+            A, B, C = tris[n]
+            x1, y1, z1 = B - A
+            x2, y2, z2 = C - A
+            x3 = y1 * z2 - y2 * z1
+            y3 = z1 * x2 - z2 * x1
+            z3 = x1 * y2 - x2 * y1
+            areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
+        areas = np.append(0, np.cumsum(areas))
+        sample_sz = (areas * n_sample // areas[-1]).astype(np.int64)
+        sample_sz = sample_sz[1:] - sample_sz[:-1]
+        sample_sz = np.maximum(sample_sz, 1)
+
+        def distance_triangle_and_point(triangle, point):
+            p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+            p = point
+            n = np.cross(p1 - p0, p2 - p0)
+            n /= (n * n).sum()**.5
+            n0 = np.cross(n, p2 - p1)
+            n1 = np.cross(n, p0 - p2)
+            n2 = np.cross(n, p1 - p0)
+            side0 = (n0 * (p0 - p1)).sum() * (n0 * (p - p1)).sum() > 0
+            side1 = (n1 * (p1 - p2)).sum() * (n1 * (p - p2)).sum() > 0
+            side2 = (n2 * (p2 - p0)).sum() * (n2 * (p - p0)).sum() > 0
+            if side0 and side1 and side2:
+                k = (n * (p - p0)).sum()
+                q = p - k * n
+                return ((p - q)**2).sum()**.5
+
+            min_dist = ((p - p0)**2).sum()**.5
+
+            for _ in range(3):
+                p0, p1, p2 = p1, p2, p0
+                d = p1 - p0
+                t = ((p - p0) * d).sum()
+                t /= (d * d).sum()
+                if t < 0:
+                    t = 0
+                elif t > 1:
+                    t = 1
+                q = p0 + t * d
+                dist = ((p - q)**2).sum()**.5
+                if min_dist > dist:
+                    min_dist = dist
+            return min_dist
+
+        def create_sample(n):
+            s, t = np.random.random(2)
+            if s + t >= 1.0:
+                s, t = 1.0 - s, 1.0 - t
+            A, B, C = tris[n]
+            return (1 - s - t) * A + s * B + t * C
+
+        points, node_xyzw, node_pt, idx = octree
+
+        def possible_dist_min(node_id, x, y, z):
+            nx, ny, nz, nw = node_xyzw[node_id]
+            x1 = min(nx + nw, max(nx - nw, x))
+            y1 = min(ny + nw, max(ny - nw, y))
+            z1 = min(nz + nw, max(nz - nw, z))
+            return ((x - x1) ** 2 + (y - y1) ** 2 + (z - z1) ** 2) ** .5
+
+        def calc_frm(x, y, z):
+            # priority queue min dist possible, frm_pt, node_id)
+            que = [(0.0, 0)]
+            res_q = [(-np.inf, -1)] * k
+
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > -res_q[0][0] or d > distance_upper_bound:
+                    continue
+                if 8 * node_id + 1 < len(node_xyzw):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx[to + 1] - idx[to] == 0:
+                            continue
+                        d = possible_dist_min(to, x, y, z)
+                        heapq.heappush(que, (d, to))
+                    continue
+                # leaf node
+                for point_id in node_pt[idx[node_id]: idx[node_id + 1], 1]:
+                    px, py, pz = points[point_id]
+                    d = ((x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2) ** .5
+                    if d > distance_upper_bound:
+                        continue
+                    heapq.heappushpop(res_q, (-d, point_id))
+            return res_q
+
+        nbd_indices = np.empty((N, k), np.int64)
+        dists = np.empty((N, k), np.float64)
+
+        done = np.zeros(len(points), np.bool_)
+
+        for n in range(N):
+            res_q = [(-np.inf, -1)] * k
+            for _ in range(sample_sz[n]):
+                x, y, z = create_sample(n)
+                for v, i in calc_frm(x, y, z):
+                    heapq.heappush(res_q, (v, i))
+
+            cand = [0] * 0
+            while res_q:
+                if len(cand) == k:
+                    break
+                i = heapq.heappop(res_q)[1]
+                if i == -1 or done[i]:
+                    continue
+                done[i] = 1
+                cand.append(i)
+            for i in cand:
+                done[i] = 0
+
+            cand += [-1] * (k - len(cand))
+            for i in range(k):
+                j = cand[i]
+                nbd_indices[n, i] = j
+                if j == -1:
+                    dists[n, i] = np.inf
+                else:
+                    dists[n, i] = distance_triangle_and_point(
+                        tris[n], points[j])
+            ID = np.argsort(dists[n])
+            dists[n] = dists[n][ID]
+            nbd_indices[n] = nbd_indices[n][ID]
+        return nbd_indices, dists
+
+    @staticmethod
+    @njit
+    def _nns_from_nodes_to_elements(
+        nodes, octree_e, k, distance_upper_bound=np.inf
+    ):
+        triangles, node_xyzw, node_tri, idx = octree_e
+
+        def distance_triangle_and_point(triangle, point):
+            p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+            p = point
+            n = np.cross(p1 - p0, p2 - p0)
+            n /= (n * n).sum()**.5
+            n0 = np.cross(n, p2 - p1)
+            n1 = np.cross(n, p0 - p2)
+            n2 = np.cross(n, p1 - p0)
+            side0 = (n0 * (p0 - p1)).sum() * (n0 * (p - p1)).sum() > 0
+            side1 = (n1 * (p1 - p2)).sum() * (n1 * (p - p2)).sum() > 0
+            side2 = (n2 * (p2 - p0)).sum() * (n2 * (p - p0)).sum() > 0
+            if side0 and side1 and side2:
+                k = (n * (p - p0)).sum()
+                q = p - k * n
+                return ((p - q)**2).sum()**.5
+
+            min_dist = ((p - p0)**2).sum()**.5
+
+            for _ in range(3):
+                p0, p1, p2 = p1, p2, p0
+                d = p1 - p0
+                t = ((p - p0) * d).sum()
+                t /= (d * d).sum()
+                if t < 0:
+                    t = 0
+                elif t > 1:
+                    t = 1
+                q = p0 + t * d
+                dist = ((p - q)**2).sum()**.5
+                if min_dist > dist:
+                    min_dist = dist
+            return min_dist
+
+        def possible_dist_min(node_id, x, y, z):
+            nx, ny, nz, nw = node_xyzw[node_id]
+            x1 = min(nx + nw, max(nx - nw, x))
+            y1 = min(ny + nw, max(ny - nw, y))
+            z1 = min(nz + nw, max(nz - nw, z))
+            return ((x - x1) ** 2 + (y - y1) ** 2 + (z - z1) ** 2) ** .5
+
+        def calc_frm(nid):
+            x, y, z = nodes[nid]
+            # priority queue min dist possible, frm_pt, node_id)
+            que = [(0.0, 0)]
+            res_q = [(-np.inf, -1)] * k
+
+            done = set([0] * 0)
+
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > -res_q[0][0] or d > distance_upper_bound:
+                    continue
+                if 8 * node_id + 1 < len(node_xyzw):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx[to + 1] - idx[to] == 0:
+                            continue
+                        d = possible_dist_min(to, x, y, z)
+                        heapq.heappush(que, (d, to))
+                    continue
+                # leaf node
+                for tri_id in node_tri[idx[node_id]: idx[node_id + 1], 1]:
+                    if tri_id in done:
+                        continue
+                    done.add(tri_id)
+                    d = distance_triangle_and_point(
+                        triangles[tri_id], nodes[nid])
+                    heapq.heappushpop(res_q, (-d, tri_id))
+            return res_q
+
+        N = len(nodes)
+
+        nbd_indices = np.empty((N, k), np.int64)
+        dists = np.empty((N, k), np.float64)
+        for n in range(N):
+            res_q = calc_frm(n)
+            for i in range(k):
+                x, j = heapq.heappop(res_q)
+                nbd_indices[n, i] = j
+                dists[n, i] = -x
+            ID = np.argsort(dists[n])
+            nbd_indices[n] = nbd_indices[n][ID]
+            dists[n] = dists[n][ID]
+        return nbd_indices, dists
+
+    @staticmethod
+    @njit
+    def _nns_from_elements_to_elements(
+        tris, octree_e, k, distance_upper_bound=np.inf
+    ):
+        triangles, node_xyzw, node_tri, idx = octree_e
+
+        N = len(tris)
+        n_sample = min(100 * N, 1 << 24)
+        areas = np.empty(N)
+        for n in range(N):
+            A, B, C = tris[n]
+            x1, y1, z1 = B - A
+            x2, y2, z2 = C - A
+            x3 = y1 * z2 - y2 * z1
+            y3 = z1 * x2 - z2 * x1
+            z3 = x1 * y2 - x2 * y1
+            areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
+        areas = np.append(0, np.cumsum(areas))
+        sample_sz = (areas * n_sample // areas[-1]).astype(np.int64)
+        sample_sz = sample_sz[1:] - sample_sz[:-1]
+        sample_sz = np.maximum(sample_sz, 1)
+
+        def create_sample(n):
+            s, t = np.random.random(2)
+            if s + t >= 1.0:
+                s, t = 1.0 - s, 1.0 - t
+            A, B, C = tris[n]
+            return (1 - s - t) * A + s * B + t * C
+
+        def distance_triangle_and_point(triangle, point):
+            p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+            p = point
+            n = np.cross(p1 - p0, p2 - p0)
+            n /= (n * n).sum()**.5
+            n0 = np.cross(n, p2 - p1)
+            n1 = np.cross(n, p0 - p2)
+            n2 = np.cross(n, p1 - p0)
+            side0 = (n0 * (p0 - p1)).sum() * (n0 * (p - p1)).sum() > 0
+            side1 = (n1 * (p1 - p2)).sum() * (n1 * (p - p2)).sum() > 0
+            side2 = (n2 * (p2 - p0)).sum() * (n2 * (p - p0)).sum() > 0
+            if side0 and side1 and side2:
+                k = (n * (p - p0)).sum()
+                q = p - k * n
+                return ((p - q)**2).sum()**.5
+
+            min_dist = ((p - p0)**2).sum()**.5
+
+            for _ in range(3):
+                p0, p1, p2 = p1, p2, p0
+                d = p1 - p0
+                t = ((p - p0) * d).sum()
+                t /= (d * d).sum()
+                if t < 0:
+                    t = 0
+                elif t > 1:
+                    t = 1
+                q = p0 + t * d
+                dist = ((p - q)**2).sum()**.5
+                if min_dist > dist:
+                    min_dist = dist
+            return min_dist
+
+        def hausdorff_dist_tri(tri1, tri2):
+            HD = 0.0
+            for _ in range(2):
+                tri1, tri2 = tri2, tri1
+                for i in range(3):
+                    p = tri1[i]
+                    HD = max(HD, distance_triangle_and_point(tri2, p))
+            return HD
+
+        def possible_dist_min(node_id, x, y, z):
+            nx, ny, nz, nw = node_xyzw[node_id]
+            x1 = min(nx + nw, max(nx - nw, x))
+            y1 = min(ny + nw, max(ny - nw, y))
+            z1 = min(nz + nw, max(nz - nw, z))
+            return ((x - x1) ** 2 + (y - y1) ** 2 + (z - z1) ** 2) ** .5
+
+        def calc_frm(x, y, z):
+            # priority queue min dist possible, frm_pt, node_id)
+            que = [(0.0, 0)]
+            res_q = [(-np.inf, -1)] * k
+
+            done = set([0] * 0)
+
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > -res_q[0][0] or d > distance_upper_bound:
+                    continue
+                if 8 * node_id + 1 < len(node_xyzw):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx[to + 1] - idx[to] == 0:
+                            continue
+                        d = possible_dist_min(to, x, y, z)
+                        heapq.heappush(que, (d, to))
+                    continue
+                # leaf node
+                for tri_id in node_tri[idx[node_id]: idx[node_id + 1], 1]:
+                    if tri_id in done:
+                        continue
+                    done.add(tri_id)
+                    d = distance_triangle_and_point(
+                        triangles[tri_id], np.array([x, y, z]))
+                    heapq.heappushpop(res_q, (-d, tri_id))
+            return res_q
+
+        nbd_indices = np.empty((N, k), np.int64)
+        dists = np.empty((N, k), np.float64)
+
+        done = np.zeros(len(triangles), np.bool_)
+
+        for n in range(N):
+            res_q = [(-np.inf, -1)] * k
+            for _ in range(sample_sz[n]):
+                x, y, z = create_sample(n)
+                for v, i in calc_frm(x, y, z):
+                    heapq.heappush(res_q, (v, i))
+
+            cand = [0] * 0
+            while res_q:
+                if len(cand) == k:
+                    break
+                i = heapq.heappop(res_q)[1]
+                if i == -1 or done[i]:
+                    continue
+                done[i] = 1
+                cand.append(i)
+            for i in cand:
+                done[i] = 0
+
+            cand += [-1] * (k - len(cand))
+            for i in range(k):
+                j = cand[i]
+                nbd_indices[n, i] = j
+                if j == -1:
+                    dists[n, i] = np.inf
+                else:
+                    dists[n, i] = hausdorff_dist_tri(tris[n], triangles[j])
+            ID = np.argsort(dists[n])
+            dists[n] = dists[n][ID]
+            nbd_indices[n] = nbd_indices[n][ID]
+        return nbd_indices, dists
+
+    @staticmethod
+    @njit
+    def _calc_directed_hausdorff_elements(
+        octree_A, octree_B
+    ):
+        tris_A, node_xyzw_A, node_tri_A, idx_A = octree_A
+        tris_B, node_xyzw_B, node_tri_B, idx_B = octree_B
+
+        N = len(tris_A)
+        n_sample = min(100 * N, 1 << 24)
+        areas = np.empty(N)
+        for n in range(N):
+            A, B, C = tris_A[n]
+            x1, y1, z1 = B - A
+            x2, y2, z2 = C - A
+            x3 = y1 * z2 - y2 * z1
+            y3 = z1 * x2 - z2 * x1
+            z3 = x1 * y2 - x2 * y1
+            areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
+        areas = np.append(0, np.cumsum(areas))
+        sample_sz = (areas * n_sample // areas[-1]).astype(np.int64)
+        sample_sz = sample_sz[1:] - sample_sz[:-1]
+        sample_sz = np.maximum(sample_sz, 1)
+
+        def create_sample(n):
+            s, t = np.random.random(2)
+            if s + t >= 1.0:
+                s, t = 1.0 - s, 1.0 - t
+            A, B, C = tris_A[n]
+            return (1 - s - t) * A + s * B + t * C
+
+        def distance_triangle_and_point(triangle, point):
+            p0, p1, p2 = triangle[0], triangle[1], triangle[2]
+            p = point
+            n = np.cross(p1 - p0, p2 - p0)
+            n /= (n * n).sum()**.5
+            n0 = np.cross(n, p2 - p1)
+            n1 = np.cross(n, p0 - p2)
+            n2 = np.cross(n, p1 - p0)
+            side0 = (n0 * (p0 - p1)).sum() * (n0 * (p - p1)).sum() > 0
+            side1 = (n1 * (p1 - p2)).sum() * (n1 * (p - p2)).sum() > 0
+            side2 = (n2 * (p2 - p0)).sum() * (n2 * (p - p0)).sum() > 0
+            if side0 and side1 and side2:
+                k = (n * (p - p0)).sum()
+                q = p - k * n
+                return ((p - q)**2).sum()**.5
+
+            min_dist = ((p - p0)**2).sum()**.5
+
+            for _ in range(3):
+                p0, p1, p2 = p1, p2, p0
+                d = p1 - p0
+                t = ((p - p0) * d).sum()
+                t /= (d * d).sum()
+                if t < 0:
+                    t = 0
+                elif t > 1:
+                    t = 1
+                q = p0 + t * d
+                dist = ((p - q)**2).sum()**.5
+                if min_dist > dist:
+                    min_dist = dist
+            return min_dist
+
+        def possible_dist_max_node(i, j):
+            dw = node_xyzw_A[i, 3] + node_xyzw_B[j, 3]
+            dx = abs(node_xyzw_A[i, 0] - node_xyzw_B[j, 0]) + dw
+            dy = abs(node_xyzw_A[i, 1] - node_xyzw_B[j, 1]) + dw
+            dz = abs(node_xyzw_A[i, 2] - node_xyzw_B[j, 2]) + dw
+            return (dx * dx + dy * dy + dz * dz) ** .5
+
+        def possible_dist_range(node_id, x, y, z):
+            nx, ny, nz, nw = node_xyzw_B[node_id]
+            dx1 = abs(min(nx + nw, max(nx - nw, x)) - x)
+            dy1 = abs(min(ny + nw, max(ny - nw, y)) - y)
+            dz1 = abs(min(nz + nw, max(nz - nw, z)) - z)
+            dx2 = max(abs(nx - nw - x), abs(nx + nw - x))
+            dy2 = max(abs(ny - nw - y), abs(ny + nw - y))
+            dz2 = max(abs(nz - nw - z), abs(nz + nw - z))
+            lo = (dx1 * dx1 + dy1 * dy1 + dz1 * dz1) ** .5
+            hi = (dx2 * dx2 + dy2 * dy2 + dz2 * dz2) ** .5
+            return lo, hi
+
+        def calc_frm_node(i):
+            que = [(0.0, 0)]
+            dist = np.inf
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > dist:
+                    continue
+                if 8 * node_id + 1 < len(node_xyzw_B):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx_B[to + 1] - idx_B[to] == 0:
+                            continue
+                        d = possible_dist_max_node(i, to)
+                        if d < dist:
+                            heapq.heappush(que, (d, to))
+                    continue
+                # leaf node
+                dist = min(dist, possible_dist_max_node(i, node_id))
+            return dist
+
+        que = [(0.0, 0)] * 0
+        maxsize = len(node_xyzw_A)
+        for i in range(maxsize):
+            if 8 * i + 1 < maxsize or idx_A[i + 1] == idx_A[i]:
+                continue
+            que.append((-calc_frm_node(i), i))
+        heapq.heapify(que)
+
+        HD = 0.0
+
+        def calc_frm(x, y, z):
+            que = [(0.0, 0)]  # priority queue min dist possible, node_id)
+            dist = np.inf
+
+            while que:
+                d, node_id = heapq.heappop(que)
+                if d > dist:
+                    continue
+
+                if 8 * node_id + 1 < len(node_xyzw_B):
+                    for r in range(8):
+                        to = 8 * node_id + r + 1
+                        if idx_B[to + 1] - idx_B[to] == 0:
+                            continue
+                        lo, hi = possible_dist_range(to, x, y, z)
+                        if hi <= HD:
+                            return 0.0
+                        heapq.heappush(que, (lo, to))
+                    continue
+                # leaf node
+                TID = node_tri_B[idx_B[node_id]: idx_B[node_id + 1], 1]
+                for tri_id in TID:
+                    p = np.array([x, y, z])
+                    d = distance_triangle_and_point(tris_B[tri_id], p)
+                    dist = min(dist, d)
+            return dist
+        best_i = -1
+
+        while que:
+            x, i = heapq.heappop(que)
+            dist_upper = -x
+            if dist_upper <= HD:
+                break
+            TID = node_tri_A[idx_A[i]:idx_A[i + 1], 1]
+            for tri_id in TID:
+                x, y, z = create_sample(tri_id)
+                dist = calc_frm(x, y, z)
+                if HD < dist:
+                    HD = dist
+                    best_i = tri_id
+        for _ in range(10 ** 5):
+            x, y, z = create_sample(best_i)
+            HD = max(HD, calc_frm(x, y, z))
+        return HD
+
+    def nearest_neighbor_search_from_nodes_to_nodes(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None
+    ):
+        """
+        Compute 1-st to k-th nearest nodes in target_fem_data
+        from each nodes in this fem_data.
+
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        vectors : np.ndarray
+            3D array of shape (N, k, 3) containing float data.
+            The vector from input point to neighbors.
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        if target_fem_data is None:
+            target_fem_data = self
+
+        points = target_fem_data.nodes.data
+        xmin = points[:, 0].min()
+        xmax = points[:, 0].max()
+        ymin = points[:, 1].min()
+        ymax = points[:, 1].max()
+        zmin = points[:, 2].min()
+        zmax = points[:, 2].max()
+        boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
+        octree = self.build_octree_node(points, boundingbox)
+        nodes = self.nodes.data
+        return self._nns_from_nodes_to_nodes(
+            nodes, octree, k, distance_upper_bound)
+
+    def nearest_neighbor_search_from_elements_to_nodes(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None
+    ):
+        """
+        Compute 1-st to k-th nearest nodes in target_fem_data
+        from each nodes in this fem_data.
+
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        dists : np.ndarray
+            2D array of shape (N, k) containing float data.
+            Distances from the elements to nearest points.
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        if target_fem_data is None:
+            target_fem_data = self
+
+        points = target_fem_data.nodes.data
+        xmin = points[:, 0].min()
+        xmax = points[:, 0].max()
+        ymin = points[:, 1].min()
+        ymax = points[:, 1].max()
+        zmin = points[:, 2].min()
+        zmax = points[:, 2].max()
+        boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
+        octree = self.build_octree_node(points, boundingbox)
+        tris = self.elements.data
+        N = len(tris)
+        tris = self.collect_node_positions_by_ids(
+            tris.ravel()).reshape(N, 3, 3)
+        return self._nns_from_elements_to_nodes(
+            tris, octree, k, distance_upper_bound)
+
+    def nearest_neighbor_search_from_nodes_to_elements(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None
+    ):
+        """
+        Compute 1-st to k-th nearest nodes in target_fem_data
+        from each nodes in this fem_data.
+
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        dists : np.ndarray
+            2D array of shape (N, k) containing float data.
+            Distances from the elements to nearest points.
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        if target_fem_data is None:
+            target_fem_data = self
+
+        tris = target_fem_data.elements.data
+        N = len(tris)
+        tris = self.collect_node_positions_by_ids(
+            tris.ravel()).reshape(N, 3, 3)
+        points = target_fem_data.nodes.data
+        xmin = points[:, 0].min()
+        xmax = points[:, 0].max()
+        ymin = points[:, 1].min()
+        ymax = points[:, 1].max()
+        zmin = points[:, 2].min()
+        zmax = points[:, 2].max()
+        boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
+        octree_e = self.build_octree_element(tris, boundingbox)
+        return self._nns_from_nodes_to_elements(
+            self.nodes.data, octree_e, k, distance_upper_bound)
+
+    def nearest_neighbor_search_from_elements_to_elements(
+        self, k, distance_upper_bound=np.inf, target_fem_data=None
+    ):
+        """
+        Compute 1-st to k-th nearest nodes in target_fem_data
+        from each nodes in this fem_data.
+
+        Parameters
+        ----------
+        k : int
+            The number of nodes to search.
+
+        distance_upper_bound : float
+            Search only neighbors within this distance.
+
+        target_fem_data : FEMData Object
+
+        Returns
+        -------
+        nbd_indices : np.ndarray
+            2D array of shape (N, k) containing int data where N is
+            the number of nodes.
+            If the number of points found is less than k,
+            corresponding value are set to be -1.
+
+        dists : np.ndarray
+            2D array of shape (N, k) containing float data.
+            Distances from the elements to nearest points.
+            If the number of points found is less than k,
+            corresponding values are filled by np.inf.
+        """
+        if target_fem_data is None:
+            target_fem_data = self
+
+        tris = target_fem_data.elements.data
+        N = len(tris)
+        tris = self.collect_node_positions_by_ids(
+            tris.ravel()).reshape(N, 3, 3)
+        points = target_fem_data.nodes.data
+        xmin = points[:, 0].min()
+        xmax = points[:, 0].max()
+        ymin = points[:, 1].min()
+        ymax = points[:, 1].max()
+        zmin = points[:, 2].min()
+        zmax = points[:, 2].max()
+        boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
+        octree_e = self.build_octree_element(tris, boundingbox)
+
+        tris = self.elements.data
+        N = len(tris)
+        tris = self.collect_node_positions_by_ids(
+            tris.ravel()).reshape(N, 3, 3)
+
+        return self._nns_from_elements_to_elements(
+            tris, octree_e, k, distance_upper_bound)
+
+    def calculate_hausdorff_distance_nodes(
+            self, target_fem_data, directed=False):
+        """
+        Calculate Hausdorff distance from this fem_data to
+        target_fem_data.
+
+        Directed Hausdorff distance from X to Y is difined by:
+            HD(X to Y) := sup_{x} inf_{y} |x-y|.
+
+        (Bidirected) Hausdorff distance is defined by
+            min(HD(X to Y), HD(Y to X)).
+
+        Here, X and Y are point could (i.e. only nodes are considered).
+
+        Parameters
+        ----------
+        target_fem_data : FEMData Object.
+
+        directed : bool
+            If True, calculate directed Hausdorff distance.
+
+        Returns
+        -------
+        dist : float
+            Calculated Hausdorff distance.
+        """
+        A = self.nodes.data
+        B = target_fem_data.nodes.data
+        xmin = min(A[:, 0].min(), B[:, 0].min())
+        xmax = max(A[:, 0].max(), B[:, 0].max())
+        ymin = min(A[:, 1].min(), B[:, 1].min())
+        ymax = max(A[:, 1].max(), B[:, 1].max())
+        zmin = min(A[:, 2].min(), B[:, 2].min())
+        zmax = max(A[:, 2].max(), B[:, 2].max())
+        boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
+
+        octree_A = self.build_octree_node(A, boundingbox)
+        octree_B = self.build_octree_node(B, boundingbox)
+
+        if directed:
+            return self._calc_directed_hausdorff_nodes(octree_A, octree_B)
+        else:
+            HD1 = self._calc_directed_hausdorff_nodes(octree_A, octree_B)
+            HD2 = self._calc_directed_hausdorff_nodes(octree_B, octree_A)
+            return max(HD1, HD2)
+
+    def calculate_hausdorff_distance_elements(
+            self, target_fem_data, directed=False):
+        """
+        Calculate Hausdorff distance from this fem_data to
+        target_fem_data.
+
+        Directed Hausdorff distance from X to Y is difined by:
+            HD(X to Y) := sup_{x} inf_{y} |x-y|.
+
+        (Bidirected) Hausdorff distance is defined by
+            min(HD(X to Y), HD(Y to X)).
+
+        Here, X and Y are point could (i.e. only nodes are considered).
+
+        Parameters
+        ----------
+        target_fem_data : FEMData Object.
+
+        directed : bool
+            If True, calculate directed Hausdorff distance.
+
+        Returns
+        -------
+        dist : float
+            Calculated Hausdorff distance.
+        """
+        A = self.nodes.data
+        B = target_fem_data.nodes.data
+        xmin = min(A[:, 0].min(), B[:, 0].min())
+        xmax = max(A[:, 0].max(), B[:, 0].max())
+        ymin = min(A[:, 1].min(), B[:, 1].min())
+        ymax = max(A[:, 1].max(), B[:, 1].max())
+        zmin = min(A[:, 2].min(), B[:, 2].min())
+        zmax = max(A[:, 2].max(), B[:, 2].max())
+        boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
+
+        tris_A = self.elements.data
+        N = len(tris_A)
+        tris_A = self.collect_node_positions_by_ids(
+            tris_A.ravel()).reshape(N, 3, 3)
+
+        tris_B = target_fem_data.elements.data
+        N = len(tris_B)
+        tris_B = target_fem_data.collect_node_positions_by_ids(
+            tris_B.ravel()).reshape(N, 3, 3)
+
+        octree_A = self.build_octree_element(tris_A, boundingbox)
+        octree_B = self.build_octree_element(tris_B, boundingbox)
+
+        if directed:
+            return self._calc_directed_hausdorff_elements(octree_A, octree_B)
+        else:
+            HD1 = self._calc_directed_hausdorff_elements(octree_A, octree_B)
+            HD2 = self._calc_directed_hausdorff_elements(octree_B, octree_A)
+            return max(HD1, HD2)

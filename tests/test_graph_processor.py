@@ -25,6 +25,22 @@ class TestGraphProcessor(unittest.TestCase):
         ], dtype=bool)
         np.testing.assert_array_equal(adjacency_matrix.toarray(), desired)
 
+    def test_calculate_laplacian_matrix(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
+        laplacian_matrix = fem_data.calculate_laplacian_matrix(mode='nodal')
+        desired = np.array([
+            [-5, 1, 1, 1, 0, 0, 1, 1],
+            [1, -6, 1, 1, 1, 0, 1, 1],
+            [1, 1, -6, 1, 1, 1, 0, 1],
+            [1, 1, 1, -5, 1, 1, 0, 0],
+            [0, 1, 1, 1, -4, 1, 0, 0],
+            [0, 0, 1, 1, 1, -3, 0, 0],
+            [1, 1, 0, 0, 0, 0, -3, 1],
+            [1, 1, 1, 0, 0, 0, 1, -4],
+        ])
+        np.testing.assert_array_equal(laplacian_matrix.toarray(), desired)
+
     def test_calculate_adjacency_matrix_node_tet2(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/graph_tet2', read_npy=False)
@@ -484,7 +500,7 @@ class TestGraphProcessor(unittest.TestCase):
                         [12, 2, 6, 9]])
                 np.testing.assert_array_equal(
                     fd.elements['prism'].data, [
-                        [1, 5, 17, 2, 6, 12]])
+                        [1, 17, 5, 2, 12, 6]])
 
             elif i == 1:
                 np.testing.assert_array_equal(
@@ -505,7 +521,7 @@ class TestGraphProcessor(unittest.TestCase):
                         [112, 102, 106, 109]])
                 np.testing.assert_array_equal(
                     fd.elements['prism'].data, [
-                        [101, 105, 117, 102, 106, 112]])
+                        [101, 117, 105, 102, 112, 106]])
 
             else:
                 raise ValueError('Separation failed')
@@ -608,3 +624,125 @@ class TestGraphProcessor(unittest.TestCase):
             [1, 1, 1, 1, 1, 1, 0],
         ], dtype=bool)
         np.testing.assert_array_equal(adj.todense(), desired)
+
+    def test_nearest_neighbor_search_from_nodes_to_nodes(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+
+        indices, vectors = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+                2, target_fem_data=fem_data_1
+            )
+        desired_indices = np.array([0, 3, 1, 0, 2, 0, 3, 0]).reshape(4, 2)
+        np.testing.assert_array_equal(indices, desired_indices)
+
+        indices, vectors = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+                5, target_fem_data=fem_data_1)
+        desired_indices = np.array([
+            [0, 3, 2, 1, -1],
+            [1, 0, 3, 2, -1],
+            [2, 0, 3, 1, -1],
+            [3, 0, 2, 1, -1],
+        ])
+        np.testing.assert_array_equal(indices, desired_indices)
+
+        indices, vectors = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+                3, distance_upper_bound=1.2, target_fem_data=fem_data_1
+            )
+        desired_indices = np.array([
+            [0, 3, 2],
+            [1, 0, -1],
+            [2, 0, -1],
+            [3, 0, -1],
+        ])
+        np.testing.assert_array_equal(indices, desired_indices)
+
+    def test_nearest_neighbor_search_from_elements_to_nodes(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        indices, dists = \
+            fem_data_1.nearest_neighbor_search_from_elements_to_nodes(4)
+        desired = np.array([
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, (1 / 3)**.5],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        np.testing.assert_almost_equal(dists, desired)
+
+    def test_nearest_neighbor_search_from_nodes_to_elements(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        indices, dists = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_elements(4)
+        desired = np.array([
+            [0.0, 0.0, 0.0, (1 / 3)**.5],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+            [0.0, 0.0, 0.0, 1.0],
+        ])
+        np.testing.assert_almost_equal(dists, desired)
+
+    def test_nearest_neighbor_search_from_elements_to_elements(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        indices, dists = \
+            fem_data_1.nearest_neighbor_search_from_elements_to_elements(4)
+        desired = np.array([
+            [0.0, 1.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0, 1.0],
+            [0.0, 1.0, 1.0, 1.0],
+        ])
+        np.testing.assert_almost_equal(dists, desired)
+
+    def test_hausdorff_distance_nodes(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_2', read_npy=False, save=False)
+
+        actual = fem_data_1.calculate_hausdorff_distance_nodes(fem_data_2)
+        desired = 2 ** .5
+        np.testing.assert_almost_equal(actual, desired)
+
+    def test_hausdorff_distance_elements(self):
+        fem_data_1 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri', read_npy=False, save=False)
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_2', read_npy=False, save=False)
+
+        actual = fem_data_1.calculate_hausdorff_distance_elements(fem_data_2)
+        desired = (4 / 3) ** .5
+        np.testing.assert_almost_equal(actual, desired, decimal=1)
+
+    def test_calculate_edge_gradient_matrix(self):
+        fem_data = FEMData.read_directory(
+            'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
+        gradient_matrix = fem_data.calculate_edge_gradient_matrix()
+        desired = np.array([
+            [1,  0,  0,  0,  0,  0, -1,  0],
+            [1,  0,  0, -1,  0,  0,  0,  0],
+            [1,  0,  0,  0,  0,  0,  0, -1],
+            [1,  0, -1,  0,  0,  0,  0,  0],
+            [1, -1,  0,  0,  0,  0,  0,  0],
+            [0,  1,  0,  0,  0,  0, -1,  0],
+            [0,  1,  0,  0, -1,  0,  0,  0],
+            [0,  1,  0, -1,  0,  0,  0,  0],
+            [0,  1,  0,  0,  0,  0,  0, -1],
+            [0,  1, -1,  0,  0,  0,  0,  0],
+            [0,  0,  1,  0,  0, -1,  0,  0],
+            [0,  0,  1,  0, -1,  0,  0,  0],
+            [0,  0,  1, -1,  0,  0,  0,  0],
+            [0,  0,  1,  0,  0,  0,  0, -1],
+            [0,  0,  0,  1,  0, -1,  0,  0],
+            [0,  0,  0,  1, -1,  0,  0,  0],
+            [0,  0,  0,  0,  1, -1,  0,  0],
+            [0,  0,  0,  0,  0,  0,  1, -1],
+        ])
+        np.testing.assert_array_equal(gradient_matrix.toarray(), desired)
+        np.testing.assert_array_equal(
+            -(gradient_matrix.T @ gradient_matrix).toarray(),
+            fem_data.calculate_laplacian_matrix(mode='nodal').toarray())
