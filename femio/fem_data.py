@@ -1095,7 +1095,7 @@ class FEMData(
             elif tp == 'prism':
                 for i in I:
                     face_dat[i] = self.prism_to_polyhedron(
-                        elements[i], node_ids)
+                        elements[i], node_ids, argsort)
             elif tp == 'pyr':
                 for i in I:
                     face_dat[i] = self.pyr_to_polyhedron(
