@@ -1107,7 +1107,7 @@ class FEMData(
                     f"to_polyhedron is not supported for : {tp}")
 
         if 'face' in self.elemental_data:
-            I = np.where(tp == 'polyhedron')[0]
+            I = np.where(self.elements.types == 'polyhedron')[0]
             dat = self.elemental_data['face']['polyhedron'].data
             for i, x in zip(I, dat):
                 face_dat[i] = x
