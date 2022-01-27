@@ -9,6 +9,7 @@ import scipy.sparse as sp
 
 from femio.fem_attribute import FEMAttribute
 from femio.fem_data import FEMData
+from femio.util import brick_generator
 
 
 RUN_FISTR = True
@@ -1977,45 +1978,52 @@ class TestSignalProcessor(unittest.TestCase):
             overwrite=True)
 
     def test_calculate_spatial_gradient_incidence_matrix_w_moment(self):
-        fem_data = FEMData.read_directory(
-            'fistr', 'tests/data/fistr/cube',
-            read_npy=False, save=False)
+        fem_data = brick_generator.generate_brick('hex', 10, 5, 3)
         g_inc, int_inc = fem_data.calculate_spatial_gradient_incidence_matrix(
             mode='nodal', moment_matrix=True, consider_volume=False)
         g_adj = fem_data.calculate_spatial_gradient_adjacency_matrices(
             mode='nodal', n_hop=1, moment_matrix=True, consider_volume=False)
+        inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
+            'inversed_moment_tensors')
 
         for i in range(3):
             np.testing.assert_almost_equal(
-                int_inc[i].dot(g_inc).toarray(), g_adj[i].toarray())
+                np.einsum(
+                    'il,ijl->ij', inversed_moment_tensors[:, i, :],
+                    np.stack(
+                        [int_inc.dot(g_inc[k]).toarray() for k in range(3)],
+                        axis=-1)),
+                g_adj[i].toarray())
 
         filter_ = fem_data.filter_first_order_nodes()
 
-        inc_x_grad = np.stack([
-            g.dot(g_inc.dot(fem_data.nodes.data[filter_, [0]]))
-            for g in int_inc], axis=-1)
+        inc_x_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, np.stack([
+                int_inc.dot(g.dot(fem_data.nodes.data[filter_, [0]]))
+                for g in g_inc], axis=-1))
         desired_x_grad = np.stack([
             g.dot(fem_data.nodes.data[filter_, [0]])
             for g in g_adj], axis=-1)
         np.testing.assert_almost_equal(inc_x_grad, desired_x_grad)
 
-        inc_z_grad = np.stack([
-            g.dot(g_inc.dot(fem_data.nodes.data[filter_, [2]]))
-            for g in int_inc], axis=-1)
+        inc_z_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, np.stack([
+                int_inc.dot(g.dot(fem_data.nodes.data[filter_, [2]]))
+                for g in g_inc], axis=-1))
         desired_z_grad = np.stack([
             g.dot(fem_data.nodes.data[filter_, [2]])
             for g in g_adj], axis=-1)
         np.testing.assert_almost_equal(inc_z_grad, desired_z_grad)
 
         r = np.sin(fem_data.nodes.data[filter_, [1]])
-        inc_r_grad = np.stack([g.dot(g_inc.dot(r)) for g in int_inc], axis=-1)
+        inc_r_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors,
+            np.stack([int_inc.dot(g.dot(r)) for g in g_inc], axis=-1))
         desired_r_grad = np.stack([g.dot(r) for g in g_adj], axis=-1)
         np.testing.assert_almost_equal(inc_r_grad, desired_r_grad)
 
     def test_calculate_spatial_gradient_incidence_matrix_wo_moment(self):
-        fem_data = FEMData.read_directory(
-            'fistr', 'tests/data/fistr/cube',
-            read_npy=False, save=False)
+        fem_data = brick_generator.generate_brick('hex', 10, 5, 3)
         g_inc, int_inc = fem_data.calculate_spatial_gradient_incidence_matrix(
             mode='nodal', moment_matrix=False, consider_volume=False)
         g_adj = fem_data.calculate_spatial_gradient_adjacency_matrices(
@@ -2023,28 +2031,28 @@ class TestSignalProcessor(unittest.TestCase):
 
         for i in range(3):
             np.testing.assert_almost_equal(
-                int_inc[i].dot(g_inc).toarray(), g_adj[i].toarray())
+                int_inc.dot(g_inc[i]).toarray(), g_adj[i].toarray())
 
         filter_ = fem_data.filter_first_order_nodes()
 
         inc_x_grad = np.stack([
-            g.dot(g_inc.dot(fem_data.nodes.data[filter_, [0]]))
-            for g in int_inc], axis=-1)
+            int_inc.dot(g.dot(fem_data.nodes.data[filter_, [0]]))
+            for g in g_inc], axis=-1)
         desired_x_grad = np.stack([
             g.dot(fem_data.nodes.data[filter_, [0]])
             for g in g_adj], axis=-1)
         np.testing.assert_almost_equal(inc_x_grad, desired_x_grad)
 
         inc_z_grad = np.stack([
-            g.dot(g_inc.dot(fem_data.nodes.data[filter_, [2]]))
-            for g in int_inc], axis=-1)
+            int_inc.dot(g.dot(fem_data.nodes.data[filter_, [2]]))
+            for g in g_inc], axis=-1)
         desired_z_grad = np.stack([
             g.dot(fem_data.nodes.data[filter_, [2]])
             for g in g_adj], axis=-1)
         np.testing.assert_almost_equal(inc_z_grad, desired_z_grad)
 
         r = np.sin(fem_data.nodes.data[filter_, [1]])
-        inc_r_grad = np.stack([g.dot(g_inc.dot(r)) for g in int_inc], axis=-1)
+        inc_r_grad = np.stack([int_inc.dot(g.dot(r)) for g in g_inc], axis=-1)
         desired_r_grad = np.stack([g.dot(r) for g in g_adj], axis=-1)
         np.testing.assert_almost_equal(inc_r_grad, desired_r_grad)
 
@@ -2080,16 +2088,18 @@ class TestSignalProcessor(unittest.TestCase):
         fem_data.nodal_data.pop('inversed_moment_tensors')
         fem_data.nodal_data.pop('weighted_surface_normals')
 
-        sgm, eim = fem_data.calculate_spatial_gradient_incidence_matrix(
+        sgms, eim = fem_data.calculate_spatial_gradient_incidence_matrix(
             mode='nodal', n_hop=1, moment_matrix=True, normals=True)
         inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
             'inversed_moment_tensors')
         normals = fem_data.nodal_data.get_attribute_data(
             'weighted_surface_normals')
 
-        isoim_phi_grad = np.stack(
-            [m.dot(sgm.dot(phi)) for m in eim], axis=-1) + np.einsum(
-                'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
+        isoim_phi_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, np.stack(
+                [eim.dot(sgm.dot(phi)) for sgm in sgms], axis=-1)
+        ) + np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
 
         np.testing.assert_almost_equal(
             isoim_phi_grad, isoam_phi_grad, decimal=0)

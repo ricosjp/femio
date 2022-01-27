@@ -1031,10 +1031,10 @@ class SignalProcessorMixin:
 
         Returns
         -------
-        spatial_gradient_matrix: scipy.sparse.csr_matrix
-            Spatial gradient matrix with [n_edge, n_vertex] shape.
-        edge_integration_matrix: list[scipy.sparse.csr_matrix]
-            Three sparse matrices whose shapes are [n_vertex, n_edge].
+        spatial_gradient_matrix: list[scipy.sparse.csr_matrix]
+            Three spatial gradient matrix with [n_edge, n_vertex] shape.
+        edge_incidence_matrix: scipy.sparse.csr_matrix
+            Sparse matrices whose shapes are [n_vertex, n_edge].
         """
         dim = 3
 
@@ -1060,13 +1060,13 @@ class SignalProcessorMixin:
         norm_diff_ppsitions = np.linalg.norm(
             diff_positions, axis=1, keepdims=True)
         normalized_diff_positions = diff_positions / norm_diff_ppsitions
-        edge_incidence_matrix = np.abs(edge_gradient_matrix)
+        abs_edge_gradient_matrix = np.abs(edge_gradient_matrix).T
 
-        spatial_gradient_matrix = edge_gradient_matrix.multiply(
+        inverse_distance_matrix = edge_gradient_matrix.multiply(
             1 / norm_diff_ppsitions)
-        edge_integration_matrix = [
-            edge_incidence_matrix.multiply(
-                normalized_diff_positions[:, [i]]).T for i in range(dim)]
+        spatial_gradient_matrix = [
+            inverse_distance_matrix.multiply(
+                normalized_diff_positions[:, [i]]) for i in range(dim)]
 
         if moment_matrix:
             tensor_normalized_diff_positions = np.einsum(
@@ -1074,7 +1074,7 @@ class SignalProcessorMixin:
                 normalized_diff_positions, normalized_diff_positions)
             moment_tensors = np.stack([
                 np.stack([
-                    edge_incidence_matrix.T.dot(
+                    abs_edge_gradient_matrix.dot(
                         tensor_normalized_diff_positions[:, i, j])
                     for i in range(dim)], axis=-1)
                 for j in range(dim)], axis=-1)
@@ -1130,11 +1130,6 @@ class SignalProcessorMixin:
                     + weighted_normal_moment_tensors
 
             inversed_moment_tensors = self._inverse_tensors(moment_tensors)
-            edge_integration_matrix = [
-                np.sum([
-                    d.T.multiply(inversed_moment_tensors[:, k, l]).T
-                    for d, l in zip(edge_integration_matrix, range(dim))])
-                for k in range(dim)]
 
             if mode == 'elemental':
                 self.elemental_data.update_data(
@@ -1147,14 +1142,16 @@ class SignalProcessorMixin:
             else:
                 raise ValueError(f"Unknown mode: {mode}")
 
+            edge_incidence_matrix = np.abs(edge_gradient_matrix.T)
+
         else:
             adj = self.calculate_adjacency_matrix_node(order1_only=order1_only)
             degree = (adj - sp.eye(*adj.shape)).sum(axis=1)
             inv_degree = 1 / degree
-            edge_integration_matrix = [
-                dim * d.multiply(inv_degree) for d in edge_integration_matrix]
+            edge_incidence_matrix = dim * abs_edge_gradient_matrix.multiply(
+                inv_degree)
 
-        return spatial_gradient_matrix, edge_integration_matrix
+        return spatial_gradient_matrix, edge_incidence_matrix
 
     def calculate_distance_kernel_adj(
             self, kernel, distance_adj, **kwargs):
