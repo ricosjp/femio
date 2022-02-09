@@ -5,6 +5,7 @@ import re
 import meshio
 import networkx as nx
 import numpy as np
+from numba import njit
 
 from . import config
 from . import functions
@@ -1024,4 +1025,110 @@ class FEMData(
             prism = FEMAttribute('prism', ids=prism_ids, data=prism_data)
             elements.update({'prism': prism})
 
+        return fem_data
+
+    @staticmethod
+    @njit
+    def tet_to_polyhedron(dat, node_ids, argsort):
+        a, b, c, d = argsort[np.searchsorted(node_ids, dat)]
+        faces = [[a, c, b], [d, a, b], [d, c, a], [d, b, c]]
+        face_dat = [len(faces)]
+        for F in faces:
+            face_dat.append(len(F))
+            face_dat += F
+        return face_dat
+
+    @staticmethod
+    @njit
+    def hex_to_polyhedron(dat, node_ids, argsort):
+        a, b, c, d, e, f, g, h = argsort[np.searchsorted(node_ids, dat)]
+        faces = [[e, f, g, h], [f, e, a, b], [g, f, b, c],
+                 [h, g, c, d], [e, h, d, a], [d, c, b, a]]
+        face_dat = [len(faces)]
+        for F in faces:
+            face_dat.append(len(F))
+            face_dat += F
+        return face_dat
+
+    @staticmethod
+    @njit
+    def prism_to_polyhedron(dat, node_ids, argsort):
+        a, b, c, d, e, f = argsort[np.searchsorted(node_ids, dat)]
+        faces = [[a, b, c], [f, e, d], [
+            b, a, d, e], [c, b, e, f], [a, c, f, d]]
+        face_dat = [len(faces)]
+        for F in faces:
+            face_dat.append(len(F))
+            face_dat += F
+        return face_dat
+
+    @staticmethod
+    @njit
+    def pyr_to_polyhedron(dat, node_ids, argsort):
+        a, b, c, d, e = np.searchsorted(node_ids, dat)
+        faces = [[d, c, b, a], [a, b, e], [b, c, e], [c, d, e], [d, a, e]]
+        face_dat = [len(faces)]
+        for F in faces:
+            face_dat.append(len(F))
+            face_dat += F
+        return face_dat
+
+    def to_polyhedron(self):
+        node_ids = self.nodes.ids
+        argsort = node_ids.argsort()
+        node_ids = node_ids[argsort]
+        elements = self.elements.data
+
+        n_elem = len(elements)
+        face_dat = np.empty(n_elem, object)
+        types = np.unique(self.elements.types)
+        for tp in types:
+            I = np.where(self.elements.types == tp)[0]
+            if tp == 'tet':
+                for i in I:
+                    face_dat[i] = self.tet_to_polyhedron(
+                        elements[i], node_ids, argsort)
+            elif tp == 'hex':
+                for i in I:
+                    face_dat[i] = self.hex_to_polyhedron(
+                        elements[i], node_ids, argsort)
+            elif tp == 'prism':
+                for i in I:
+                    face_dat[i] = self.prism_to_polyhedron(
+                        elements[i], node_ids, argsort)
+            elif tp == 'pyr':
+                for i in I:
+                    face_dat[i] = self.pyr_to_polyhedron(
+                        elements[i], node_ids, argsort)
+            elif tp == 'polyhedron':
+                pass
+            else:
+                raise NotImplementedError(
+                    f"to_polyhedron is not supported for : {tp}")
+
+        if 'face' in self.elemental_data:
+            I = np.where(self.elements.types == 'polyhedron')[0]
+            dat = self.elemental_data['face']['polyhedron'].data
+            for i, x in zip(I, dat):
+                face_dat[i] = x
+
+        nodes = self.nodes
+        polyhedron = FEMAttribute(
+            'polyhedron',
+            ids=self.elements.ids,
+            data=self.elements.data
+        )
+        elements = FEMElementalAttribute(
+            'ELEMENT', {'polyhedron': polyhedron}
+        )
+        face = FEMElementalAttribute(
+            'face', {
+                'polyhedron':
+                FEMAttribute('face', ids=self.elements.ids, data=face_dat)
+            }
+        )
+        fem_data = FEMData(
+            nodes=nodes, elements=elements,
+            nodal_data=self.nodal_data, elemental_data={'face': face}
+        )
         return fem_data
