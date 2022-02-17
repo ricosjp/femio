@@ -1797,6 +1797,7 @@ class GraphProcessorMixin:
         zmax = points[:, 2].max()
         boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
         octree = self.build_octree_node(points, boundingbox)
+
         tris = self.elements.data
         N = len(tris)
         tris = self.collect_node_positions_by_ids(
@@ -1844,7 +1845,7 @@ class GraphProcessorMixin:
 
         tris = target_fem_data.elements.data
         N = len(tris)
-        tris = self.collect_node_positions_by_ids(
+        tris = target_fem_data.collect_node_positions_by_ids(
             tris.ravel()).reshape(N, 3, 3)
         points = target_fem_data.nodes.data
         xmin = points[:, 0].min()
@@ -1894,7 +1895,7 @@ class GraphProcessorMixin:
 
         tris = target_fem_data.elements.data
         N = len(tris)
-        tris = self.collect_node_positions_by_ids(
+        tris = target_fem_data.collect_node_positions_by_ids(
             tris.ravel()).reshape(N, 3, 3)
         points = target_fem_data.nodes.data
         xmin = points[:, 0].min()
