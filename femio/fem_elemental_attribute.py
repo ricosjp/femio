@@ -454,6 +454,7 @@ class FEMElementalAttribute(dict):
         return element_type
 
     def filter_with_ids(self, ids):
+        ids = ids[np.isin(ids, self.id2index.index)]
         indices = self.id2index.loc[ids].values[:, 0]
         filtered_element_data = self.data[indices]
         filtered_element_types = self.types[indices]

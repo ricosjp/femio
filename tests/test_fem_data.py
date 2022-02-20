@@ -482,6 +482,32 @@ class TestFEMData(unittest.TestCase):
             np.array(face_1)
         )
 
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/poly_pyramid/mesh.vtu')
+        element_ids = np.array([1, 2])
+        print(fem_data.elements.data)
+        print(fem_data.elements.ids)
+        print(fem_data.elements.types)
+        cut_fem_data = fem_data.cut_with_element_ids(element_ids)
+        print(fem_data.nodes.ids)
+        print(cut_fem_data.nodes.ids)
+        print(cut_fem_data.nodes.data)
+        print("cut done")
+        desired_node_ids = np.arange(1, 10)
+        desired_node_data = fem_data.nodes.data[:9]
+        np.testing.assert_array_equal(
+            cut_fem_data.nodes.ids, desired_node_ids)
+        np.testing.assert_almost_equal(
+            cut_fem_data.nodes.data, desired_node_data)
+        np.testing.assert_array_equal(
+            cut_fem_data.elements.ids, element_ids)
+        face = [6, 5, 0, 1, 4, 7, 6, 4, 1, 3, 5, 4, 5, 0, 6,
+                8, 5, 3, 4, 4, 5, 8, 7, 3, 6, 7, 8, 3, 0, 3, 1]
+        np.testing.assert_array_equal(
+            cut_fem_data.elemental_data['face']['polyhedron'].data[0],
+            np.array(face)
+        )
+
     def test_cut_with_element_type(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/mixture_solid', read_npy=False)
