@@ -502,7 +502,7 @@ class TestFEMData(unittest.TestCase):
         )
         fem_data = FEMData.read_files(
             'polyvtk', 'tests/data/vtu/complex/mesh.vtu')
-        element_ids = np.array([1,3])
+        element_ids = np.array([1, 3])
         cut_fem_data = fem_data.cut_with_element_ids(element_ids)
 
     def test_cut_with_element_type(self):

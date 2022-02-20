@@ -468,7 +468,7 @@ class FEMElementalAttribute(dict):
     def _filter_with_type(
             self, type_, element_ids, element_data, element_types):
         filter_ = element_types == type_
-        if element_data.dtype==object:
+        if type_ == 'polyhedron':
             data = element_data[filter_]
         else:
             data = np.stack(element_data[filter_])
