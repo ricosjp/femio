@@ -454,6 +454,34 @@ class TestFEMData(unittest.TestCase):
         for ae, de in zip(cut_fem_data.elements.data, desired_element_data):
             np.testing.assert_array_equal(ae, de)
 
+    def test_cut_with_element_ids_polyhedron(self):
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/polyhedron/polyhedron.vtu')
+        element_ids = np.array([1, 2])
+        cut_fem_data = fem_data.cut_with_element_ids(element_ids)
+        desired_node_ids = np.arange(1, 13)
+        desired_node_data = fem_data.nodes.data[:12]
+
+        np.testing.assert_array_equal(
+            cut_fem_data.nodes.ids, desired_node_ids)
+        np.testing.assert_almost_equal(
+            cut_fem_data.nodes.data, desired_node_data)
+        np.testing.assert_array_equal(
+            cut_fem_data.elements.ids, element_ids)
+
+        face_0 = [6, 5, 0, 1, 5, 10, 9, 4, 1, 3, 8, 5, 5, 0, 9,
+                  11, 8, 3, 4, 5, 8, 11, 10, 3, 9, 10, 11, 3, 0, 3, 1]
+        face_1 = [6, 4, 1, 2, 6, 5, 4, 2, 4, 7, 6, 4, 5, 6,
+                  7, 8, 4, 3, 8, 7, 4, 4, 1, 3, 4, 2, 4, 1, 5, 8, 3]
+        np.testing.assert_array_equal(
+            cut_fem_data.elemental_data['face']['polyhedron'].data[0],
+            np.array(face_0)
+        )
+        np.testing.assert_array_equal(
+            cut_fem_data.elemental_data['face']['polyhedron'].data[1],
+            np.array(face_1)
+        )
+
     def test_cut_with_element_type(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/mixture_solid', read_npy=False)

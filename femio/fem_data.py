@@ -731,13 +731,30 @@ class FEMData(
         elemental_data = FEMAttributes({
             k: v.filter_with_ids(element_ids)
             for k, v in self.elemental_data.items()}, is_elemental=True)
+        # convert face data
+        if 'face' in elemental_data:
+            dat = elemental_data['face']['polyhedron'].data
+            n = len(dat)
+            newdat = np.empty(n, object)
+            for i in range(n):
+                poly = dat[i].copy()
+                m = poly[0]
+                L = 1
+                for _ in range(m):
+                    k = poly[L]
+                    L += 1
+                    R = L + k
+                    poly[L:R] = self.nodes.ids[poly[L:R]]
+                    poly[L:R] = np.searchsorted(node_ids, poly[L:R])
+                    L = R
+                newdat[i] = list(poly)
+            elemental_data['face']['polyhedron'].data = newdat
         cut_fem_data = FEMData(
             nodes=nodes,
             elements=self.elements.filter_with_ids(element_ids),
             nodal_data=nodal_data,
             elemental_data=elemental_data
         )
-
         return cut_fem_data
 
     def cut_with_element_type(self, element_type):
