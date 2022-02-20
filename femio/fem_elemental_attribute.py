@@ -468,8 +468,12 @@ class FEMElementalAttribute(dict):
     def _filter_with_type(
             self, type_, element_ids, element_data, element_types):
         filter_ = element_types == type_
+        if element_data.dtype==object:
+            data = element_data[filter_]
+        else:
+            data = np.stack(element_data[filter_])
         return FEMAttribute(
-            type_, element_ids[filter_], np.stack(element_data[filter_]))
+            type_, element_ids[filter_], data)
 
     def generate_elemental_attribute(self, name, ids, data):
         """Generate elemental attribute from IDs and data.

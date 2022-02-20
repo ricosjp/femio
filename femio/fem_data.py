@@ -722,7 +722,7 @@ class FEMData(
 
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([
-            np.ravel(e.data) for e
+            np.concatenate(e.data) for e
             in self.elements.filter_with_ids(element_ids).values()]))
         nodes = self.nodes.filter_with_ids(node_ids)
         nodal_data = FEMAttributes({
