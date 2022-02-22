@@ -1470,7 +1470,7 @@ class TestSignalProcessor(unittest.TestCase):
                 mode='elemental', include_self_loop=False),
             expected_differences)
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/tet_orthogonal_double',
             read_npy=False, save=False)
@@ -1499,7 +1499,7 @@ class TestSignalProcessor(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(z_grad, desired)
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_cube(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix_cube(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/tet2_cube',
             read_npy=False, save=False)
@@ -1523,7 +1523,7 @@ class TestSignalProcessor(unittest.TestCase):
         # fd.nodal_data.update_data(fd.nodes.ids, {'z_grad': z_grad})
         # fd.write('ucd', 'w_moment.inp')
 
-    def test_calculate_gradient_adjecency_matrix_neumann(self):
+    def test_calculate_gradient_adjacency_matrix_neumann(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
@@ -1577,7 +1577,7 @@ class TestSignalProcessor(unittest.TestCase):
         fd.write(
             'ucd', 'tests/data/ucd/write_neumann/neumann.inp', overwrite=True)
 
-    def test_calculate_gradient_adjecency_matrix_neumann_normal_weight(self):
+    def test_calculate_gradient_adjacency_matrix_neumann_normal_weight(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
@@ -1636,7 +1636,7 @@ class TestSignalProcessor(unittest.TestCase):
             'ucd',
             'tests/data/ucd/write_neumann_factor/neumann.inp', overwrite=True)
 
-    def test_calculate_gradient_adjecency_matrix_normals(self):
+    def test_calculate_gradient_adjacency_matrix_normals(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_plane', read_npy=False, save=False)
         normals = np.array([
@@ -1698,7 +1698,7 @@ class TestSignalProcessor(unittest.TestCase):
             [0., 1., 0.],
         ]))
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_hex(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix_hex(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/cube',
             read_npy=False, save=False)
@@ -1893,7 +1893,7 @@ class TestSignalProcessor(unittest.TestCase):
             for s___ in csr_powered]), (4, 5, 0, 1, 2, 3))
         np.testing.assert_almost_equal(csr_powered_to_numpy, rank4)
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_mix(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix_mix(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/mix_hex_hexprism',
             read_npy=False, save=False)
@@ -1920,7 +1920,7 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/write_w_moment_hex_prism/mesh.vtk',
             overwrite=True)
 
-    def test_calculate_gradient_adjecency_matrix_neumann_mix(self):
+    def test_calculate_gradient_adjacency_matrix_neumann_mix(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/mix_hex_hexprism',
             read_npy=False, save=False)
