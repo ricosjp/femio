@@ -1100,21 +1100,21 @@ class FEMData(
         face_dat = np.empty(n_elem, object)
         types = np.unique(self.elements.types)
         for tp in types:
-            I = np.where(self.elements.types == tp)[0]
+            indices = np.where(self.elements.types == tp)[0]
             if tp == 'tet':
-                for i in I:
+                for i in indices:
                     face_dat[i] = self.tet_to_polyhedron(
                         elements[i], node_ids, argsort)
             elif tp == 'hex':
-                for i in I:
+                for i in indices:
                     face_dat[i] = self.hex_to_polyhedron(
                         elements[i], node_ids, argsort)
             elif tp == 'prism':
-                for i in I:
+                for i in indices:
                     face_dat[i] = self.prism_to_polyhedron(
                         elements[i], node_ids, argsort)
             elif tp == 'pyr':
-                for i in I:
+                for i in indices:
                     face_dat[i] = self.pyr_to_polyhedron(
                         elements[i], node_ids, argsort)
             elif tp == 'polyhedron':
@@ -1124,9 +1124,9 @@ class FEMData(
                     f"to_polyhedron is not supported for : {tp}")
 
         if 'face' in self.elemental_data:
-            I = np.where(self.elements.types == 'polyhedron')[0]
+            indices = np.where(self.elements.types == 'polyhedron')[0]
             dat = self.elemental_data['face']['polyhedron'].data
-            for i, x in zip(I, dat):
+            for i, x in zip(indices, dat):
                 face_dat[i] = x
 
         nodes = self.nodes
