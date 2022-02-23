@@ -7,16 +7,8 @@ from ...fem_data import FEMData
 from ... import io
 
 
-class PolyVTKData(FEMData):
-    """FEMData of VTK with polyhedron."""
-
-    DICT_VTK_ID_TO_ELEMENT_TYPE = {
-        10: 'tet',
-        12: 'hex',
-        13: 'prism',
-        14: 'pyr',
-        42: 'polyhedron',
-    }
+class EnsightGoldData(FEMData):
+    """FEMData of Ensight Gold."""
 
     @classmethod
     def read_files(cls, file_names, read_mesh_only=False, time_series=False):
@@ -31,15 +23,19 @@ class PolyVTKData(FEMData):
             material data, results and so on. The default is False.
         """
         if isinstance(file_names, str):
-            file_name = file_names
+            file_name = pathlib.Path(file_names)
         else:
-            file_name = file_names[0]
+            file_name = pathlib.Path(file_names[0])
 
-        if not pathlib.Path(file_name).is_file():
+        if not file_name.is_file():
             raise ValueError(f"{file_name} not found")
 
-        reader = tvtk.XMLUnstructuredGridReader(file_name=file_name)
+        reader = tvtk.EnSightGoldBinaryReader()
+        reader.case_file_name = file_name.name
+        reader.file_path = str(file_name.parent)
         reader.update()
-        mesh = reader.get_output()
+        blocks = reader.get_output()
 
-        return io.convert_vtk_unstructured_to_femio(mesh)
+        return [
+            io.convert_vtk_unstructured_to_femio(blocks.get_block(i))
+            for i in blocks.trait_get('number_of_blocks')]
