@@ -10,14 +10,6 @@ from ... import io
 class PolyVTKData(FEMData):
     """FEMData of VTK with polyhedron."""
 
-    DICT_VTK_ID_TO_ELEMENT_TYPE = {
-        10: 'tet',
-        12: 'hex',
-        13: 'prism',
-        14: 'pyr',
-        42: 'polyhedron',
-    }
-
     @classmethod
     def read_files(cls, file_names, read_mesh_only=False, time_series=False):
         """Initialize PolyVTKData object.
