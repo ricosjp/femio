@@ -81,6 +81,9 @@ class FEMData(
         elif file_type == 'polyvtk':
             from .formats.polyvtk import polyvtk
             cls_ = polyvtk.PolyVTKData
+        elif file_type == 'ensight':
+            from .formats.ensight import ensight
+            cls_ = ensight.EnsightGoldData
         elif file_type == 'vtp':
             from .formats.vtp import vtp
             cls_ = vtp.VTPData
@@ -93,10 +96,12 @@ class FEMData(
             raise NotImplementedError(
                 f"Unknown file_type: {file_type}")
         obj = cls_.read_files(
-            file_names, read_mesh_only=read_mesh_only, time_series=time_series
-        )._to_fem_data()
+            file_names, read_mesh_only=read_mesh_only, time_series=time_series)
 
-        return obj
+        if isinstance(obj, list):
+            return [o._to_fem_data() for o in obj]
+        else:
+            return obj._to_fem_data()
 
     def _read_files(
             self, pattern, *,
