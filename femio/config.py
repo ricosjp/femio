@@ -189,3 +189,15 @@ DICT_EXT = {
     'ucd': 'inp',
     'vtk': 'vtk',
 }
+
+DICT_VTK_ID_TO_ELEMENT_TYPE = {
+    10: 'tet',
+    12: 'hex',
+    13: 'prism',
+    14: 'pyr',
+    42: 'polyhedron',
+}
+
+DICT_ELEMENT_TYPE_TO_VTK_ID = {
+    v: k for k, v
+    in DICT_VTK_ID_TO_ELEMENT_TYPE.items()}
