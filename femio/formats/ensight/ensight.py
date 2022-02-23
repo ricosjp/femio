@@ -38,4 +38,5 @@ class EnsightGoldData(FEMData):
 
         return [
             io.convert_vtk_unstructured_to_femio(blocks.get_block(i))
-            for i in blocks.trait_get('number_of_blocks')]
+            for i in range(blocks.trait_get('number_of_blocks')[
+                'number_of_blocks'])]

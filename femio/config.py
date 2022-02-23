@@ -197,3 +197,7 @@ DICT_VTK_ID_TO_ELEMENT_TYPE = {
     14: 'pyr',
     42: 'polyhedron',
 }
+
+DICT_ELEMENT_TYPE_TO_VTK_ID = {
+    v: k for k, v
+    in DICT_VTK_ID_TO_ELEMENT_TYPE.items()}
