@@ -81,8 +81,6 @@ class SignalProcessorMixin:
             incidence_matrix = incidence
 
         if mode == 'effective':
-            if not order1_only:
-                raise NotImplementedError
             weighted_incidence_matrix = incidence_matrix.multiply(
                 1 / incidence_matrix.sum(axis=0))
 
