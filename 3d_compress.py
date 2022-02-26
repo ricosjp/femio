@@ -1073,7 +1073,7 @@ fem_data = femio.read_files(
     '/home/group/ricos/data/suzuki/20211018/ESCUDO/EnsightGold/with_u.vtu')
 print("begin to_polyhedron")
 fem_data = fem_data.to_polyhedron()
-#fem_data = femio.read_files('polyvtk', 'brick.vtu')
+# fem_data = femio.read_files('polyvtk', 'brick.vtu')
 csr = to_csr(fem_data.elemental_data['face']['polyhedron'].data)
 csr_raw = (csr[0].copy(), csr[1].copy())
 node_pos = fem_data.nodes.data
@@ -1118,7 +1118,7 @@ while True:
     save_npz(name, mat_1)
     name = f"csr_matrix_2_{count}.npz"
     save_npz(name, mat_2)
-    if count < 10**4:
+    if count < 10**6:
         break
     csr_tmp = (csr[0].copy(), csr[1].copy())
     K = 5
