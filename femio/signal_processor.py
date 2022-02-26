@@ -49,7 +49,7 @@ class SignalProcessorMixin:
 
     def convert_elemental2nodal(
             self, elemental_data, mode='mean', order1_only=True,
-            raise_negative_volume=True, weight=None):
+            raise_negative_volume=True, weight=None, incidence=None):
         """Convert elemental data to nodal data.
 
         Args:
@@ -66,14 +66,19 @@ class SignalProcessorMixin:
                 If True, raise ValueError when negative volume found.
             weight: numpy.ndarray
                 Weight to be used in 'mean' mode. False means equal weight.
+            incidence: scipy.sparse.csr_matrix
+                (n_node, n_element)-shaped incidence matrix.
         Returns:
             converted_data: numpy.ndarray
         """
         if len(elemental_data) != len(self.elements.ids):
             raise ValueError(
                 'Length of input data differs from that of elements')
-        incidence_matrix = self.calculate_incidence_matrix(
-            order1_only=order1_only)
+        if incidence is None:
+            incidence_matrix = self.calculate_incidence_matrix(
+                order1_only=order1_only)
+        else:
+            incidence_matrix = incidence
 
         if mode == 'effective':
             if not order1_only:
