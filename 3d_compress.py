@@ -786,6 +786,8 @@ def remove_vertices_1(face_data_csr, node_pos, THRESH=0.95):
             p = ps[i]
             poly = res[i][1]
             polyhedrons[p] = poly
+    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    P = len(polyhedrons)
     new_indptr = np.zeros(P + 1, np.int32)
     for p in range(P):
         new_indptr[p + 1] = len(polyhedrons[p])
@@ -988,6 +990,8 @@ def remove_edges(face_data_csr, node_pos, THRESH=0.99):
             p = ps[i]
             poly = res[i][1]
             polyhedrons[p] = poly
+    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    P = len(polyhedrons)
     new_indptr = np.zeros(P + 1, np.int32)
     for p in range(P):
         new_indptr[p + 1] = len(polyhedrons[p])
@@ -1093,6 +1097,8 @@ def remove_vertices_2(face_data_csr, node_pos, THRESH=0.99):
                 rest[L0:R] = 0
                 poly[0] -= 1
         polyhedrons[p] = poly[rest]
+    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    P = len(polyhedrons)
     new_indptr = np.zeros(P + 1, np.int32)
     for p in range(P):
         new_indptr[p + 1] = len(polyhedrons[p])
