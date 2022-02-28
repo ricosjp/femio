@@ -1736,17 +1736,14 @@ def main():
     while True:
         edge_len_thresh += 0.001
         THRESH = 0.95
-        print_stat(csr)
-        csr, node_pos = merge_vertices(csr, node_pos, edge_len_thresh)
-        assert check(csr)
         while True:
+            print_stat(csr)
             now = len(csr[1])
             print("merge edge len", edge_len_thresh)
             csr_tmp = (csr[0].copy(), csr[1].copy())
             csr, node_pos = merge_vertices(csr, node_pos, edge_len_thresh)
             if not check(csr):
                 csr = csr_tmp
-            print_stat(csr)
             csr_tmp = (csr[0].copy(), csr[1].copy())
             csr = remove_vertices_1(csr, node_pos, THRESH)
             if not check(csr):
