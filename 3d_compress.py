@@ -513,7 +513,7 @@ def grouping_and_merge_suzuki(face_data_csr, node_pos, K, check_euler=True):
                 stack_inner.append(J)
     res_indptr = [0]
     res = [0] * 0
-    n = len(csr[0]) - 1
+    n = len(face_data_csr[0]) - 1
     done = np.zeros(n, np.bool_)
     hash_base = np.random.randint(0, (1 << 63) - 1, len(node_pos))
     prog = 0
