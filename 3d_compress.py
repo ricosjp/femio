@@ -1664,7 +1664,7 @@ def main():
     csr_raw = to_csr(fem_data.elemental_data['face']['polyhedron'].data)
     csr = (csr_raw[0].copy(), csr_raw[1].copy())
 
-    csr = grouping_and_merge_suzuki(csr_raw, node_pos, 120, True)
+    csr = grouping_and_merge_suzuki(csr_raw, node_pos, 100, True)
     while True:
         THRESH = 0.99
         now = len(csr[1])
