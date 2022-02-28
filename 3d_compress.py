@@ -1548,60 +1548,6 @@ while 1:
 """
 
 
-@njit
-def check(csr):
-    indptr, dat = csr
-    for p in range(len(indptr) - 1):
-        poly = dat[indptr[p]:indptr[p + 1]]
-        e_list = [0] * 0
-        v_list = [0] * 0
-        m = poly[0]
-        if m <= 2:
-            print("m <= 2", p)
-            return False
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            if k < 3:
-                print("k<3", p)
-                return False
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            if len(F) != len(np.unique(F)):
-                print("non-simple polygon", p)
-                print(F)
-                return False
-            for i in range(len(F)):
-                a = F[i - 1]
-                b = F[i]
-                e_list.append(a << 32 | b)
-                v_list.append(b)
-        edges = np.unique(np.array(e_list))
-        if len(e_list) != len(edges):
-            e_list.sort()
-            for i in range(len(e_list) - 1):
-                if e_list[i] == e_list[i + 1]:
-                    print(divmod(e_list[i], 1 << 32))
-            print("multiple edge", p)
-            return False
-        for e in edges:
-            a, b = divmod(e, 1 << 32)
-            e_rev = b << 32 | a
-            i = np.searchsorted(edges, e_rev)
-            if i == len(edges) or edges[i] != e_rev:
-                print("not contain rev_edge", p, divmod(a, b))
-                return False
-        cnt_v = len(np.unique(np.array(v_list)))
-        cnt_e = len(edges) // 2
-        cnt_f = m
-        euler = cnt_v - cnt_e + cnt_f
-        if euler != 2:
-            print("euler chara is wrong", p, euler)
-    return True
-
-
 """
 K = 30
 THRESH = 0.90
