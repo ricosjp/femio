@@ -1686,7 +1686,7 @@ def main():
         if len(csr[1]) == now:
             break
 
-    edge_len_thresh = 0.012
+    edge_len_thresh = 0.014
     THRESH = 0.95
     while True:
         print_stat(csr)
