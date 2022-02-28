@@ -1680,38 +1680,35 @@ def main():
         if len(csr[1]) == now:
             break
 
-    edge_len_thresh = 0.008
+    edge_len_thresh = 0.012
+    THRESH = 0.95
     while True:
-        edge_len_thresh += 0.001
-        THRESH = 0.95
-        while True:
-            print_stat(csr)
-            now = len(csr[1])
-            print("merge edge len", edge_len_thresh)
-            csr_tmp = (csr[0].copy(), csr[1].copy())
-            csr, node_pos = merge_vertices(csr, node_pos, edge_len_thresh)
-            if not check(csr):
-                csr = csr_tmp
-            csr_tmp = (csr[0].copy(), csr[1].copy())
-            csr = remove_vertices_1(csr, node_pos, THRESH)
-            if not check(csr):
-                csr = csr_tmp
-            csr_tmp = (csr[0].copy(), csr[1].copy())
-            csr = remove_edges(csr, node_pos, THRESH)
-            if not check(csr):
-                csr = csr_tmp
-            csr_tmp = (csr[0].copy(), csr[1].copy())
-            csr = remove_vertices_2(csr, node_pos, THRESH)
-            if not check(csr):
-                csr = csr_tmp
-            if len(csr[1]) == now:
-                break
-        dat = make_fem_data(csr_raw, node_pos, csr, 0)
-        count = len(dat.nodes.data)
-        name = f'xxx_{count}.vtu'
-        dat.write('polyvtk', name, overwrite=True)
-        if count <= 10 ** 6:
-            return make_fem_data(csr_raw, node_pos, csr, 1)
+        print_stat(csr)
+        now = len(csr[1])
+        print("merge edge len", edge_len_thresh)
+        csr_tmp = (csr[0].copy(), csr[1].copy())
+        csr, node_pos = merge_vertices(csr, node_pos, edge_len_thresh)
+        if not check(csr):
+            csr = csr_tmp
+        csr_tmp = (csr[0].copy(), csr[1].copy())
+        csr = remove_vertices_1(csr, node_pos, THRESH)
+        if not check(csr):
+            csr = csr_tmp
+        csr_tmp = (csr[0].copy(), csr[1].copy())
+        csr = remove_edges(csr, node_pos, THRESH)
+        if not check(csr):
+            csr = csr_tmp
+        csr_tmp = (csr[0].copy(), csr[1].copy())
+        csr = remove_vertices_2(csr, node_pos, THRESH)
+        if not check(csr):
+            csr = csr_tmp
+        if len(csr[1]) == now:
+            break
+    dat = make_fem_data(csr_raw, node_pos, csr, 0)
+    count = len(dat.nodes.data)
+    name = f'xxx_{count}.vtu'
+    dat.write('polyvtk', name, overwrite=True)
+    return make_fem_data(csr_raw, node_pos, csr, 1)
 
 
 new_fem_data, mat_1, mat_2 = main()
