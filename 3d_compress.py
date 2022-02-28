@@ -1496,8 +1496,10 @@ def merge_vertices(face_data_csr, node_pos, THRESH):
         e_list.sort()
         for i in range(len(e_list)):
             d, a, b = e_list[i]
-            if d > THRESH or done[a] or done[b]:
+            if d > THRESH:
                 break
+            if done[a] or done[b]:
+                continue
             merge(a, b)
     polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
     P = len(polyhedrons)
