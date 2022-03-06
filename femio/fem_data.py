@@ -244,10 +244,11 @@ class FEMData(
         obj = cls(nodes, elements)
 
         # Read 'face' attribute in case of polyhedral data
-        elemental_data = FEMAttributes.load(
-            dict_files['femio_elemental_data'], is_elemental=True)
-        if 'face' in elemental_data:
-            obj.elemental_data['face'] = elemental_data['face']
+        if 'femio_elemental_data' in dict_files:
+            elemental_data = FEMAttributes.load(
+                dict_files['femio_elemental_data'], is_elemental=True)
+            if 'face' in elemental_data:
+                obj.elemental_data['face'] = elemental_data['face']
 
         if read_mesh_only:
             return obj
