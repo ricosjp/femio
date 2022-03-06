@@ -15,6 +15,14 @@ def read_directory(*args, **kwargs):
     return FEMData.read_directory(*args, **kwargs)
 
 
+def read_npy_directory(*args, **kwargs):
+    """Initialize FEMData object from directory that contains femio npy data.
+
+    See FEMData.read_npy_directory for more detail.
+    """
+    return FEMData.read_npy_directory(*args, **kwargs)
+
+
 def read_files(*args, **kwargs):
     """Initialize FEMData object from files.
 

@@ -78,7 +78,7 @@ class FEMData(
         elif file_type == 'obj':
             from .formats.obj import obj
             cls_ = obj.ObjData
-        elif file_type == 'polyvtk':
+        elif file_type in ['polyvtk', 'vtu']:
             from .formats.polyvtk import polyvtk
             cls_ = polyvtk.PolyVTKData
         elif file_type == 'ensight':
@@ -242,6 +242,13 @@ class FEMData(
         elements = FEMElementalAttribute.load(
             'ELEMENT', dict_files['femio_elements'])
         obj = cls(nodes, elements)
+
+        # Read 'face' attribute in case of polyhedral data
+        elemental_data = FEMAttributes.load(
+            dict_files['femio_elemental_data'], is_elemental=True)
+        if 'face' in elemental_data:
+            obj.elemental_data['face'] = elemental_data['face']
+
         if read_mesh_only:
             return obj
 
@@ -260,8 +267,7 @@ class FEMData(
             obj.nodal_data.update(FEMAttributes.load(
                 dict_files['femio_nodal_data']))
         if 'femio_elemental_data' in dict_files:
-            obj.elemental_data.update(FEMAttributes.load(
-                dict_files['femio_elemental_data'], is_elemental=True))
+            obj.elemental_data.update(elemental_data)
         if 'femio_constraints' in dict_files:
             obj.constraints.update(FEMAttributes.load(
                 dict_files['femio_constraints']))
@@ -506,7 +512,7 @@ class FEMData(
                 file_name=self.add_extension_if_needed(file_name, 'obj'),
                 overwrite=overwrite)
 
-        elif file_type == 'polyvtk':
+        elif file_type in ['polyvtk', 'vtu']:
             from .formats.polyvtk.write_polyvtk import PolyVTKWriter
             written_files = PolyVTKWriter(self).write(
                 file_name=self.add_extension_if_needed(file_name, 'vtu'),
