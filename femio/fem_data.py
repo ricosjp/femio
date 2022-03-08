@@ -1160,7 +1160,7 @@ class FEMData(
                 FEMAttribute('face', ids=self.elements.ids, data=face_dat)
             }
         )
-        elemental_data = FEMAttributes({'face' : face}, is_elemental=True)
+        elemental_data = FEMAttributes({'face': face}, is_elemental=True)
         fem_data = FEMData(
             nodes=nodes, elements=elements,
             nodal_data=self.nodal_data, elemental_data=elemental_data
