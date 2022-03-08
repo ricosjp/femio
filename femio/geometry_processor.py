@@ -1,5 +1,6 @@
 import functools
 
+from numba import njit
 import numpy as np
 import scipy.sparse as sp
 
@@ -580,7 +581,7 @@ class GeometryProcessorMixin:
                 raise_negative_area=raise_negative_metric,
                 return_abs_area=return_abs_metric, elements=elements,
                 update=update)
-        elif element_type in ['tet', 'tet2', 'hex', 'hexprism', 'prism']:
+        elif element_type in ['tet', 'tet2', 'hex', 'hexprism', 'prism', 'polyhedron']:
             metrics = self.calculate_element_volumes(
                 raise_negative_volume=raise_negative_metric,
                 return_abs_volume=return_abs_metric, elements=elements,
@@ -617,7 +618,7 @@ class GeometryProcessorMixin:
     def calculate_element_volumes(
             self, *, linear=False, raise_negative_volume=True,
             return_abs_volume=False, elements=None, element_type=None,
-            update=True):
+            faces=None, update=True):
         """Calculate volume of each element assuming that the geometry of
         higher order elements is the same as that of order 1 elements.
         Calculated volumes are returned and also stored in
@@ -648,6 +649,8 @@ class GeometryProcessorMixin:
                     return_abs_metric=return_abs_volume)
             element_type = self.elements.element_type
             elements = self.elements
+            if element_type == 'polyhedron':
+                faces = self.elemental_data['face']['polyhedron'].data
         else:
             if element_type is None:
                 if elements.name == 'ELEMENT':
@@ -672,13 +675,21 @@ class GeometryProcessorMixin:
         elif element_type in ['hexprism']:
             volumes = self._calculate_element_volumes_hexprism(
                 elements)
+        elif element_type in ['polyhedron']:
+            volumes = self._calculate_element_volumes_polyhedron(faces)
         elif element_type == 'mix':
             volumes = np.zeros((len(self.elements), 1))
             for k, e in self.elements.items():
+                if k == 'polyhedron':
+                    faces = self.elemental_data['face']['polyhedron'].data
+                else:
+                    faces = None
                 partial_volumes = self.calculate_element_volumes(
                     elements=e, element_type=k, update=False, linear=linear,
                     raise_negative_volume=raise_negative_volume,
-                    return_abs_volume=return_abs_volume)
+                    return_abs_volume=return_abs_volume,
+                    faces=faces
+                )
                 volumes[self.elements.types == k] = partial_volumes
         else:
             raise NotImplementedError(element_type, elements)
@@ -804,6 +815,49 @@ class GeometryProcessorMixin:
             p0, p1, p2, p3, p6, p7, p8, p9) \
             + self._calculate_element_volumes_hex_with_nodes(
                 p0, p3, p4, p5, p6, p9, p10, p11)
+
+    @staticmethod
+    @njit
+    def _calculate_element_volumes_polyhedron_core(face_csr, nodes):
+        indptr, dat = face_csr
+        P = len(indptr) - 1
+        volumes = np.empty(P)
+        for p in range(P):
+            poly = dat[indptr[p]:indptr[p + 1]]
+            n = poly[0]
+            L = 1
+            volume = 0.0
+            for _ in range(n):
+                k = poly[L]
+                L += 1
+                F = nodes[poly[L:L + k]]
+                L += k
+                for i in range(2, k):
+                    A = F[0]
+                    B = F[i - 1]
+                    C = F[i]
+                    volume += np.dot(np.cross(A, B), C)
+            volumes[p] = volume / 6
+        return volumes
+
+    def _calculate_element_volumes_polyhedron(self, faces):
+        """Calculate volume of each polyhedron elements.
+
+        Parameters
+        ----------
+        faces: np.ndarray (array of (list of int))
+            Face data of polyhedrons to calculate volumes.
+        Returns
+        -------
+        volumes: numpy.ndarray
+        """
+        indptr = np.append(0, np.array([len(x) for x in faces], np.int64))
+        np.cumsum(indptr, out=indptr)
+        face_csr = (indptr, np.concatenate(faces))
+        nodes = self.nodes.data
+        volumes = self._calculate_element_volumes_polyhedron_core(
+            face_csr, nodes)
+        return volumes.reshape((-1, 1))
 
     def make_elements_positive(self):
         """Perfmute element connectivity order when it has negative volume."""
