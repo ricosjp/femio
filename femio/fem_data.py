@@ -744,7 +744,11 @@ class FEMData(
             k: v.filter_with_ids(element_ids)
             for k, v in self.elemental_data.items()}, is_elemental=True)
         # convert face data
+        have_face = False
         if 'face' in elemental_data:
+            if 'polyhedron' in elemental_data['face']:
+                have_face = True
+        if have_face:
             dat = elemental_data['face']['polyhedron'].data
             n = len(dat)
             newdat = np.empty(n, object)
@@ -1156,8 +1160,9 @@ class FEMData(
                 FEMAttribute('face', ids=self.elements.ids, data=face_dat)
             }
         )
+        elemental_data = FEMAttributes({'face': face}, is_elemental=True)
         fem_data = FEMData(
             nodes=nodes, elements=elements,
-            nodal_data=self.nodal_data, elemental_data={'face': face}
+            nodal_data=self.nodal_data, elemental_data=elemental_data
         )
         return fem_data
