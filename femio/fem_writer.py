@@ -2,6 +2,7 @@
 import numpy as np
 
 from .fem_attribute import FEMAttribute
+from .fem_elemental_attribute import FEMElementalAttribute
 
 
 class FEMWriter():
@@ -28,20 +29,25 @@ class FEMWriter():
         else:
             raise ValueError(f"Unexpected mode: {mode}")
         fem_attributes.update(
-            self._generate_time_series(fem_attributes, ids))
+            self._generate_time_series(fem_attributes, ids, mode=mode))
         return {
             key: value
             for key, value in fem_attributes.items()
             if len(value.data.shape) == 2
             and self._extract_dtype(value.data) != np.dtype('O')}
 
-    def _generate_time_series(self, fem_attributes, ids):
+    def _generate_time_series(self, fem_attributes, ids, mode):
         n = len(ids)
+        if mode == 'nodal':
+            fem_attribute_class = FEMAttribute
+        elif mode == 'elemental':
+            fem_attribute_class = FEMElementalAttribute
         ret = {}
         for k, v in fem_attributes.items():
             if len(v.data.shape) == 3 and v.data.shape[1] == n:
                 ret.update({
-                    f"{k}_{i}": FEMAttribute(f"{k}_{i}", ids, d)
+                    f"{k}_{i}":
+                    fem_attribute_class(name=f"{k}_{i}", ids=ids, data=d)
                     for i, d in enumerate(v.data)})
         return ret
 
