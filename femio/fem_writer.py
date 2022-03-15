@@ -1,6 +1,8 @@
 
 import numpy as np
 
+from .fem_attribute import FEMAttribute
+
 
 class FEMWriter():
 
@@ -19,15 +21,29 @@ class FEMWriter():
     def try_convert_to_2d(self, mode='nodal'):
         if mode == 'nodal':
             fem_attributes = self.fem_data.nodal_data
+            ids = self.fem_data.nodes.ids
         elif mode == 'elemental':
             fem_attributes = self.fem_data.elemental_data
+            ids = self.fem_data.elements.ids
         else:
             raise ValueError(f"Unexpected mode: {mode}")
+        fem_attributes.update(
+            self._generate_time_series(fem_attributes, ids))
         return {
             key: value
             for key, value in fem_attributes.items()
             if len(value.data.shape) == 2
             and self._extract_dtype(value.data) != np.dtype('O')}
+
+    def _generate_time_series(self, fem_attributes, ids):
+        n = len(ids)
+        ret = {}
+        for k, v in fem_attributes.items():
+            if len(v.data.shape) == 3 and v.data.shape[1] == n:
+                ret.update({
+                    f"{k}_{i}": FEMAttribute(f"{k}_{i}", ids, d)
+                    for i, d in enumerate(v.data)})
+        return ret
 
     def _extract_dtype(self, array):
         if hasattr(array, 'dtype'):
