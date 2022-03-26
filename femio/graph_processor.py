@@ -81,7 +81,7 @@ class GraphProcessorMixin:
                 {k: v[1] for k, v in extracted_surface_info.items()}
 
     def _extract_surface(self, facets, facet_type):
-        sorted_facets = np.array([np.sort(f) for f in facets])
+        sorted_facets = np.array([np.sort(f) for f in facets], dtype=object)
         if facet_type == 'polygon':
             surface_indices, surface_positions \
                 = self._extract_surface_polygon(facets, sorted_facets)

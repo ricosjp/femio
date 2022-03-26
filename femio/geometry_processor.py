@@ -492,7 +492,7 @@ class GeometryProcessorMixin:
 
     def _calculate_tri_normals(self, elements):
         crosses = self._calculate_tri_crosses(elements)
-        normals = crosses / np.linalg.norm(crosses, axis=1, keepdims=True)
+        normals = functions.normalize(crosses)
         return normals
 
     def _calculate_tri_crosses(self, elements):
@@ -522,7 +522,7 @@ class GeometryProcessorMixin:
         v02 = node0_points - node2_points
         crosses2 = np.cross(v32, v02)
         vectors = crosses1 + crosses2
-        vectors /= np.linalg.norm(vectors, axis=1, keepdims=True)
+        vectors = functions.normalize(vectors)
         return vectors
 
     def _calculate_polygon_normals(self, elements):
