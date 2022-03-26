@@ -81,11 +81,13 @@ class GraphProcessorMixin:
                 {k: v[1] for k, v in extracted_surface_info.items()}
 
     def _extract_surface(self, facets, facet_type):
-        sorted_facets = np.array([np.sort(f) for f in facets], dtype=object)
         if facet_type == 'polygon':
+            sorted_facets = np.array(
+                [np.sort(f) for f in facets], dtype=object)
             surface_indices, surface_positions \
                 = self._extract_surface_polygon(facets, sorted_facets)
         else:
+            sorted_facets = np.array([np.sort(f) for f in facets])
             unique_sorted_facets, unique_indices, unique_counts = np.unique(
                 sorted_facets, return_index=True, return_counts=True, axis=0)
             surface_ids = facets[unique_indices[np.where(unique_counts == 1)]]
@@ -102,7 +104,7 @@ class GraphProcessorMixin:
         for n_node in unique_n_nodes:
             focus_sorted_facets = sorted_facets[n_nodes == n_node]
             unique_sorted_facets, unique_indices, unique_counts = np.unique(
-                np.stack(focus_sorted_facets),
+                np.stack(focus_sorted_facets).astype(int),
                 return_index=True, return_counts=True, axis=0)
 
             focus_facets = facets[n_nodes == n_node]
