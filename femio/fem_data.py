@@ -621,6 +621,9 @@ class FEMData(
         FEMData:
             First order FEMData object.
         """
+        if np.all(['2' not in key for key in self.elements.keys()]):
+            return self
+
         filter_ = self.filter_first_order_nodes()
         nodes = FEMAttribute(
             'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_].values)
