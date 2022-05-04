@@ -454,6 +454,7 @@ class FEMElementalAttribute(dict):
         return element_type
 
     def filter_with_ids(self, ids):
+        ids = ids[np.isin(ids, self.id2index.index)]
         indices = self.id2index.loc[ids].values[:, 0]
         filtered_element_data = self.data[indices]
         filtered_element_types = self.types[indices]
@@ -467,8 +468,12 @@ class FEMElementalAttribute(dict):
     def _filter_with_type(
             self, type_, element_ids, element_data, element_types):
         filter_ = element_types == type_
+        if type_ == 'polyhedron':
+            data = element_data[filter_]
+        else:
+            data = np.stack(element_data[filter_])
         return FEMAttribute(
-            type_, element_ids[filter_], np.stack(element_data[filter_]))
+            type_, element_ids[filter_], data)
 
     def generate_elemental_attribute(self, name, ids, data):
         """Generate elemental attribute from IDs and data.

@@ -454,6 +454,57 @@ class TestFEMData(unittest.TestCase):
         for ae, de in zip(cut_fem_data.elements.data, desired_element_data):
             np.testing.assert_array_equal(ae, de)
 
+    def test_cut_with_element_ids_polyhedron(self):
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/polyhedron/polyhedron.vtu')
+        element_ids = np.array([1, 2])
+        cut_fem_data = fem_data.cut_with_element_ids(element_ids)
+        desired_node_ids = np.arange(1, 13)
+        desired_node_data = fem_data.nodes.data[:12]
+
+        np.testing.assert_array_equal(
+            cut_fem_data.nodes.ids, desired_node_ids)
+        np.testing.assert_almost_equal(
+            cut_fem_data.nodes.data, desired_node_data)
+        np.testing.assert_array_equal(
+            cut_fem_data.elements.ids, element_ids)
+
+        face_0 = [6, 5, 0, 1, 5, 10, 9, 4, 1, 3, 8, 5, 5, 0, 9,
+                  11, 8, 3, 4, 5, 8, 11, 10, 3, 9, 10, 11, 3, 0, 3, 1]
+        face_1 = [6, 4, 1, 2, 6, 5, 4, 2, 4, 7, 6, 4, 5, 6,
+                  7, 8, 4, 3, 8, 7, 4, 4, 1, 3, 4, 2, 4, 1, 5, 8, 3]
+        np.testing.assert_array_equal(
+            cut_fem_data.elemental_data['face']['polyhedron'].data[0],
+            np.array(face_0)
+        )
+        np.testing.assert_array_equal(
+            cut_fem_data.elemental_data['face']['polyhedron'].data[1],
+            np.array(face_1)
+        )
+
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/poly_pyramid/mesh.vtu')
+        element_ids = np.array([1, 2])
+        cut_fem_data = fem_data.cut_with_element_ids(element_ids)
+        desired_node_ids = np.arange(1, 10)
+        desired_node_data = fem_data.nodes.data[:9]
+        np.testing.assert_array_equal(
+            cut_fem_data.nodes.ids, desired_node_ids)
+        np.testing.assert_almost_equal(
+            cut_fem_data.nodes.data, desired_node_data)
+        np.testing.assert_array_equal(
+            cut_fem_data.elements.ids, element_ids)
+        face = [6, 5, 0, 1, 4, 7, 6, 4, 1, 3, 5, 4, 5, 0, 6,
+                8, 5, 3, 4, 4, 5, 8, 7, 3, 6, 7, 8, 3, 0, 3, 1]
+        np.testing.assert_array_equal(
+            cut_fem_data.elemental_data['face']['polyhedron'].data[0],
+            np.array(face)
+        )
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/complex/mesh.vtu')
+        element_ids = np.array([1, 3])
+        cut_fem_data = fem_data.cut_with_element_ids(element_ids)
+
     def test_cut_with_element_type(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/mixture_solid', read_npy=False)
@@ -675,3 +726,80 @@ class TestFEMData(unittest.TestCase):
         np.testing.assert_equal(
             new_fem_data.elements.types, np.array(['hex', 'prism', 'prism']))
         np.testing.assert_almost_equal(volumes[:, 0], [1., .5, .5])
+
+    def test_to_polyhedron(self):
+        def check_face_format(face):
+            directed_edges = []
+            n = face[0]
+            ptr = 1
+            for _ in range(n):
+                k = face[ptr]
+                ptr += 1
+                F = face[ptr:ptr + k]
+                ptr += k
+                for i in range(len(F)):
+                    a = F[i - 1]
+                    b = F[i]
+                    directed_edges.append((a, b))
+            if ptr != len(face):
+                return False
+            se = set(directed_edges)
+            if len(directed_edges) != len(se):
+                return False
+            for a, b in directed_edges:
+                if (b, a) not in se:
+                    return False
+            return True
+
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/tet_3/mesh.vtk')
+        new_fem_data = fem_data.to_polyhedron()
+        np.testing.assert_equal(new_fem_data.elements.data, np.array(
+            [5, 6, 7, 4, 1, 2, 3, 7, 1, 6, 7, 5, 1, 2, 7, 6]).reshape(4, 4))
+        face_data = new_fem_data.elemental_data['face']['polyhedron'].data
+        assert isinstance(face_data[0], list)
+        np.testing.assert_equal(
+            face_data[0], [
+                4, 3, 4, 6, 5, 3, 3, 4, 5, 3, 3, 6, 4, 3, 3, 5, 6])
+        for face in face_data:
+            assert check_face_format(face)
+
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/hex/mesh.vtk')
+        new_fem_data = fem_data.to_polyhedron()
+        np.testing.assert_equal(new_fem_data.elements.data, np.array(
+            [1, 2, 3, 4, 5, 6, 7, 8, 5, 6, 7, 8, 9, 10, 11, 12]).reshape(2, 8))
+        face_data = new_fem_data.elemental_data['face']['polyhedron'].data
+        assert isinstance(face_data[0], list)
+        desired = [6, 4, 4, 5, 6, 7, 4, 5, 4, 0, 1, 4, 6, 5,
+                   1, 2, 4, 7, 6, 2, 3, 4, 4, 7, 3, 0, 4, 3, 2, 1, 0]
+        np.testing.assert_equal(
+            face_data[0], desired)
+        for face in face_data:
+            assert check_face_format(face)
+
+        fem_data = FEMData.read_files(
+            'ucd', 'tests/data/ucd/prism/mesh.inp')
+        new_fem_data = fem_data.to_polyhedron()
+        np.testing.assert_equal(new_fem_data.elements.data, np.array(
+            [204, 2042, 2043, 136, 1973, 1974]).reshape(1, 6))
+        face_data = new_fem_data.elemental_data['face']['polyhedron'].data
+        assert isinstance(face_data[0], list)
+        desired = [5, 3, 1, 4, 5, 3, 3, 2, 0, 4, 4,
+                   1, 0, 2, 4, 5, 4, 2, 3, 4, 1, 5, 3, 0]
+        np.testing.assert_equal(
+            face_data[0], desired)
+        for face in face_data:
+            assert check_face_format(face)
+
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/pyramid/pyramid.vtu')
+        new_fem_data = fem_data.to_polyhedron()
+        face_data = new_fem_data.elemental_data['face']['polyhedron'].data
+        assert isinstance(face_data[1], list)
+        desired = [5, 4, 7, 6, 5, 4, 3, 4, 5, 8,
+                   3, 5, 6, 8, 3, 6, 7, 8, 3, 7, 4, 8]
+        np.testing.assert_equal(
+            face_data[1], desired)
+        for face in face_data:
+            assert check_face_format(face)

@@ -49,7 +49,7 @@ class SignalProcessorMixin:
 
     def convert_elemental2nodal(
             self, elemental_data, mode='mean', order1_only=True,
-            raise_negative_volume=True):
+            raise_negative_volume=True, weight=None, incidence=None):
         """Convert elemental data to nodal data.
 
         Args:
@@ -64,25 +64,36 @@ class SignalProcessorMixin:
                 If True, convert data only for order 1 nodes.
             raise_negative_volume: bool, optional [True]
                 If True, raise ValueError when negative volume found.
+            weight: numpy.ndarray
+                Weight to be used in 'mean' mode. False means equal weight.
+            incidence: scipy.sparse.csr_matrix
+                (n_node, n_element)-shaped incidence matrix.
         Returns:
             converted_data: numpy.ndarray
         """
         if len(elemental_data) != len(self.elements.ids):
             raise ValueError(
                 'Length of input data differs from that of elements')
-        incidence_matrix = self.calculate_incidence_matrix(
-            order1_only=order1_only)
+        if incidence is None:
+            incidence_matrix = self.calculate_incidence_matrix(
+                order1_only=order1_only)
+        else:
+            incidence_matrix = incidence
 
         if mode == 'effective':
-            if not order1_only:
-                raise NotImplementedError
             weighted_incidence_matrix = incidence_matrix.multiply(
                 1 / incidence_matrix.sum(axis=0))
 
         elif mode == 'mean':
-            metrics = self.calculate_element_metrics(
-                raise_negative_metric=raise_negative_volume)
-            metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
+            if weight is False:
+                metric_incidence_matrix = incidence_matrix
+            else:
+                if weight is None:
+                    metrics = self.calculate_element_metrics(
+                        raise_negative_metric=raise_negative_volume)
+                else:
+                    metrics = weight
+                metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
             weighted_incidence_matrix = metric_incidence_matrix.multiply(
                 1 / metric_incidence_matrix.sum(axis=1))
 
@@ -812,7 +823,7 @@ class SignalProcessorMixin:
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
             consider_volume=True, normals=None, normal_weight=1.,
-            normal_weight_factor=None,
+            normal_weight_factor=None, adj=None,
             **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
@@ -842,6 +853,8 @@ class SignalProcessorMixin:
             If fed, weight the normal vector. The weight is calculated with
             normal_weight_factor * sum_i volume_i, where the index i runs
             overt the graph neighbor including the self loop.
+        adj: scipy.sparse [None]
+            If fed, used as a adjacency matrix.
 
         Returns
         -------
@@ -877,9 +890,10 @@ class SignalProcessorMixin:
         else:
             raise ValueError(f"Unknown mode: {mode}")
 
-        adj = self.calculate_n_hop_adj(
-            mode=mode, n_hop=n_hop, include_self_loop=False,
-            order1_only=order1_only)
+        if adj is None:
+            adj = self.calculate_n_hop_adj(
+                mode=mode, n_hop=n_hop, include_self_loop=False,
+                order1_only=order1_only)
 
         diff_position_adjs = self.calculate_data_diff_adjs(adj, positions)
         distance_adj = self.calculate_norm_adj(diff_position_adjs)

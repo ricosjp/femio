@@ -629,14 +629,27 @@ class TestGraphProcessor(unittest.TestCase):
         fem_data_1 = FEMData.read_directory(
             'obj', 'tests/data/obj/tri', read_npy=False, save=False)
 
-        indices, vectors = \
+        indices, vectors, dists = \
             fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
                 2, target_fem_data=fem_data_1
             )
         desired_indices = np.array([0, 3, 1, 0, 2, 0, 3, 0]).reshape(4, 2)
+        desired_vectors = np.empty((4, 2, 3), np.float64)
+        desired_vectors[0, 0] = (0, 0, 0)
+        desired_vectors[0, 1] = (0, 0, 1)
+        desired_vectors[1, 0] = (0, 0, 0)
+        desired_vectors[1, 1] = (-1, 0, 0)
+        desired_vectors[2, 0] = (0, 0, 0)
+        desired_vectors[2, 1] = (0, -1, 0)
+        desired_vectors[3, 0] = (0, 0, 0)
+        desired_vectors[3, 1] = (0, 0, -1)
+        desired_dists = np.array(
+            [0, 1, 0, 1, 0, 1, 0, 1], np.float64).reshape(4, 2)
         np.testing.assert_array_equal(indices, desired_indices)
+        np.testing.assert_almost_equal(vectors, desired_vectors)
+        np.testing.assert_almost_equal(dists, desired_dists)
 
-        indices, vectors = \
+        indices, vectors, dists = \
             fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
                 5, target_fem_data=fem_data_1)
         desired_indices = np.array([
@@ -646,8 +659,13 @@ class TestGraphProcessor(unittest.TestCase):
             [3, 0, 2, 1, -1],
         ])
         np.testing.assert_array_equal(indices, desired_indices)
+        np.testing.assert_almost_equal(vectors[0, 4], np.full(3, np.inf))
+        np.testing.assert_almost_equal(
+            dists[0], np.array([0, 1, 1, 1, np.inf]))
+        np.testing.assert_almost_equal(
+            dists[1], np.array([0, 1, 2**.5, 2**.5, np.inf]))
 
-        indices, vectors = \
+        indices, vectors, dists = \
             fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
                 3, distance_upper_bound=1.2, target_fem_data=fem_data_1
             )
@@ -659,10 +677,36 @@ class TestGraphProcessor(unittest.TestCase):
         ])
         np.testing.assert_array_equal(indices, desired_indices)
 
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_1', read_npy=False, save=False)
+        indices, vectors, dists = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_nodes(
+                3, target_fem_data=fem_data_2
+            )
+        np.testing.assert_array_equal(indices[1], np.array([1, 0, 2]))
+        np.testing.assert_almost_equal(
+            vectors[1, 0], np.array([0, 0, 1], float))
+        np.testing.assert_almost_equal(
+            vectors[1, 1], np.array([0, 1, 0], float))
+        np.testing.assert_almost_equal(
+            vectors[1, 2], np.array([-1, 1, 1], float))
+        np.testing.assert_almost_equal(
+            dists[1], np.array([1, 1, 3**.5], float))
+        indices, vectors, dists = \
+            fem_data_2.nearest_neighbor_search_from_nodes_to_nodes(
+                3, target_fem_data=fem_data_1
+            )
+        np.testing.assert_almost_equal(
+            dists[0], np.array([1, 1, 2**.5], float))
+        np.testing.assert_almost_equal(
+            dists[1], np.array([1, 1, 2**.5], float))
+        np.testing.assert_almost_equal(
+            dists[2], np.array([1, 1, 2**.5], float))
+
     def test_nearest_neighbor_search_from_elements_to_nodes(self):
         fem_data_1 = FEMData.read_directory(
             'obj', 'tests/data/obj/tri', read_npy=False, save=False)
-        indices, dists = \
+        indices, vectors, dists = \
             fem_data_1.nearest_neighbor_search_from_elements_to_nodes(4)
         desired = np.array([
             [0.0, 0.0, 0.0, 1.0],
@@ -671,11 +715,40 @@ class TestGraphProcessor(unittest.TestCase):
             [0.0, 0.0, 0.0, 1.0],
         ])
         np.testing.assert_almost_equal(dists, desired)
+        np.testing.assert_almost_equal(
+            vectors[0, 3], np.array([0, 0, 1], float))
+        np.testing.assert_almost_equal(
+            vectors[1, 3], np.array([-1 / 3, -1 / 3, -1 / 3], float))
+        np.testing.assert_almost_equal(
+            vectors[2, 3], np.array([1, 0, 0], float))
+        np.testing.assert_almost_equal(
+            vectors[3, 3], np.array([0, 1, 0], float))
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_1', read_npy=False, save=False)
+        indices, vectors, dists = \
+            fem_data_1.nearest_neighbor_search_from_elements_to_nodes(
+                4, target_fem_data=fem_data_2
+            )
+        np.testing.assert_almost_equal(
+            vectors[0, 0], np.array([0.5, 0.5, 0.0], float)
+        )
+        np.testing.assert_almost_equal(
+            vectors[0, 1], np.array([0, 0, 1], float)
+        )
+        np.testing.assert_almost_equal(
+            vectors[0, 2], np.array([0, 0, 1], float)
+        )
+        np.testing.assert_almost_equal(
+            vectors[0, 3], np.array([np.inf, np.inf, np.inf], float)
+        )
+        np.testing.assert_almost_equal(
+            dists[0], np.array([0.5**.5, 1, 1, np.inf], float)
+        )
 
     def test_nearest_neighbor_search_from_nodes_to_elements(self):
         fem_data_1 = FEMData.read_directory(
             'obj', 'tests/data/obj/tri', read_npy=False, save=False)
-        indices, dists = \
+        indices, vectors, dists = \
             fem_data_1.nearest_neighbor_search_from_nodes_to_elements(4)
         desired = np.array([
             [0.0, 0.0, 0.0, (1 / 3)**.5],
@@ -683,7 +756,35 @@ class TestGraphProcessor(unittest.TestCase):
             [0.0, 0.0, 0.0, 1.0],
             [0.0, 0.0, 0.0, 1.0],
         ])
+        np.testing.assert_almost_equal(
+            vectors[0, 3], np.array([1 / 3, 1 / 3, 1 / 3], float))
+        np.testing.assert_almost_equal(
+            vectors[1, 3], np.array([-1, 0, 0], float))
+        np.testing.assert_almost_equal(
+            vectors[2, 3], np.array([0, -1, 0], float))
+        np.testing.assert_almost_equal(
+            vectors[3, 3], np.array([0, 0, -1], float))
         np.testing.assert_almost_equal(dists, desired)
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_1', read_npy=False, save=False)
+        indices, vectors, dists = \
+            fem_data_1.nearest_neighbor_search_from_nodes_to_elements(
+                4, target_fem_data=fem_data_2
+            )
+        np.testing.assert_array_equal(
+            indices[0], np.array([0, -1, -1, -1])
+        )
+        np.testing.assert_array_equal(
+            indices[1], np.array([0, -1, -1, -1])
+        )
+        np.testing.assert_almost_equal(
+            vectors[0, 0], np.array([2 / 3, 2 / 3, 2 / 3])
+        )
+        np.testing.assert_almost_equal(
+            vectors[1, 0], np.array([0, 1 / 2, 1 / 2])
+        )
+        np.testing.assert_almost_equal(dists[:, 0], np.array(
+            [(4 / 3)**.5, (1 / 2)**.5, (1 / 2)**.5, (1 / 2)**.5]))
 
     def test_nearest_neighbor_search_from_elements_to_elements(self):
         fem_data_1 = FEMData.read_directory(
@@ -697,6 +798,21 @@ class TestGraphProcessor(unittest.TestCase):
             [0.0, 1.0, 1.0, 1.0],
         ])
         np.testing.assert_almost_equal(dists, desired)
+        fem_data_2 = FEMData.read_directory(
+            'obj', 'tests/data/obj/tri_1', read_npy=False, save=False)
+        indices, dists = \
+            fem_data_1.nearest_neighbor_search_from_elements_to_elements(
+                2, target_fem_data=fem_data_2)
+        np.testing.assert_array_equal(
+            indices, np.array([0, -1] * 4).reshape(4, 2))
+        np.testing.assert_almost_equal(
+            dists[:, 0], np.array(
+                [(4 / 3)**.5, (1 / 2)**.5, (4 / 3)**.5, (4 / 3)**.5]
+            )
+        )
+        np.testing.assert_almost_equal(
+            dists[:, 1], np.array([np.inf] * 4)
+        )
 
     def test_hausdorff_distance_nodes(self):
         fem_data_1 = FEMData.read_directory(
@@ -723,24 +839,24 @@ class TestGraphProcessor(unittest.TestCase):
             'fistr', 'tests/data/fistr/graph_tet1', read_npy=False)
         gradient_matrix = fem_data.calculate_edge_gradient_matrix()
         desired = np.array([
-            [1,  0,  0,  0,  0,  0, -1,  0],
-            [1,  0,  0, -1,  0,  0,  0,  0],
-            [1,  0,  0,  0,  0,  0,  0, -1],
-            [1,  0, -1,  0,  0,  0,  0,  0],
-            [1, -1,  0,  0,  0,  0,  0,  0],
-            [0,  1,  0,  0,  0,  0, -1,  0],
-            [0,  1,  0,  0, -1,  0,  0,  0],
-            [0,  1,  0, -1,  0,  0,  0,  0],
-            [0,  1,  0,  0,  0,  0,  0, -1],
-            [0,  1, -1,  0,  0,  0,  0,  0],
-            [0,  0,  1,  0,  0, -1,  0,  0],
-            [0,  0,  1,  0, -1,  0,  0,  0],
-            [0,  0,  1, -1,  0,  0,  0,  0],
-            [0,  0,  1,  0,  0,  0,  0, -1],
-            [0,  0,  0,  1,  0, -1,  0,  0],
-            [0,  0,  0,  1, -1,  0,  0,  0],
-            [0,  0,  0,  0,  1, -1,  0,  0],
-            [0,  0,  0,  0,  0,  0,  1, -1],
+            [1, 0, 0, 0, 0, 0, -1, 0],
+            [1, 0, 0, -1, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0, 0, 0, -1],
+            [1, 0, -1, 0, 0, 0, 0, 0],
+            [1, -1, 0, 0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, -1, 0],
+            [0, 1, 0, 0, -1, 0, 0, 0],
+            [0, 1, 0, -1, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0, 0, 0, -1],
+            [0, 1, -1, 0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, -1, 0, 0],
+            [0, 0, 1, 0, -1, 0, 0, 0],
+            [0, 0, 1, -1, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0, 0, 0, -1],
+            [0, 0, 0, 1, 0, -1, 0, 0],
+            [0, 0, 0, 1, -1, 0, 0, 0],
+            [0, 0, 0, 0, 1, -1, 0, 0],
+            [0, 0, 0, 0, 0, 0, 1, -1],
         ])
         np.testing.assert_array_equal(gradient_matrix.toarray(), desired)
         np.testing.assert_array_equal(
