@@ -527,13 +527,22 @@ class GraphProcessorMixin:
             nodes = self.nodes
             elements = self.elements
 
-        node_indices = nodes.ids2indices(elements.data)
-        element_indices = np.concatenate([
-            [i] * len(n) for i, n in enumerate(node_indices)])
+        node_indices = nodes.ids2indices(elements)
+        if isinstance(node_indices, list):
+            element_indices = np.concatenate([
+                [eind] * len(n)
+                for element, ni in zip(elements.values(), node_indices)
+                for eind, n in zip(element.ids - 1, ni)])
+            flattened_node_indices = np.concatenate([
+                np.concatenate(ni) for ni in node_indices])
+        else:
+            element_indices = np.concatenate([
+                [i] * len(n) for i, n in enumerate(node_indices)])
+            flattened_node_indices = np.concatenate(node_indices)
         incidence_matrix = sp.csr_matrix(
             (
                 [True] * len(element_indices),
-                (np.concatenate(node_indices), element_indices)),
+                (flattened_node_indices, element_indices)),
             shape=(len(nodes), len(elements)))
         return incidence_matrix
 

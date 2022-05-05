@@ -268,7 +268,7 @@ class FEMAttribute():
 
         Parameters
         ----------
-        ids: numpy.ndarray
+        ids: numpy.ndarray or femio.FEMElementalAttribute
             IDs.
         id2index: pandas.DataFrame, optional
             DataFrame of IDs and indices. If not fed and self does not have
@@ -279,6 +279,11 @@ class FEMAttribute():
         indices: numpy.ndarray
             Indices corresponding to ids.
         """
+        if isinstance(ids, dict):
+            ret = [
+                self.ids2indices(v.data, id2index=id2index)
+                for v in ids.values()]
+            return ret
         if self.generate_id2index:
             id2index = self.id2index
         else:
