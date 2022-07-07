@@ -753,7 +753,6 @@ class FEMData(
         node_ids = np.unique(np.concatenate([
             np.concatenate(e.data) for e
             in self.elements.filter_with_ids(element_ids).values()]))
-        print("node ids", node_ids)
         nodes = self.nodes.filter_with_ids(node_ids)
         nodal_data = FEMAttributes({
             k: v.filter_with_ids(node_ids) for k, v in self.nodal_data.items()

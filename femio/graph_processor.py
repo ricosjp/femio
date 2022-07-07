@@ -681,8 +681,8 @@ class GraphProcessorMixin:
         return {
             element_type:
             np.array([
-                self.collect_node_indices_by_ids(e) for e in elements_.data]
-                , dtype=elements_.data.dtype)
+                self.collect_node_indices_by_ids(e) for e in elements_.data],
+                dtype=elements_.data.dtype)
             for element_type, elements_ in elements.items()}
 
     def collect_node_indices_by_ids(self, node_ids):
