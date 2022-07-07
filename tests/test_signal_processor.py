@@ -9,6 +9,7 @@ import scipy.sparse as sp
 
 from femio.fem_attribute import FEMAttribute
 from femio.fem_data import FEMData
+from femio.util import brick_generator
 
 
 RUN_FISTR = True
@@ -1469,7 +1470,7 @@ class TestSignalProcessor(unittest.TestCase):
                 mode='elemental', include_self_loop=False),
             expected_differences)
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/tet_orthogonal_double',
             read_npy=False, save=False)
@@ -1498,7 +1499,7 @@ class TestSignalProcessor(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(z_grad, desired)
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_cube(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix_cube(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/tet2_cube',
             read_npy=False, save=False)
@@ -1522,7 +1523,7 @@ class TestSignalProcessor(unittest.TestCase):
         # fd.nodal_data.update_data(fd.nodes.ids, {'z_grad': z_grad})
         # fd.write('ucd', 'w_moment.inp')
 
-    def test_calculate_gradient_adjecency_matrix_neumann(self):
+    def test_calculate_gradient_adjacency_matrix_neumann(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
@@ -1576,7 +1577,7 @@ class TestSignalProcessor(unittest.TestCase):
         fd.write(
             'ucd', 'tests/data/ucd/write_neumann/neumann.inp', overwrite=True)
 
-    def test_calculate_gradient_adjecency_matrix_neumann_normal_weight(self):
+    def test_calculate_gradient_adjacency_matrix_neumann_normal_weight(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
@@ -1635,7 +1636,7 @@ class TestSignalProcessor(unittest.TestCase):
             'ucd',
             'tests/data/ucd/write_neumann_factor/neumann.inp', overwrite=True)
 
-    def test_calculate_gradient_adjecency_matrix_normals(self):
+    def test_calculate_gradient_adjacency_matrix_normals(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_plane', read_npy=False, save=False)
         normals = np.array([
@@ -1697,7 +1698,7 @@ class TestSignalProcessor(unittest.TestCase):
             [0., 1., 0.],
         ]))
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_hex(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix_hex(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/cube',
             read_npy=False, save=False)
@@ -1892,7 +1893,7 @@ class TestSignalProcessor(unittest.TestCase):
             for s___ in csr_powered]), (4, 5, 0, 1, 2, 3))
         np.testing.assert_almost_equal(csr_powered_to_numpy, rank4)
 
-    def test_calculate_gradient_adjecency_matrix_with_moment_matrix_mix(self):
+    def test_calculate_gradient_adjacency_matrix_with_moment_matrix_mix(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/mix_hex_hexprism',
             read_npy=False, save=False)
@@ -1919,7 +1920,7 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/write_w_moment_hex_prism/mesh.vtk',
             overwrite=True)
 
-    def test_calculate_gradient_adjecency_matrix_neumann_mix(self):
+    def test_calculate_gradient_adjacency_matrix_neumann_mix(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/mix_hex_hexprism',
             read_npy=False, save=False)
@@ -1975,3 +1976,130 @@ class TestSignalProcessor(unittest.TestCase):
         fem_data.write(
             'vtk', 'tests/data/vtk/write_w_moment_hex_prism_neumann/mesh.vtk',
             overwrite=True)
+
+    def test_calculate_spatial_gradient_incidence_matrix_w_moment(self):
+        fem_data = brick_generator.generate_brick('hex', 10, 5, 3)
+        g_inc, int_inc = fem_data.calculate_spatial_gradient_incidence_matrix(
+            mode='nodal', moment_matrix=True, consider_volume=False)
+        g_adj = fem_data.calculate_spatial_gradient_adjacency_matrices(
+            mode='nodal', n_hop=1, moment_matrix=True, consider_volume=False)
+        inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
+            'inversed_moment_tensors')
+
+        for i in range(3):
+            np.testing.assert_almost_equal(
+                np.einsum(
+                    'il,ijl->ij', inversed_moment_tensors[:, i, :],
+                    np.stack(
+                        [int_inc.dot(g_inc[k]).toarray() for k in range(3)],
+                        axis=-1)),
+                g_adj[i].toarray())
+
+        filter_ = fem_data.filter_first_order_nodes()
+
+        inc_x_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, np.stack([
+                int_inc.dot(g.dot(fem_data.nodes.data[filter_, [0]]))
+                for g in g_inc], axis=-1))
+        desired_x_grad = np.stack([
+            g.dot(fem_data.nodes.data[filter_, [0]])
+            for g in g_adj], axis=-1)
+        np.testing.assert_almost_equal(inc_x_grad, desired_x_grad)
+
+        inc_z_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, np.stack([
+                int_inc.dot(g.dot(fem_data.nodes.data[filter_, [2]]))
+                for g in g_inc], axis=-1))
+        desired_z_grad = np.stack([
+            g.dot(fem_data.nodes.data[filter_, [2]])
+            for g in g_adj], axis=-1)
+        np.testing.assert_almost_equal(inc_z_grad, desired_z_grad)
+
+        r = np.sin(fem_data.nodes.data[filter_, [1]])
+        inc_r_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors,
+            np.stack([int_inc.dot(g.dot(r)) for g in g_inc], axis=-1))
+        desired_r_grad = np.stack([g.dot(r) for g in g_adj], axis=-1)
+        np.testing.assert_almost_equal(inc_r_grad, desired_r_grad)
+
+    def test_calculate_spatial_gradient_incidence_matrix_wo_moment(self):
+        fem_data = brick_generator.generate_brick('hex', 10, 5, 3)
+        g_inc, int_inc = fem_data.calculate_spatial_gradient_incidence_matrix(
+            mode='nodal', moment_matrix=False, consider_volume=False)
+        g_adj = fem_data.calculate_spatial_gradient_adjacency_matrices(
+            mode='nodal', n_hop=1, moment_matrix=False, consider_volume=False)
+
+        for i in range(3):
+            np.testing.assert_almost_equal(
+                int_inc.dot(g_inc[i]).toarray(), g_adj[i].toarray())
+
+        filter_ = fem_data.filter_first_order_nodes()
+
+        inc_x_grad = np.stack([
+            int_inc.dot(g.dot(fem_data.nodes.data[filter_, [0]]))
+            for g in g_inc], axis=-1)
+        desired_x_grad = np.stack([
+            g.dot(fem_data.nodes.data[filter_, [0]])
+            for g in g_adj], axis=-1)
+        np.testing.assert_almost_equal(inc_x_grad, desired_x_grad)
+
+        inc_z_grad = np.stack([
+            int_inc.dot(g.dot(fem_data.nodes.data[filter_, [2]]))
+            for g in g_inc], axis=-1)
+        desired_z_grad = np.stack([
+            g.dot(fem_data.nodes.data[filter_, [2]])
+            for g in g_adj], axis=-1)
+        np.testing.assert_almost_equal(inc_z_grad, desired_z_grad)
+
+        r = np.sin(fem_data.nodes.data[filter_, [1]])
+        inc_r_grad = np.stack([int_inc.dot(g.dot(r)) for g in g_inc], axis=-1)
+        desired_r_grad = np.stack([g.dot(r) for g in g_adj], axis=-1)
+        np.testing.assert_almost_equal(inc_r_grad, desired_r_grad)
+
+    def test_spatial_gradient_incidence_neumann_mix(self):
+        fem_data = FEMData.read_directory(
+            'vtk', 'tests/data/vtk/mix_hex_hexprism',
+            read_npy=False, save=False)
+
+        grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
+            mode='nodal', n_hop=1, moment_matrix=True, normals=True)
+        inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
+            'inversed_moment_tensors')
+        normals = fem_data.nodal_data.get_attribute_data(
+            'weighted_surface_normals')
+
+        filter_ = fem_data.filter_first_order_nodes()
+        n = np.sum(filter_)
+        x = fem_data.nodes.data[filter_]
+
+        scale = 1.
+        phi = - np.sin(x[:, 0] / scale + 2 * x[:, 1] / scale) * scale + x[:, 2]
+        desired_phi_grad = np.stack([
+            - np.cos(x[:, 0] / scale + 2 * x[:, 1] / scale),
+            - np.cos(x[:, 0] / scale + 2 * x[:, 1] / scale) * 2,
+            np.ones(n)], axis=-1)
+        neumann_phi = np.einsum('ij,ij->i', normals, desired_phi_grad)
+        neumann_normas = np.einsum('ij,i->ij', normals, neumann_phi)
+
+        isoam_phi_grad = np.stack(
+            [g.dot(phi) for g in grads], axis=-1) + np.einsum(
+                'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
+
+        fem_data.nodal_data.pop('inversed_moment_tensors')
+        fem_data.nodal_data.pop('weighted_surface_normals')
+
+        sgms, eim = fem_data.calculate_spatial_gradient_incidence_matrix(
+            mode='nodal', n_hop=1, moment_matrix=True, normals=True)
+        inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
+            'inversed_moment_tensors')
+        normals = fem_data.nodal_data.get_attribute_data(
+            'weighted_surface_normals')
+
+        isoim_phi_grad = np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, np.stack(
+                [eim.dot(sgm.dot(phi)) for sgm in sgms], axis=-1)
+        ) + np.einsum(
+            'ijk,ik->ij', inversed_moment_tensors, neumann_normas)
+
+        np.testing.assert_almost_equal(
+            isoim_phi_grad, isoam_phi_grad, decimal=0)

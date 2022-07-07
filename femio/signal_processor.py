@@ -49,7 +49,7 @@ class SignalProcessorMixin:
 
     def convert_elemental2nodal(
             self, elemental_data, mode='mean', order1_only=True,
-            raise_negative_volume=True):
+            raise_negative_volume=True, weight=None, incidence=None):
         """Convert elemental data to nodal data.
 
         Args:
@@ -64,25 +64,36 @@ class SignalProcessorMixin:
                 If True, convert data only for order 1 nodes.
             raise_negative_volume: bool, optional [True]
                 If True, raise ValueError when negative volume found.
+            weight: numpy.ndarray
+                Weight to be used in 'mean' mode. False means equal weight.
+            incidence: scipy.sparse.csr_matrix
+                (n_node, n_element)-shaped incidence matrix.
         Returns:
             converted_data: numpy.ndarray
         """
         if len(elemental_data) != len(self.elements.ids):
             raise ValueError(
                 'Length of input data differs from that of elements')
-        incidence_matrix = self.calculate_incidence_matrix(
-            order1_only=order1_only)
+        if incidence is None:
+            incidence_matrix = self.calculate_incidence_matrix(
+                order1_only=order1_only)
+        else:
+            incidence_matrix = incidence
 
         if mode == 'effective':
-            if not order1_only:
-                raise NotImplementedError
             weighted_incidence_matrix = incidence_matrix.multiply(
                 1 / incidence_matrix.sum(axis=0))
 
         elif mode == 'mean':
-            metrics = self.calculate_element_metrics(
-                raise_negative_metric=raise_negative_volume)
-            metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
+            if weight is False:
+                metric_incidence_matrix = incidence_matrix
+            else:
+                if weight is None:
+                    metrics = self.calculate_element_metrics(
+                        raise_negative_metric=raise_negative_volume)
+                else:
+                    metrics = weight
+                metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
             weighted_incidence_matrix = metric_incidence_matrix.multiply(
                 1 / metric_incidence_matrix.sum(axis=1))
 
@@ -812,7 +823,7 @@ class SignalProcessorMixin:
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
             consider_volume=True, normals=None, normal_weight=1.,
-            normal_weight_factor=None,
+            normal_weight_factor=None, adj=None,
             **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
@@ -842,6 +853,8 @@ class SignalProcessorMixin:
             If fed, weight the normal vector. The weight is calculated with
             normal_weight_factor * sum_i volume_i, where the index i runs
             overt the graph neighbor including the self loop.
+        adj: scipy.sparse [None]
+            If fed, used as a adjacency matrix.
 
         Returns
         -------
@@ -877,9 +890,10 @@ class SignalProcessorMixin:
         else:
             raise ValueError(f"Unknown mode: {mode}")
 
-        adj = self.calculate_n_hop_adj(
-            mode=mode, n_hop=n_hop, include_self_loop=False,
-            order1_only=order1_only)
+        if adj is None:
+            adj = self.calculate_n_hop_adj(
+                mode=mode, n_hop=n_hop, include_self_loop=False,
+                order1_only=order1_only)
 
         diff_position_adjs = self.calculate_data_diff_adjs(adj, positions)
         distance_adj = self.calculate_norm_adj(diff_position_adjs)
@@ -1008,6 +1022,150 @@ class SignalProcessorMixin:
                     grad_adj_wo_self.sum(axis=1)))
             for grad_adj_wo_self in grad_adj_wo_selfs]
         return grad_adjs
+
+    def calculate_spatial_gradient_incidence_matrix(
+            self, mode='nodal', order1_only=True,
+            moment_matrix=True, normals=None, normal_weight=1., **kwargs):
+        """Calculate spatial gradient (not graph gradient) incidence matrix.
+
+        Parameters
+        ----------
+        mode: str, optional ['nodal', 'elemental']
+        order1_only: bool, optional [True]
+            If True, consider only order 1 nodes.
+        moment_matrix: bool, optional [True]
+            If True, scale the matrix with moment matrices, which are
+            tensor products of relative position tensors.
+        normals: bool or numpy.ndarray, optional [False]
+            If True, take into account surface normal vectors to consider
+            Neumann boundary condition. If numpy.ndarray is fed,
+            use them as normal vectors.
+        normal_weight: float, optional [1.]
+            Weight of the normal vector.
+
+        Returns
+        -------
+        spatial_gradient_matrix: list[scipy.sparse.csr_matrix]
+            Three spatial gradient matrix with [n_edge, n_vertex] shape.
+        edge_incidence_matrix: scipy.sparse.csr_matrix
+            Sparse matrices whose shapes are [n_vertex, n_edge].
+        """
+        dim = 3
+
+        if mode == 'elemental':
+            raise NotImplementedError
+            positions = self.convert_nodal2elemental(
+                'NODE', calc_average=True)
+
+        elif mode == 'nodal':
+            if order1_only:
+                filter_ = self.filter_first_order_nodes()
+            else:
+                filter_ = np.ones(len(self.nodes.ids), dtype=bool)
+            ids = self.nodes.ids[filter_]
+            positions = self.nodal_data.get_attribute_data('NODE')[filter_]
+
+        else:
+            raise ValueError(f"Unknown mode: {mode}")
+
+        edge_gradient_matrix = self.calculate_edge_gradient_matrix(
+            mode=mode, order1_only=order1_only)
+        diff_positions = edge_gradient_matrix.dot(positions)
+        norm_diff_ppsitions = np.linalg.norm(
+            diff_positions, axis=1, keepdims=True)
+        normalized_diff_positions = diff_positions / norm_diff_ppsitions
+        abs_edge_gradient_matrix = np.abs(edge_gradient_matrix).T
+
+        inverse_distance_matrix = edge_gradient_matrix.multiply(
+            1 / norm_diff_ppsitions)
+        spatial_gradient_matrix = [
+            inverse_distance_matrix.multiply(
+                normalized_diff_positions[:, [i]]) for i in range(dim)]
+
+        if moment_matrix:
+            tensor_normalized_diff_positions = np.einsum(
+                'ij,ik->ijk',
+                normalized_diff_positions, normalized_diff_positions)
+            moment_tensors = np.stack([
+                np.stack([
+                    abs_edge_gradient_matrix.dot(
+                        tensor_normalized_diff_positions[:, i, j])
+                    for i in range(dim)], axis=-1)
+                for j in range(dim)], axis=-1)
+
+            if not (normals is None or normals is False):
+                if mode == 'elemental':
+                    if normals is True:
+                        surface_normals = functions.normalize(
+                            self.convert_nodal2elemental(
+                                self.calculate_surface_normals()),
+                            keep_zeros=True)
+                    elif isinstance(normals, np.ndarray):
+                        surface_normals = normals
+                    else:
+                        raise ValueError(
+                            f"Unexpected normals' format: {normals}")
+                    self.elemental_data.update_data(
+                        ids, {'elemental_normals': surface_normals},
+                        allow_overwrite=True)
+                else:
+                    if normals is True:
+                        surface_normals = self.calculate_surface_normals()[
+                            filter_]
+                    elif isinstance(normals, np.ndarray):
+                        surface_normals = normals
+                    else:
+                        raise ValueError(
+                            f"Unexpected normals' format: {normals}")
+                    self.nodal_data.update_data(
+                        ids, {'filtered_surface_normals': surface_normals},
+                        allow_overwrite=True)
+
+                normal_moment_tensors = np.einsum(
+                    'ij,ik->ijk', surface_normals, surface_normals)
+                weighted_normal_moment_tensors = normal_moment_tensors \
+                    * normal_weight
+                weighted_surface_normals = normal_weight * surface_normals
+
+                if mode == 'elemental':
+                    self.elemental_data.update_data(
+                        ids, {
+                            'weighted_surface_normals':
+                            weighted_surface_normals},
+                        allow_overwrite=True)
+                elif mode == 'nodal':
+                    self.nodal_data.update_data(
+                        ids, {
+                            'weighted_surface_normals':
+                            weighted_surface_normals},
+                        allow_overwrite=True)
+
+                moment_tensors = moment_tensors \
+                    + weighted_normal_moment_tensors
+
+            inversed_moment_tensors = self._inverse_tensors(moment_tensors)
+
+            if mode == 'elemental':
+                self.elemental_data.update_data(
+                    ids, {'inversed_moment_tensors': inversed_moment_tensors},
+                    allow_overwrite=True)
+            elif mode == 'nodal':
+                self.nodal_data.update_data(
+                    ids, {'inversed_moment_tensors': inversed_moment_tensors},
+                    allow_overwrite=True)
+            else:
+                raise ValueError(f"Unknown mode: {mode}")
+
+            edge_incidence_matrix = np.abs(edge_gradient_matrix.T)
+
+        else:
+            adj = self.calculate_adjacency_matrix_node(order1_only=order1_only)
+            degree = (adj - sp.eye(*adj.shape)).sum(axis=1)
+            inv_degree = 1 / degree
+            edge_incidence_matrix = dim * abs_edge_gradient_matrix.multiply(
+                inv_degree)
+
+        return spatial_gradient_matrix, edge_incidence_matrix
 
     def calculate_distance_kernel_adj(
             self, kernel, distance_adj, **kwargs):

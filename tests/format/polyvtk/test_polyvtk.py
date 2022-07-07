@@ -241,9 +241,9 @@ class TestPolyVTK(unittest.TestCase):
             np.testing.assert_almost_equal(ae, np.array(de))
 
         volumes = fem_data.calculate_element_volumes(linear=True)
-        fem_data.write('polyvtk', 'tmp.vtu', overwrite=True)
+        # fem_data.write('polyvtk', 'tmp.vtu', overwrite=True)
         vtk_fem_data.calculate_element_volumes(linear=True)
-        vtk_fem_data.write('vtk', 'tmp.vtk', overwrite=True)
+        # vtk_fem_data.write('vtk', 'tmp.vtk', overwrite=True)
         np.testing.assert_almost_equal(
             volumes[[3, 1, 2, 0]],
             vtk_fem_data.calculate_element_volumes(linear=True))

@@ -164,3 +164,41 @@ class TestWriteVTK(unittest.TestCase):
                 [1, 2, 3, 4],
                 [1, 3, 2, 5],
             ]))
+
+    def test_read_write_npy_directory_mesh_only(self):
+        file_name = pathlib.Path('tests/data/vtu/poly_pyramid/mesh.vtu')
+        npy_directory_name = pathlib.Path(
+            'tests/data/vtu/write_npy_poly_pyramid')
+        write_file_name = pathlib.Path(
+            'tests/data/vtu/write_poly_pyramid/mesh.vtu')
+        if write_file_name.exists():
+            shutil.rmtree(write_file_name.parent)
+        fem_data = FEMData.read_files('polyvtk', [file_name])
+        fem_data.save(npy_directory_name)
+        npy_fem_data = FEMData.read_npy_directory(
+            npy_directory_name, read_mesh_only=True)
+        npy_fem_data.write('vtu', write_file_name)
+        written_fem_data = FEMData.read_files('vtu', write_file_name)
+        ae, de = written_fem_data.elements.data, fem_data.elements.data
+        np.testing.assert_almost_equal(ae[0], np.sort(de[0]))
+        np.testing.assert_almost_equal(ae[1], de[2])
+        np.testing.assert_almost_equal(ae[2], de[1])
+
+    def test_read_write_npy_directory(self):
+        file_name = pathlib.Path('tests/data/vtu/poly_pyramid/mesh.vtu')
+        npy_directory_name = pathlib.Path(
+            'tests/data/vtu/write_npy_poly_pyramid')
+        write_file_name = pathlib.Path(
+            'tests/data/vtu/write_poly_pyramid/mesh.vtu')
+        if write_file_name.exists():
+            shutil.rmtree(write_file_name.parent)
+        fem_data = FEMData.read_files('polyvtk', [file_name])
+        fem_data.save(npy_directory_name)
+        npy_fem_data = FEMData.read_npy_directory(
+            npy_directory_name, read_mesh_only=False)
+        npy_fem_data.write('vtu', write_file_name)
+        written_fem_data = FEMData.read_files('vtu', write_file_name)
+        ae, de = written_fem_data.elements.data, fem_data.elements.data
+        np.testing.assert_almost_equal(ae[0], np.sort(de[0]))
+        np.testing.assert_almost_equal(ae[1], de[2])
+        np.testing.assert_almost_equal(ae[2], de[1])

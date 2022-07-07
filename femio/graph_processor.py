@@ -81,11 +81,13 @@ class GraphProcessorMixin:
                 {k: v[1] for k, v in extracted_surface_info.items()}
 
     def _extract_surface(self, facets, facet_type):
-        sorted_facets = np.array([np.sort(f) for f in facets])
         if facet_type == 'polygon':
+            sorted_facets = np.array(
+                [np.sort(f) for f in facets], dtype=object)
             surface_indices, surface_positions \
                 = self._extract_surface_polygon(facets, sorted_facets)
         else:
+            sorted_facets = np.array([np.sort(f) for f in facets])
             unique_sorted_facets, unique_indices, unique_counts = np.unique(
                 sorted_facets, return_index=True, return_counts=True, axis=0)
             surface_ids = facets[unique_indices[np.where(unique_counts == 1)]]
@@ -102,7 +104,7 @@ class GraphProcessorMixin:
         for n_node in unique_n_nodes:
             focus_sorted_facets = sorted_facets[n_nodes == n_node]
             unique_sorted_facets, unique_indices, unique_counts = np.unique(
-                np.stack(focus_sorted_facets),
+                np.stack(focus_sorted_facets).astype(int),
                 return_index=True, return_counts=True, axis=0)
 
             focus_facets = facets[n_nodes == n_node]
@@ -135,7 +137,7 @@ class GraphProcessorMixin:
         N = len(data)
 
         # node_0, node_1, node_2, elem_id, surf_id
-        surfs = np.empty((4 * N, 5), np.int64)
+        surfs = np.empty((4 * N, 5), np.int32)
         surfs[0 * N:1 * N, :3] = data[:, [0, 1, 2]]
         surfs[1 * N:2 * N, :3] = data[:, [0, 1, 3]]
         surfs[2 * N:3 * N, :3] = data[:, [1, 2, 3]]
@@ -525,15 +527,93 @@ class GraphProcessorMixin:
             nodes = self.nodes
             elements = self.elements
 
-        node_indices = nodes.ids2indices(elements.data)
-        element_indices = np.concatenate([
-            [i] * len(n) for i, n in enumerate(node_indices)])
+        node_indices = nodes.ids2indices(elements)
+        if isinstance(node_indices, list):
+
+            dict_element_indices = {
+                k: elements.id2index.loc[v.ids].values[:, 0]
+                for k, v in elements.items()}
+            element_indices = np.concatenate([
+                [eind] * len(n)
+                for element_indices, ni
+                in zip(dict_element_indices.values(), node_indices)
+                for eind, n in zip(element_indices, ni)])
+            flattened_node_indices = np.concatenate([
+                np.concatenate(ni) for ni in node_indices])
+        else:
+            element_indices = np.concatenate([
+                [i] * len(n) for i, n in enumerate(node_indices)])
+            flattened_node_indices = np.concatenate(node_indices)
+
         incidence_matrix = sp.csr_matrix(
             (
                 [True] * len(element_indices),
-                (np.concatenate(node_indices), element_indices)),
+                (flattened_node_indices, element_indices)),
             shape=(len(nodes), len(elements)))
         return incidence_matrix
+
+    @functools.lru_cache(maxsize=2)
+    def calculate_laplacian_matrix(self, mode='nodal', order1_only=True):
+        """Calculate edge-based graph incidence matrix, which is
+        (n_edge, n_node)-shaped matrix with bool.
+
+        Parameters
+        ----------
+        mode: str, optional, ['nodal', 'elemental']
+        order1_only: bool, optional
+            If True, generate incidence matrix based on only order-one nodes.
+
+        Returns
+        -------
+        incidence_matrix: scipy.sparse.csr_matrix
+            (n_edge, n_node)-shaped sparse matrix.
+        """
+        if mode == 'nodal':
+            adj = self.calculate_adjacency_matrix_node(
+                order1_only=order1_only)
+        elif mode == 'elemental':
+            adj = self.calculate_adjacency_matrix_element(
+                order1_only=order1_only)
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+        adj_wo_loop = adj.astype(int) - sp.eye(*adj.shape, dtype=int)
+        degree = sp.diags(np.ravel(adj_wo_loop.sum(axis=1)), dtype=int)
+        return adj_wo_loop - degree
+
+    @functools.lru_cache(maxsize=1)
+    def calculate_edge_gradient_matrix(self, mode='nodal', order1_only=True):
+        """Calculate edge-based graph gradient matrix, which is
+        (n_edge, n_vertex)-shaped matrix with bool. n_vertex can be either
+        n_node or n_element, depending on the `mode` option.
+
+        Parameters
+        ----------
+        mode: str, optional, ['nodal', 'elemental']
+        order1_only: bool, optional
+            If True, generate incidence matrix based on only order-one nodes.
+
+        Returns
+        -------
+        gradient_matrix: scipy.sparse.csr_matrix
+            (n_edge, n_node)-shaped sparse matrix.
+        """
+        if mode == 'nodal':
+            adj = self.calculate_adjacency_matrix_node(
+                order1_only=order1_only).tocoo()
+        elif mode == 'elemental':
+            adj = self.calculate_adjacency_matrix_element(
+                order1_only=order1_only).tocoo()
+        else:
+            raise ValueError(f"Unexpected mode: {mode}")
+        col = np.concatenate([
+            np.array([r, c]) for r, c in zip(adj.row, adj.col) if c > r])
+        row = np.arange(len(col)) // 2
+        data = np.ones(len(col))
+        data[1::2] = -1
+        gradient_matrix = sp.csr_matrix(
+            (data, (row, col)), shape=(int(len(col) / 2), adj.shape[0]),
+            dtype=int)
+        return gradient_matrix
 
     @functools.lru_cache(maxsize=15)
     def calculate_n_hop_adj(
@@ -810,7 +890,7 @@ class GraphProcessorMixin:
             vz = pz - vw if r & 1 else pz + vw
             node_xyzw[v] = (vx, vy, vz, vw)
 
-        node_pt, sz = np.empty((9 * N, 2), np.int64), 0
+        node_pt, sz = np.empty((9 * N, 2), np.int32), 0
 
         def add(v, i):
             nonlocal sz
@@ -857,7 +937,7 @@ class GraphProcessorMixin:
             z3 = x1 * y2 - x2 * y1
             areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
         sample_sz = (np.append(0, np.cumsum(areas)) * n_sample //
-                     areas.sum()).astype(np.int64)
+                     areas.sum()).astype(np.int32)
         sample_sz = sample_sz[1:] - sample_sz[:-1]
         sample_sz = np.maximum(sample_sz, 1)
         n_sample = sample_sz.sum()
@@ -881,7 +961,7 @@ class GraphProcessorMixin:
             vz = pz - vw if r & 1 else pz + vw
             node_xyzw[v] = (vx, vy, vz, vw)
 
-        node_tri, sz = np.empty((9 * n_sample, 2), np.int64), 0
+        node_tri, sz = np.empty((9 * n_sample, 2), np.int32), 0
 
         def create_sample(n):
             s, t = np.random.random(2)
@@ -944,7 +1024,8 @@ class GraphProcessorMixin:
             return ((x - x1) ** 2 + (y - y1) ** 2 + (z - z1) ** 2) ** .5
 
         def calc_frm(x, y, z):
-            que = [(0.0, 0)]  # priority queue min dist possible, node_id)
+            # priority queue min dist possible, node_id)
+            que = [(0.0, 0)]
             res_q = [(-np.inf, -1)] * k
 
             while que:
@@ -966,8 +1047,8 @@ class GraphProcessorMixin:
                     d = ((x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2) ** .5
                     if d > distance_upper_bound:
                         continue
-                    heapq.heappushpop(res_q, (-d, point_id))
-            nbd_indices = np.empty(k, np.int64)
+                    heapq.heappushpop(res_q, (-d, np.int64(point_id)))
+            nbd_indices = np.empty(k, np.int32)
             vectors = np.empty((k, 3), np.float64)
             for i in range(k):
                 j = heapq.heappop(res_q)[1]
@@ -981,15 +1062,20 @@ class GraphProcessorMixin:
             return nbd_indices[::-1], vectors[::-1]
 
         N = len(nodes)
-        nbd_indices = np.empty((N, k), np.int64)
+        nbd_indices = np.empty((N, k), np.int32)
         vectors = np.empty((N, k, 3), np.float64)
         for i in range(N):
             x, y, z = nodes[i]
             nbd_indices[i], vectors[i] = calc_frm(x, y, z)
-        return nbd_indices, vectors
+        dists = np.empty((N, k), np.float64)
+        for i in range(N):
+            for n in range(k):
+                x, y, z = vectors[i, n]
+                dists[i, n] = (x * x + y * y + z * z)**.5
+        return nbd_indices, vectors, dists
 
-    @staticmethod
-    @njit
+    @ staticmethod
+    @ njit
     def _calc_directed_hausdorff_nodes(
         octree_A, octree_B
     ):
@@ -1082,8 +1168,8 @@ class GraphProcessorMixin:
                 HD = max(HD, calc_frm(x, y, z))
         return HD
 
-    @staticmethod
-    @njit
+    @ staticmethod
+    @ njit
     def _nns_from_elements_to_nodes(
         tris, octree, k, distance_upper_bound=np.inf
     ):
@@ -1099,7 +1185,7 @@ class GraphProcessorMixin:
             z3 = x1 * y2 - x2 * y1
             areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
         areas = np.append(0, np.cumsum(areas))
-        sample_sz = (areas * n_sample // areas[-1]).astype(np.int64)
+        sample_sz = (areas * n_sample // areas[-1]).astype(np.int32)
         sample_sz = sample_sz[1:] - sample_sz[:-1]
         sample_sz = np.maximum(sample_sz, 1)
 
@@ -1117,9 +1203,10 @@ class GraphProcessorMixin:
             if side0 and side1 and side2:
                 k = (n * (p - p0)).sum()
                 q = p - k * n
-                return ((p - q)**2).sum()**.5
+                return ((p - q)**2).sum()**.5, q
 
             min_dist = ((p - p0)**2).sum()**.5
+            q = p0
 
             for _ in range(3):
                 p0, p1, p2 = p1, p2, p0
@@ -1130,11 +1217,12 @@ class GraphProcessorMixin:
                     t = 0
                 elif t > 1:
                     t = 1
-                q = p0 + t * d
-                dist = ((p - q)**2).sum()**.5
+                qq = p0 + t * d
+                dist = ((p - qq)**2).sum()**.5
                 if min_dist > dist:
+                    q = qq
                     min_dist = dist
-            return min_dist
+            return min_dist, q
 
         def create_sample(n):
             s, t = np.random.random(2)
@@ -1175,10 +1263,10 @@ class GraphProcessorMixin:
                     d = ((x - px) ** 2 + (y - py) ** 2 + (z - pz) ** 2) ** .5
                     if d > distance_upper_bound:
                         continue
-                    heapq.heappushpop(res_q, (-d, point_id))
+                    heapq.heappushpop(res_q, (-d, np.int64(point_id)))
             return res_q
 
-        nbd_indices = np.empty((N, k), np.int64)
+        nbd_indices = np.empty((N, k), np.int32)
         dists = np.empty((N, k), np.float64)
 
         done = np.zeros(len(points), np.bool_)
@@ -1210,14 +1298,22 @@ class GraphProcessorMixin:
                     dists[n, i] = np.inf
                 else:
                     dists[n, i] = distance_triangle_and_point(
-                        tris[n], points[j])
+                        tris[n], points[j])[0]
             ID = np.argsort(dists[n])
             dists[n] = dists[n][ID]
             nbd_indices[n] = nbd_indices[n][ID]
-        return nbd_indices, dists
+        vectors = np.full((N, k, 3), np.inf, np.float64)
+        for i in range(N):
+            for n in range(k):
+                j = nbd_indices[i, n]
+                if j == -1:
+                    continue
+                p = distance_triangle_and_point(tris[i], points[j])[1]
+                vectors[i, n] = points[j] - p
+        return nbd_indices, vectors, dists
 
-    @staticmethod
-    @njit
+    @ staticmethod
+    @ njit
     def _nns_from_nodes_to_elements(
         nodes, octree_e, k, distance_upper_bound=np.inf
     ):
@@ -1237,9 +1333,10 @@ class GraphProcessorMixin:
             if side0 and side1 and side2:
                 k = (n * (p - p0)).sum()
                 q = p - k * n
-                return ((p - q)**2).sum()**.5
+                return ((p - q)**2).sum()**.5, q
 
             min_dist = ((p - p0)**2).sum()**.5
+            q = p0
 
             for _ in range(3):
                 p0, p1, p2 = p1, p2, p0
@@ -1250,11 +1347,12 @@ class GraphProcessorMixin:
                     t = 0
                 elif t > 1:
                     t = 1
-                q = p0 + t * d
-                dist = ((p - q)**2).sum()**.5
+                qq = p0 + t * d
+                dist = ((p - qq)**2).sum()**.5
                 if min_dist > dist:
+                    q = qq
                     min_dist = dist
-            return min_dist
+            return min_dist, q
 
         def possible_dist_min(node_id, x, y, z):
             nx, ny, nz, nw = node_xyzw[node_id]
@@ -1289,13 +1387,13 @@ class GraphProcessorMixin:
                         continue
                     done.add(tri_id)
                     d = distance_triangle_and_point(
-                        triangles[tri_id], nodes[nid])
-                    heapq.heappushpop(res_q, (-d, tri_id))
+                        triangles[tri_id], nodes[nid])[0]
+                    heapq.heappushpop(res_q, (-d, np.int64(tri_id)))
             return res_q
 
         N = len(nodes)
 
-        nbd_indices = np.empty((N, k), np.int64)
+        nbd_indices = np.empty((N, k), np.int32)
         dists = np.empty((N, k), np.float64)
         for n in range(N):
             res_q = calc_frm(n)
@@ -1306,10 +1404,18 @@ class GraphProcessorMixin:
             ID = np.argsort(dists[n])
             nbd_indices[n] = nbd_indices[n][ID]
             dists[n] = dists[n][ID]
-        return nbd_indices, dists
+        vectors = np.full((N, k, 3), np.inf, np.float64)
+        for i in range(N):
+            for n in range(k):
+                j = nbd_indices[i, n]
+                if j == -1:
+                    continue
+                p = distance_triangle_and_point(triangles[j], nodes[i])[1]
+                vectors[i, n] = p - nodes[i]
+        return nbd_indices, vectors, dists
 
-    @staticmethod
-    @njit
+    @ staticmethod
+    @ njit
     def _nns_from_elements_to_elements(
         tris, octree_e, k, distance_upper_bound=np.inf
     ):
@@ -1327,7 +1433,7 @@ class GraphProcessorMixin:
             z3 = x1 * y2 - x2 * y1
             areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
         areas = np.append(0, np.cumsum(areas))
-        sample_sz = (areas * n_sample // areas[-1]).astype(np.int64)
+        sample_sz = (areas * n_sample // areas[-1]).astype(np.int32)
         sample_sz = sample_sz[1:] - sample_sz[:-1]
         sample_sz = np.maximum(sample_sz, 1)
 
@@ -1413,10 +1519,10 @@ class GraphProcessorMixin:
                     done.add(tri_id)
                     d = distance_triangle_and_point(
                         triangles[tri_id], np.array([x, y, z]))
-                    heapq.heappushpop(res_q, (-d, tri_id))
+                    heapq.heappushpop(res_q, (-d, np.int64(tri_id)))
             return res_q
 
-        nbd_indices = np.empty((N, k), np.int64)
+        nbd_indices = np.empty((N, k), np.int32)
         dists = np.empty((N, k), np.float64)
 
         done = np.zeros(len(triangles), np.bool_)
@@ -1453,8 +1559,8 @@ class GraphProcessorMixin:
             nbd_indices[n] = nbd_indices[n][ID]
         return nbd_indices, dists
 
-    @staticmethod
-    @njit
+    @ staticmethod
+    @ njit
     def _calc_directed_hausdorff_elements(
         octree_A, octree_B
     ):
@@ -1473,7 +1579,7 @@ class GraphProcessorMixin:
             z3 = x1 * y2 - x2 * y1
             areas[n] = (x3 * x3 + y3 * y3 + z3 * z3)**.5
         areas = np.append(0, np.cumsum(areas))
-        sample_sz = (areas * n_sample // areas[-1]).astype(np.int64)
+        sample_sz = (areas * n_sample // areas[-1]).astype(np.int32)
         sample_sz = sample_sz[1:] - sample_sz[:-1]
         sample_sz = np.maximum(sample_sz, 1)
 
@@ -1641,6 +1747,10 @@ class GraphProcessorMixin:
             The vector from input point to neighbors.
             If the number of points found is less than k,
             corresponding values are filled by np.inf.
+
+        dists : np.ndarray
+            2D array of shape (N, k) containing float data.
+            The length of vectors.
         """
         if target_fem_data is None:
             target_fem_data = self
@@ -1683,11 +1793,15 @@ class GraphProcessorMixin:
             If the number of points found is less than k,
             corresponding value are set to be -1.
 
-        dists : np.ndarray
-            2D array of shape (N, k) containing float data.
-            Distances from the elements to nearest points.
+        vectors : np.ndarray
+            3D array of shape (N, k, 3) containing float data.
+            The vector from input point to neighbors.
             If the number of points found is less than k,
             corresponding values are filled by np.inf.
+
+        dists : np.ndarray
+            2D array of shape (N, k) containing float data.
+            The length of vectors.
         """
         if target_fem_data is None:
             target_fem_data = self
@@ -1701,6 +1815,7 @@ class GraphProcessorMixin:
         zmax = points[:, 2].max()
         boundingbox = (xmin, xmax, ymin, ymax, zmin, zmax)
         octree = self.build_octree_node(points, boundingbox)
+
         tris = self.elements.data
         N = len(tris)
         tris = self.collect_node_positions_by_ids(
@@ -1733,18 +1848,22 @@ class GraphProcessorMixin:
             If the number of points found is less than k,
             corresponding value are set to be -1.
 
-        dists : np.ndarray
-            2D array of shape (N, k) containing float data.
-            Distances from the elements to nearest points.
+        vectors : np.ndarray
+            3D array of shape (N, k, 3) containing float data.
+            The vector from input point to neighbors.
             If the number of points found is less than k,
             corresponding values are filled by np.inf.
+
+        dists : np.ndarray
+            2D array of shape (N, k) containing float data.
+            The length of vectors.
         """
         if target_fem_data is None:
             target_fem_data = self
 
         tris = target_fem_data.elements.data
         N = len(tris)
-        tris = self.collect_node_positions_by_ids(
+        tris = target_fem_data.collect_node_positions_by_ids(
             tris.ravel()).reshape(N, 3, 3)
         points = target_fem_data.nodes.data
         xmin = points[:, 0].min()
@@ -1794,7 +1913,7 @@ class GraphProcessorMixin:
 
         tris = target_fem_data.elements.data
         N = len(tris)
-        tris = self.collect_node_positions_by_ids(
+        tris = target_fem_data.collect_node_positions_by_ids(
             tris.ravel()).reshape(N, 3, 3)
         points = target_fem_data.nodes.data
         xmin = points[:, 0].min()

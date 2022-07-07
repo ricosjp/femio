@@ -5,14 +5,10 @@ import numpy as np
 from tvtk.api import tvtk
 
 from ... import fem_writer
-from . import polyvtk
+from ... import config
 
 
 class PolyVTKWriter(fem_writer.FEMWriter):
-
-    DICT_ELEMENT_TYPE_TO_VTK_ID = {
-        v: k for k, v
-        in polyvtk.PolyVTKData.DICT_VTK_ID_TO_ELEMENT_TYPE.items()}
 
     def write(self, file_name=None, *, overwrite=False):
         """Write FEM data in VTK unstructured grid (vtu) format.
@@ -29,14 +25,14 @@ class PolyVTKWriter(fem_writer.FEMWriter):
             points=self.fem_data.nodes.data)
         if 'polyhedron' in self.fem_data.elements:
             unstructured_grid.set_cells(
-                self.DICT_ELEMENT_TYPE_TO_VTK_ID['polyhedron'],
+                config.DICT_ELEMENT_TYPE_TO_VTK_ID['polyhedron'],
                 list(self.fem_data.elemental_data['face'][
                     'polyhedron'].data))
 
         for element_type, element_data in self.fem_data.elements.items():
             if element_type == 'polyhedron':
                 continue
-            element_type_id = self.DICT_ELEMENT_TYPE_TO_VTK_ID[element_type]
+            element_type_id = config.DICT_ELEMENT_TYPE_TO_VTK_ID[element_type]
             for element in self.fem_data.nodes.ids2indices(element_data.data):
                 unstructured_grid.insert_next_cell(element_type_id, element)
 
@@ -70,7 +66,7 @@ class PolyVTKWriter(fem_writer.FEMWriter):
         with fileinput.input(file_name, inplace=True) as file:
             for line in file:
                 print(line.replace('Int64', 'Int32'), end='')
-        return
+        return file_name
 
     def _reorder_cell_data(self, data):
         return np.concatenate(

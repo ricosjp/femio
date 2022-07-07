@@ -78,7 +78,7 @@ class FEMData(
         elif file_type == 'obj':
             from .formats.obj import obj
             cls_ = obj.ObjData
-        elif file_type == 'polyvtk':
+        elif file_type in ['polyvtk', 'vtu']:
             from .formats.polyvtk import polyvtk
             cls_ = polyvtk.PolyVTKData
         elif file_type == 'ensight':
@@ -242,6 +242,14 @@ class FEMData(
         elements = FEMElementalAttribute.load(
             'ELEMENT', dict_files['femio_elements'])
         obj = cls(nodes, elements)
+
+        # Read 'face' attribute in case of polyhedral data
+        if 'femio_elemental_data' in dict_files:
+            elemental_data = FEMAttributes.load(
+                dict_files['femio_elemental_data'], is_elemental=True)
+            if 'face' in elemental_data:
+                obj.elemental_data['face'] = elemental_data['face']
+
         if read_mesh_only:
             return obj
 
@@ -260,8 +268,7 @@ class FEMData(
             obj.nodal_data.update(FEMAttributes.load(
                 dict_files['femio_nodal_data']))
         if 'femio_elemental_data' in dict_files:
-            obj.elemental_data.update(FEMAttributes.load(
-                dict_files['femio_elemental_data'], is_elemental=True))
+            obj.elemental_data.update(elemental_data)
         if 'femio_constraints' in dict_files:
             obj.constraints.update(FEMAttributes.load(
                 dict_files['femio_constraints']))
@@ -506,7 +513,7 @@ class FEMData(
                 file_name=self.add_extension_if_needed(file_name, 'obj'),
                 overwrite=overwrite)
 
-        elif file_type == 'polyvtk':
+        elif file_type in ['polyvtk', 'vtu']:
             from .formats.polyvtk.write_polyvtk import PolyVTKWriter
             written_files = PolyVTKWriter(self).write(
                 file_name=self.add_extension_if_needed(file_name, 'vtu'),
@@ -534,8 +541,7 @@ class FEMData(
             for written_file in written_files:
                 print(f"File written in: {written_file}")
         else:
-            pass
-            #raise ValueError(f"No written file found: {written_files}")
+            raise ValueError(f"No written file found: {written_files}")
         return
 
     def add_extension_if_needed(self, file_name, ext):
@@ -628,6 +634,9 @@ class FEMData(
         FEMData:
             First order FEMData object.
         """
+        if np.all(['2' not in key for key in self.elements.keys()]):
+            return self
+
         filter_ = self.filter_first_order_nodes()
         nodes = FEMAttribute(
             'NODE', self.nodes.ids[filter_], self.nodes.loc[filter_].values)
@@ -725,7 +734,7 @@ class FEMData(
         return FEMData(
             nodes=self.nodes, elements=elements, nodal_data=self.nodal_data,
             elemental_data={})
-    
+
     @staticmethod
     @njit
     def convert_polyhedron(now_ids, new_ids, poly):
@@ -739,7 +748,6 @@ class FEMData(
             poly[L:R] = np.searchsorted(new_ids, poly[L:R])
             L = R
         return list(poly)
-        
 
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([
@@ -754,15 +762,18 @@ class FEMData(
             k: v.filter_with_ids(element_ids)
             for k, v in self.elemental_data.items()}, is_elemental=True)
         # convert face data
+        have_face = False
         if 'face' in elemental_data:
-            print("make face")
+            if 'polyhedron' in elemental_data['face']:
+                have_face = True
+        if have_face:
             dat = elemental_data['face']['polyhedron'].data
             n = len(dat)
             newdat = np.empty(n, object)
             for i in range(n):
-                print(n, i)
                 poly = np.array(dat[i])
-                newdat[i] = self.convert_polyhedron(self.nodes.ids, node_ids, poly)
+                newdat[i] = self.convert_polyhedron(
+                    self.nodes.ids, node_ids, poly)
             elemental_data['face']['polyhedron'].data = newdat
         cut_fem_data = FEMData(
             nodes=nodes,
@@ -1159,9 +1170,10 @@ class FEMData(
                 FEMAttribute('face', ids=self.elements.ids, data=face_dat)
             }
         )
+        elemental_data = FEMAttributes({'face': face}, is_elemental=True)
         fem_data = FEMData(
             nodes=nodes, elements=elements,
-            nodal_data=self.nodal_data, elemental_data={'face': face}
+            nodal_data=self.nodal_data, elemental_data=elemental_data
         )
         return fem_data
 

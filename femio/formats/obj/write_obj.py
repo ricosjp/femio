@@ -38,3 +38,5 @@ class OBJWriter():
                 f.write(pd.DataFrame(
                     index=['f']*n_element, data=surface_indices+1
                 ).to_csv(sep=' ', header=False, na_rep='NaN'))
+
+        return file_name
