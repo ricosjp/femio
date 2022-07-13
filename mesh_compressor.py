@@ -12,36 +12,264 @@ class MeshCompressor:
             self.fem_data = fem_data
             self.csr_raw = self.fem_data.face_data_csr()
             self.csr = self.csr_raw
-            self.node_pos = fem_data.nodes.data
+            self.node_pos_raw = fem_data.nodes.data.copy()
+            self.node_pos = fem_data.nodes.data.copy()
+            self.elem_conv = np.arange(
+                len(fem_data.elements.data), dtype=np.int32)
+            self.node_conv = np.arange(
+                len(fem_data.nodes.data), dtype=np.int32)
         else:
             # load from npz
             pass
+        self.done = 0
 
     def compress(self, *,
                  elem, cos_thresh, dist_thresh
                  ):
+        self.done = 1
         print_stat(self.csr)
         print("begin merge elements")
         K = len(self.csr[0] - 1) // elem
-        self.csr = merge_elements(self.csr, self.node_pos, K)
-        while True:
+        self.csr = merge_elements(
+            self.csr, self.node_pos, self.elem_conv, K)
+        for _ in range(10):
             before_size = len(self.csr[1])
             print_stat(self.csr)
-            #print("rm vertices 1")
-            # self.csr = remove_vertices_1(
-            #    self.csr, self.node_pos, THRESH=cos_thresh)
             print("rm edges")
-            self.csr = remove_edges(self.csr, self.node_pos, THRESH=cos_thresh)
-            print("rm vertices 2")
-            self.csr = remove_vertices_2(
-                self.csr, self.node_pos, THRESH=cos_thresh)
+            self.csr = remove_edges(
+                self.csr,
+                self.node_pos,
+                self.elem_conv,
+                THRESH=cos_thresh)
+            print("rm vertices")
+            self.csr = remove_vertices(
+                self.csr,
+                self.node_pos,
+                self.elem_conv,
+                THRESH=cos_thresh)
             print("merge vertices")
             self.csr, self.node_pos = merge_vertices(
-                self.csr, self.node_pos, THRESH=dist_thresh)
+                self.csr, self.node_pos, self.elem_conv, self.node_conv, THRESH=dist_thresh)
             if before_size == len(self.csr[1]):
                 break
-        fem_data = make_fem_data(self.csr_raw, self.node_pos, self.csr, False)
+        reindex(self.csr, self.node_conv)
+        self.node_pos = recalc_node_pos(self.node_pos_raw, self.node_conv)
+
+    def get_fem_data(self):
+        assert self.done
+        node_pos = self.node_pos
+        N = len(node_pos)
+        indptr, faces = self.csr
+        P = len(indptr) - 1
+        nodes = femio.FEMAttribute(
+            'nodes',
+            ids=np.arange(len(node_pos)) + 1,
+            data=node_pos)
+        element_data = np.empty(P, object)
+        for p in range(P):
+            element_data[p] = collect_vertex(faces[indptr[p]:indptr[p + 1]])
+        polyhedron = femio.FEMAttribute(
+            'polyhedron',
+            ids=np.arange(len(element_data)) + 1,
+            data=element_data)
+        elements = femio.FEMElementalAttribute(
+            'ELEMENT', {'polyhedron': polyhedron}
+        )
+        fem_data = femio.FEMData(nodes=nodes, elements=elements)
+        face_data_list = np.empty(P, object)  # ndarray of list
+        for p in range(P):
+            face_data_list[p] = list(faces[indptr[p]:indptr[p + 1]])
+        fem_data.elemental_data.update(
+            {
+                'face': femio.FEMElementalAttribute(
+                    'face', {
+                        'polyhedron': femio.FEMAttribute(
+                            'face', ids=np.arange(P) + 1, data=face_data_list)})})
+        print("nodes", len(fem_data.nodes.data))
+        print("elements", len(fem_data.elements.data))
         return fem_data
+
+    def get_matrix_node(self, knn=3):
+        assert self.done
+        nbd = calculate_nbd_in(self.csr_raw, self.node_conv, knn)
+        N = len(self.node_conv)
+        M = self.node_conv.max() + 1
+        cols = np.where(self.node_conv != -1)[0]
+        rows = self.node_conv[cols]
+        vals = np.ones(M, np.bool_)
+        mat1 = csr_matrix((vals, (rows, cols)), (M, N), dtype=np.bool_)
+
+        rows = np.empty(knn * N, np.int32)
+        for k in range(knn):
+            rows[k::3] = np.arange(N)
+        cols = nbd.ravel()
+        idx = cols != -1
+        rows = rows[idx]
+        cols = cols[idx]
+        vals = np.ones(len(rows), np.bool_)
+        mat2 = csr_matrix((vals, (rows, cols)), (N, M), dtype=np.bool_)
+        return mat1, mat2
+
+
+@njit
+def calculate_nbd_in(csr, node_conv, knn):
+    N = len(node_conv)
+    G_li = [(0, 0)] * 0
+    indptr, face_data = csr
+    P = len(indptr) - 1
+    for p in range(P):
+        V = collect_vertex(face_data[indptr[p]:indptr[p + 1]])
+        for v in V:
+            G_li.append((v, p))
+    G_ve = np.array(G_li)
+    G_ev = G_ve[:, ::-1].copy()
+    G_ve = G_ve[np.argsort(G_ve[:, 0])]
+    G_ev = G_ev[np.argsort(G_ev[:, 0])]
+    indptr_ve = np.zeros(N + 1, np.int32)
+    indptr_ev = np.zeros(P + 1, np.int32)
+    for i in range(len(G_ve)):
+        v, e = G_ve[i]
+        indptr_ve[v + 1] += 1
+        indptr_ev[e + 1] += 1
+    for v in range(N):
+        indptr_ve[v + 1] += indptr_ve[v]
+    for e in range(P):
+        indptr_ev[e + 1] += indptr_ev[e]
+    nbd = np.full((N, knn), -1, np.int32)
+    que = np.empty((knn * N, 2), np.int32)
+    ql = qr = 0
+    for v in range(N):
+        if node_conv[v] != -1:
+            nbd[v, 0] = v
+            que[qr] = (v, v)
+            qr += 1
+    while ql < qr:
+        v, frm = que[ql]
+        ql += 1
+        for i in range(indptr_ve[v], indptr_ve[v + 1]):
+            e = G_ve[i, 1]
+            for j in range(indptr_ev[e], indptr_ev[e + 1]):
+                to = G_ev[j, 1]
+                success = False
+                for k in range(knn):
+                    if nbd[to, k] == -1:
+                        nbd[to, k] = frm
+                        break
+                    if nbd[to, k] == frm:
+                        break
+                if not success:
+                    continue
+                que[qr] = (to, frm)
+                qr += 1
+    for v in range(N):
+        for k in range(knn):
+            if nbd[v][k] == -1:
+                continue
+            nbd[v][k] = node_conv[nbd[v][k]]
+    return nbd
+
+
+@njit
+def recalc_node_pos(node_pos, node_conv):
+    N = len(node_pos)
+    K = node_conv.max() + 1
+    res = np.zeros((K, 3), np.float64)
+    cnt = np.zeros(K, np.int32)
+    for v in range(N):
+        k = node_conv[v]
+        if k == -1:
+            continue
+        cnt[k] += 1
+        res[k] += node_pos[v]
+    for k in range(K):
+        res[k] /= cnt[k]
+    return res
+
+
+@njit
+def reindex(csr, node_conv):
+    indptr, dat = csr
+    N = len(node_conv)
+    P = len(indptr) - 1
+    isin = np.zeros(N, np.bool_)
+    for p in range(P):
+        poly = dat[indptr[p]:indptr[p + 1]]
+        m = poly[0]
+        L = 1
+        for _ in range(m):
+            k = poly[L]
+            L += 1
+            R = L + k
+            F = poly[L:R]
+            L = R
+            for v in F:
+                isin[v] = 1
+
+    while True:
+        ok = 1
+        for v in range(N):
+            p = node_conv[v]
+            assert p != -1
+            if node_conv[p] == p:
+                continue
+            ok = 0
+            node_conv[v] = node_conv[p]
+        if ok:
+            break
+
+    for v in range(N):
+        p = node_conv[v]
+        if not isin[p]:
+            node_conv[v] = -1
+
+    new_ids = np.empty(N, np.int32)
+    nxt_idx = 0
+    for v in range(N):
+        if not isin[v]:
+            new_ids[v] = -1
+            continue
+        new_ids[v] = nxt_idx
+        nxt_idx += 1
+
+    for v in range(N):
+        if node_conv[v] == -1:
+            continue
+        p = node_conv[v]
+        node_conv[v] = new_ids[p]
+
+    for p in range(P):
+        poly = dat[indptr[p]:indptr[p + 1]]
+        m = poly[0]
+        L = 1
+        for _ in range(m):
+            k = poly[L]
+            L += 1
+            R = L + k
+            F = poly[L:R]
+            L = R
+            for i in range(len(F)):
+                v = F[i]
+                F[i] = new_ids[v]
+    return
+
+
+@njit
+def shrink(polyhedrons, elem_conv):
+    P = len(polyhedrons)
+    new_ids = np.full(P, -1, np.int32)
+    nxt_idx = 0
+    for p in range(P):
+        poly = polyhedrons[p]
+        if poly[0] > 2:
+            new_ids[p] = nxt_idx
+            nxt_idx += 1
+    for i in range(len(elem_conv)):
+        e = elem_conv[i]
+        if e == -1:
+            continue
+        elem_conv[i] = new_ids[e]
+    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    return polyhedrons, elem_conv
 
 
 @njit
@@ -129,162 +357,6 @@ def remove_one_vertex_from_polyhedron(poly, rm_v):
         newpoly.append(v)
     newpoly_arr = np.array(newpoly, poly.dtype)
     return True, newpoly_arr
-    # return check_polyhedron(newpoly_arr), newpoly_arr
-
-
-@njit
-def remove_vertices_1(face_data_csr, node_pos, THRESH=0.95):
-    indptr, dat = face_data_csr
-    P = len(indptr) - 1
-    polyhedrons = [dat[indptr[p]:indptr[p + 1]] for p in range(P)]
-
-    def calc_normal(F):
-        vc = np.zeros(3)
-        for i in range(2, len(F)):
-            vc1 = node_pos[F[1]] - node_pos[F[0]]
-            vc2 = node_pos[F[i]] - node_pos[F[0]]
-            vc += np.cross(vc1, vc2)
-        vc /= (vc * vc).sum() ** .5
-        return vc
-
-    def collect_edge(p):
-        res = [0] * 0
-        poly = polyhedrons[p]
-        m = poly[0]
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            assert k >= 3
-            L = R
-            for i in range(len(F)):
-                a = F[i - 1]
-                b = F[i]
-                res.append(a << 32 | b)
-        tmp = np.array(res)
-        return np.sort(tmp)
-    # vertex -> out edge
-    num_v = len(node_pos)
-    deg = np.zeros(num_v, np.int32)
-    for p in range(P):
-        poly = polyhedrons[p]
-        m = poly[0]
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            for v in F:
-                deg[v] += 1
-    for p in range(P):
-        # 各 edge が消せるかどうかを調べる
-        edges = collect_edge(p)
-        poly = polyhedrons[p]
-        norms = np.full((len(edges), 3), np.nan)
-        m = poly[0]
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            norm = calc_normal(F)
-            for i in range(len(F)):
-                a = F[i - 1]
-                b = F[i]
-                e = a << 32 | b
-                eid = np.searchsorted(edges, e)
-                norms[eid] = norm
-        can_rm = np.empty(len(edges), np.bool_)
-        for i in range(len(edges)):
-            e = edges[i]
-            a, b = divmod(e, 1 << 32)
-            e_rev = b << 32 | a
-            j = np.searchsorted(edges, e_rev)
-            if j + 1 < len(edges) and edges[j] == edges[j + 1]:
-                continue
-            cos_val = np.sum(norms[i] * norms[j])
-            can_rm[i] = can_rm[j] = (cos_val >= THRESH)
-        for i in range(len(edges)):
-            e = edges[i]
-            if can_rm[i]:
-                deg[e >> 32] -= 1
-    # v -> p
-    VP = np.empty((indptr[-1], 2), np.int32)
-    ptr = 0
-    for p in range(P):
-        poly = dat[indptr[p]:indptr[p + 1]]
-        m = poly[0]
-        v_list = [0] * 0
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            for v in F:
-                v_list.append(v)
-        V = np.unique(np.array(v_list))
-        for v in V:
-            VP[ptr], ptr = (v, p), ptr + 1
-    can_rm_v = deg == 0
-    VP = VP[:ptr]
-    VP = VP[np.argsort(VP[:, 0], kind='mergesort')]
-    indptr_VR = np.zeros(num_v + 1, np.int32)
-    for i in range(ptr):
-        indptr_VR[VP[i, 0] + 1] += 1
-    indptr_VR = np.cumsum(indptr_VR)
-    for v in range(num_v):
-        if not can_rm_v[v]:
-            continue
-        ps = VP[indptr_VR[v]:indptr_VR[v + 1], 1]
-        if len(ps) == 0:
-            continue
-        res = [
-            remove_one_vertex_from_polyhedron(
-                polyhedrons[p],
-                v) for p in ps]
-        ok = True
-        for i in range(len(res)):
-            bl = res[i][0]
-            if not bl:
-                ok = False
-        if not ok:
-            continue
-        print("remove node", v)
-        for i in range(len(ps)):
-            p = ps[i]
-            poly = res[i][1]
-            polyhedrons[p] = poly
-    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
-    P = len(polyhedrons)
-    for p in range(P):
-        poly = polyhedrons[p]
-        m = poly[0]
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            assert k >= 3
-    new_indptr = np.zeros(P + 1, np.int32)
-    for p in range(P):
-        new_indptr[p + 1] = len(polyhedrons[p])
-    new_indptr = np.cumsum(new_indptr)
-    new_dat = np.empty(new_indptr[-1], np.int32)
-    for p in range(P):
-        L = new_indptr[p]
-        R = new_indptr[p + 1]
-        new_dat[L:R] = polyhedrons[p]
-    return new_indptr, new_dat
 
 
 @njit
@@ -371,11 +443,10 @@ def remove_one_edge_from_polyhedron(poly, A, B):
         newpoly.append(v)
     newpoly_arr = np.array(newpoly, poly.dtype)
     return True, newpoly_arr
-    # return check_polyhedron(newpoly_arr), newpoly_arr
 
 
 @njit
-def remove_edges(face_data_csr, node_pos, THRESH=0.99):
+def remove_edges(face_data_csr, node_pos, elem_conv, THRESH=0.99):
     indptr, dat = face_data_csr
     P = len(indptr) - 1
     polyhedrons = [dat[indptr[p]:indptr[p + 1]].copy() for p in range(P)]
@@ -440,10 +511,7 @@ def remove_edges(face_data_csr, node_pos, THRESH=0.99):
             e = edges[i]
             a, b = divmod(e, 1 << 32)
             e_rev = b << 32 | a
-            # print(a, b)
             j = np.searchsorted(edges, e_rev)
-            if edges[j] != e_rev:
-                print(a, b)
             assert edges[j] == e_rev
             cos_val = np.sum(norms[i] * norms[j])
             can_rm[i] = can_rm[j] = (cos_val >= THRESH)
@@ -456,7 +524,6 @@ def remove_edges(face_data_csr, node_pos, THRESH=0.99):
             edge_data[ptr, 1] = p
             edge_data[ptr, 2] = can_rm[i]
             ptr += 1
-    # assert ptr == n
     edge_data = edge_data[:ptr]
     edge_data = edge_data[np.argsort(edge_data[:, 0], kind='mergesort')]
     for e in np.unique(edge_data[:, 0]):
@@ -482,7 +549,7 @@ def remove_edges(face_data_csr, node_pos, THRESH=0.99):
             p = ps[i]
             poly = res[i][1]
             polyhedrons[p] = poly
-    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    polyhedrons, elem_conv = shrink(polyhedrons, elem_conv)
     P = len(polyhedrons)
     new_indptr = np.zeros(P + 1, np.int32)
     for p in range(P):
@@ -497,8 +564,7 @@ def remove_edges(face_data_csr, node_pos, THRESH=0.99):
 
 
 @njit
-def remove_vertices_2(face_data_csr, node_pos, THRESH=0.99):
-    # 近傍が 2 個しかない点は削除して辺をマージする
+def remove_vertices(face_data_csr, node_pos, elem_conv, THRESH=0.99):
     indptr, dat = face_data_csr
     P = len(indptr) - 1
     polyhedrons = [dat[indptr[p]:indptr[p + 1]].copy() for p in range(P)]
@@ -553,9 +619,6 @@ def remove_vertices_2(face_data_csr, node_pos, THRESH=0.99):
                 rest[L0:R] = 0
                 poly[0] -= 1
         poly = poly[rest]
-        #ok = check_polyhedron(poly)
-        # if ok:
-        #    continue
         poly = polyhedrons[p]
         m = poly[0]
         L = 1
@@ -590,7 +653,7 @@ def remove_vertices_2(face_data_csr, node_pos, THRESH=0.99):
                 rest[L0:R] = 0
                 poly[0] -= 1
         polyhedrons[p] = poly[rest]
-    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    polyhedrons, elem_conv = shrink(polyhedrons, elem_conv)
     P = len(polyhedrons)
     new_indptr = np.zeros(P + 1, np.int32)
     for p in range(P):
@@ -626,7 +689,7 @@ def collect_vertex(poly):
 
 
 @njit
-def merge_polyhedrons(face_data_csr, I, hash_base, buf):
+def merge_polyhedrons(face_data_csr, I, elem_conv, nxt_idx):
     indptr, dat = face_data_csr
 
     h0 = np.random.randint(1, 1 << 60)
@@ -759,6 +822,9 @@ def merge_polyhedrons(face_data_csr, I, hash_base, buf):
         polyhedrons = np.array(polyhedron_list)
         for i in range(len(polyhedron_list)):
             polyhedrons[i] = I[polyhedrons[i]]
+        for p in polyhedrons:
+            elem_conv[p] = nxt_idx
+        nxt_idx += 1
         poly_data = [0]
         # make face data
         for p in polyhedrons:
@@ -791,12 +857,13 @@ def merge_polyhedrons(face_data_csr, I, hash_base, buf):
         res.append(poly_data)
         for p in polyhedrons:
             success.append(p)
-    return res, success
+    return nxt_idx, res, success
 
 
 @njit
-def merge_elements(face_data_csr, node_pos, K):
+def merge_elements(face_data_csr, node_pos, elem_conv, K):
     indptr, dat = face_data_csr
+    elem_conv[:] = -1
 
     def calc_centers(face_data_csr, node_pos):
         indptr, faces = face_data_csr
@@ -818,23 +885,19 @@ def merge_elements(face_data_csr, node_pos, K):
     stack = [np.arange(n)]
     res_indptr = [0]
     res = [0] * 0
-    done = np.zeros(n, np.bool_)
-    hash_base = np.random.randint(0, (1 << 60) - 1, len(node_pos))
     prog = 0
-    buf = np.zeros(len(node_pos), np.int32)
+    nxt_idx = 0
     while stack:
         I = stack.pop()
         if len(I) <= K:
-            polys, success = merge_polyhedrons(
-                face_data_csr, I, hash_base, buf)
+            nxt_idx, polys, success = merge_polyhedrons(
+                face_data_csr, I, elem_conv, nxt_idx)
             prog += len(success)
             print("element grouping", prog, "/", len(centers))
             for P in polys:
                 res_indptr.append(res_indptr[-1] + len(P))
                 res += P
-            for p in success:
-                done[p] = 1
-            I = I[~done[I]]
+            I = I[elem_conv[I] == -1]
         if len(I) == 0:
             continue
         # print("K", K, "I", I)
@@ -852,83 +915,11 @@ def merge_elements(face_data_csr, node_pos, K):
         I2 = I[~is_sm]
         stack.append(I1)
         stack.append(I2)
-    assert np.all(buf == 0)
     return (np.array(res_indptr), np.array(res))
 
 
 @njit
-def reindex(node_pos, face_data_csr):
-    indptr, faces = face_data_csr
-    isin = np.zeros(len(node_pos), np.bool_)
-    for f in range(len(indptr) - 1):
-        P = faces[indptr[f]:indptr[f + 1]]
-        n = P[0]
-        L = 1
-        for _ in range(n):
-            k = P[L]
-            L += 1
-            R = L + k
-            for i in range(L, R):
-                isin[P[i]] = 1
-            L = R
-        assert L == len(P)
-    idx = np.cumsum(isin) - 1
-    for f in range(len(indptr) - 1):
-        P = faces[indptr[f]:indptr[f + 1]]
-        n = P[0]
-        L = 1
-        for _ in range(n):
-            k = P[L]
-            L += 1
-            R = L + k
-            for i in range(L, R):
-                P[i] = idx[P[i]]
-            L = R
-    node_pos = node_pos[isin]
-    return node_pos, face_data_csr, isin
-
-
-def make_fem_data(original_csr, node_pos, csr, make_mat=True):
-    csr = (csr[0].copy(), csr[1].copy())
-    N = len(node_pos)
-    node_pos, csr, isin = reindex(node_pos, csr)
-    indptr, faces = csr
-    P = len(indptr) - 1
-    nodes = femio.FEMAttribute(
-        'nodes',
-        ids=np.arange(len(node_pos)) + 1,
-        data=node_pos)
-    element_data = np.empty(P, object)
-    for p in range(P):
-        element_data[p] = collect_vertex(faces[indptr[p]:indptr[p + 1]])
-    polyhedron = femio.FEMAttribute(
-        'polyhedron',
-        ids=np.arange(len(element_data)) + 1,
-        data=element_data)
-    elements = femio.FEMElementalAttribute(
-        'ELEMENT', {'polyhedron': polyhedron}
-    )
-    fem_data = femio.FEMData(nodes=nodes, elements=elements)
-    face_data_list = np.empty(P, object)  # ndarray of list
-    for p in range(P):
-        face_data_list[p] = list(faces[indptr[p]:indptr[p + 1]])
-    fem_data.elemental_data.update(
-        {
-            'face': femio.FEMElementalAttribute(
-                'face', {
-                    'polyhedron': femio.FEMAttribute(
-                        'face', ids=np.arange(P) + 1, data=face_data_list)})})
-    if not make_mat:
-        print("nodes", len(fem_data.nodes.data))
-        print("elements", len(fem_data.elements.data))
-        return fem_data
-    mat_1, mat_2 = calculate_convert_matrix(N, original_csr, isin)
-    return fem_data, mat_1, mat_2
-
-
-"""
-@njit
-def merge_vertices(face_data_csr, node_pos, THRESH):
+def merge_vertices(face_data_csr, node_pos, elem_conv, node_conv, THRESH):
     node_pos = node_pos.copy()
     indptr, dat = face_data_csr
     P = len(indptr) - 1
@@ -966,214 +957,6 @@ def merge_vertices(face_data_csr, node_pos, THRESH):
     for v in range(num_v):
         indptr_VP[v + 1] += indptr_VP[v]
 
-    def can_merge(p, a, b):
-        poly = polyhedrons[p]
-        m = poly[0]
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            ia = ib = -1
-            for i in range(len(F)):
-                if F[i] == a:
-                    ia = i
-                if F[i] == b:
-                    ib = i
-            if ia == -1 or ib == -1:
-                continue
-            d1 = abs(ia - ib)
-            d2 = len(F) - d1
-            if min(d1, d2) > 1:
-                print(a, b, F)
-                return False
-        return True
-
-    def collect_edge(a, b):
-        # a に入る辺、a から出る辺を集める
-        FRM = [0] * 0
-        TO = [0] * 0
-        ps = VP[indptr_VP[a]: indptr_VP[a + 1], 1]
-        for p in ps:
-            poly = polyhedrons[p]
-            m = poly[0]
-            L = 1
-            for _ in range(m):
-                k = poly[L]
-                L += 1
-                R = L + k
-                F = poly[L:R]
-                L = R
-                if len(F) <= 3 and a in F and b in F:
-                    continue
-                for i in range(len(F)):
-                    if F[i] == a:
-                        FRM.append(F[i - 1])
-                    if F[i - 1] == a:
-                        TO.append(F[i])
-        return np.unique(np.array(FRM)), np.unique(np.array(TO))
-
-    def merge(a, b):
-        if done[a] or done[b]:
-            return False
-        dx, dy, dz = np.abs(node_pos[a] - node_pos[b])
-        if max(dx, dy, dz) >= THRESH:
-            return False
-
-        pa = VP[indptr_VP[a]:indptr_VP[a + 1], 1]
-        pb = VP[indptr_VP[b]:indptr_VP[b + 1], 1]
-
-        for p in pa:
-            if p in pb and not can_merge(p, a, b):
-                # print("reject bad poly")
-                return False
-        FRM_a, TO_a = collect_edge(a, b)
-        FRM_b, TO_b = collect_edge(b, a)
-        for v in FRM_a:
-            if v in FRM_b:
-                #print("reject common v", a, b, v)
-                return False
-        for v in TO_a:
-            if v in TO_b:
-                #print("reject common v", a, b, v)
-                return False
-        done[a] = done[b] = 1
-        print("merge", a, b)
-        node_pos[a] = (node_pos[a] + node_pos[b]) / 2
-        for p in np.unique(np.append(pa, pb)):
-            poly = polyhedrons[p].copy()
-            rest = np.ones(len(poly), np.bool_)
-            m = poly[0]
-            L = 1
-            for _ in range(m):
-                L0 = L
-                k = poly[L]
-                L += 1
-                R = L + k
-                F = poly[L:R]
-                L = R
-                for i in range(len(F)):
-                    if F[i] == b:
-                        F[i] = a
-                for i in range(len(F)):
-                    if F[i - 1] == F[i]:
-                        rest[L0 + 1 + i] = 0
-                        poly[L0] -= 1
-                if poly[L0] <= 2:
-                    rest[L0:R] = 0
-                    poly[0] -= 1
-            polyhedrons[p] = poly[rest]
-        return True
-    for p in range(P):
-        poly = polyhedrons[p]
-        m = poly[0]
-        L = 1
-        # edge_len, edge
-        e_list = [(0.0, 0, 0)] * 0
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            for i in range(len(F)):
-                a = F[i - 1]
-                b = F[i]
-                if done[a] or done[b]:
-                    continue
-                d = ((node_pos[a] - node_pos[b]) ** 2).sum() ** .5
-                e_list.append((d, a, b))
-        e_list.sort()
-        for i in range(len(e_list)):
-            d, a, b = e_list[i]
-            if d > THRESH:
-                break
-            if done[a] or done[b]:
-                continue
-            merge(a, b)
-    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
-    P = len(polyhedrons)
-    new_indptr = np.zeros(P + 1, np.int32)
-    for p in range(P):
-        new_indptr[p + 1] = len(polyhedrons[p])
-    new_indptr = np.cumsum(new_indptr)
-    new_dat = np.empty(new_indptr[-1], np.int32)
-    for p in range(P):
-        L = new_indptr[p]
-        R = new_indptr[p + 1]
-        new_dat[L:R] = polyhedrons[p]
-    return (new_indptr, new_dat), node_pos
-"""
-
-
-@njit
-def merge_vertices(face_data_csr, node_pos, THRESH):
-    """
-    非常に短い辺を縮約して、中点に置き換える
-    """
-    node_pos = node_pos.copy()
-    indptr, dat = face_data_csr
-    P = len(indptr) - 1
-    polyhedrons = [dat[indptr[p]:indptr[p + 1]] for p in range(P)]
-
-    num_v = len(node_pos)
-    done = np.zeros(num_v, np.bool_)
-    # v -> p
-    VP = np.empty((indptr[-1], 2), np.int32)
-    ptr = 0
-    for p in range(P):
-        poly = polyhedrons[p]
-        m = poly[0]
-        v_list = [0] * 0
-        L = 1
-        for _ in range(m):
-            k = poly[L]
-            L += 1
-            R = L + k
-            F = poly[L:R]
-            L = R
-            for v in F:
-                v_list.append(v)
-        vs = np.unique(np.array(v_list))
-        for v in vs:
-            VP[ptr, 0] = v
-            VP[ptr, 1] = p
-            ptr += 1
-    VP = VP[:ptr]
-    VP = VP[np.argsort(VP[:, 0], kind='mergesort')]
-    indptr_VP = np.zeros(num_v + 1, np.int32)
-    for i in range(len(VP)):
-        v, p = VP[i]
-        indptr_VP[v + 1] += 1
-    for v in range(num_v):
-        indptr_VP[v + 1] += indptr_VP[v]
-
-    def collect_edge(a, b):
-        # a に入る辺、a から出る辺を集める
-        FRM = [0] * 0
-        TO = [0] * 0
-        ps = VP[indptr_VP[a]: indptr_VP[a + 1], 1]
-        for p in ps:
-            poly = polyhedrons[p]
-            m = poly[0]
-            L = 1
-            for _ in range(m):
-                k = poly[L]
-                L += 1
-                R = L + k
-                F = poly[L:R]
-                L = R
-                if len(F) <= 3 and a in F and b in F:
-                    continue
-                for i in range(len(F)):
-                    if F[i] == a:
-                        FRM.append(F[i - 1])
-                    if F[i - 1] == a:
-                        TO.append(F[i])
-        return np.unique(np.array(FRM)), np.unique(np.array(TO))
-
     def merge(a, b):
         if done[a] or done[b]:
             return False
@@ -1187,6 +970,7 @@ def merge_vertices(face_data_csr, node_pos, THRESH):
         done[a] = done[b] = 1
         print("merge", a, b)
         node_pos[a] = (node_pos[a] + node_pos[b]) / 2
+        node_conv[b] = a
         for p in np.unique(np.append(pa, pb)):
             poly = polyhedrons[p].copy()
             dat = [0]
@@ -1247,12 +1031,10 @@ def merge_vertices(face_data_csr, node_pos, THRESH):
         e_list.sort()
         for i in range(len(e_list)):
             d, a, b = e_list[i]
-            # if d > sz * THRESH:
-            #    break
             if done[a] or done[b]:
                 continue
             merge(a, b)
-    polyhedrons = [poly for poly in polyhedrons if poly[0] > 2]
+    polyhedrons, elem_conv = shrink(polyhedrons, elem_conv)
     P = len(polyhedrons)
     new_indptr = np.zeros(P + 1, np.int32)
     for p in range(P):
