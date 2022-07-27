@@ -1001,7 +1001,7 @@ def collect_vertex(poly):
 
 
 @njit
-def merge_polyhedrons(face_data_csr, I, elem_conv, nxt_idx):
+def merge_polyhedrons(face_data_csr, IDS, elem_conv, nxt_idx):
     indptr, dat = face_data_csr
 
     h0 = np.random.randint(1, 1 << 60)
@@ -1066,35 +1066,35 @@ def merge_polyhedrons(face_data_csr, I, elem_conv, nxt_idx):
             L = R
         return res
     k = 0
-    n = len(I)
+    n = len(IDS)
     edge_hash_list = [0] * 0
-    for i in I:
+    for i in IDS:
         k += dat[indptr[i]]
         edge_hash_list += collect_edge_hash(i)
     table = np.empty((2 * k, 2), np.int64)
     t = 0
     for i in range(n):
-        p = I[i]
+        p = IDS[i]
         H = collect_face_hash(p)
         for x in H:
             table[t], t = (x, i), t + 1
     table = table[np.argsort(table[:, 0])]
-    adj = [[0] * 0 for _ in range(len(I))]
+    adj = [[0] * 0 for _ in range(len(IDS))]
     for t in range(len(table) - 1):
         if table[t, 0] != table[t + 1, 0]:
             continue
         i, j = table[t, 1], table[t + 1, 1]
         adj[i].append(j)
         adj[j].append(i)
-    que = np.empty(len(I), np.int32)
-    done = np.zeros(len(I), np.bool_)
+    que = np.empty(len(IDS), np.int32)
+    done = np.zeros(len(IDS), np.bool_)
     res = [[0]] * 0
     success = [0] * 0
     face_hash = np.unique(table[:, 0])
     face_count = np.zeros(len(face_hash), np.int32)
 
     def add(i):
-        p = I[i]
+        p = IDS[i]
         poly = dat[indptr[p]:indptr[p + 1]]
         m = poly[0]
         L = 1
@@ -1109,7 +1109,7 @@ def merge_polyhedrons(face_data_csr, I, elem_conv, nxt_idx):
             assert face_hash[fid] == x
             face_count[fid] += 1
 
-    for root in range(len(I)):
+    for root in range(len(IDS)):
         if done[root]:
             continue
         polyhedron_list = [root]
@@ -1133,7 +1133,7 @@ def merge_polyhedrons(face_data_csr, I, elem_conv, nxt_idx):
                 break
         polyhedrons = np.array(polyhedron_list)
         for i in range(len(polyhedron_list)):
-            polyhedrons[i] = I[polyhedrons[i]]
+            polyhedrons[i] = IDS[polyhedrons[i]]
         for p in polyhedrons:
             elem_conv[p] = nxt_idx
         nxt_idx += 1
@@ -1200,31 +1200,31 @@ def merge_elements(face_data_csr, node_pos, elem_conv, K):
     prog = 0
     nxt_idx = 0
     while stack:
-        I = stack.pop()
-        if len(I) <= K:
+        IDS = stack.pop()
+        if len(IDS) <= K:
             nxt_idx, polys, success = merge_polyhedrons(
-                face_data_csr, I, elem_conv, nxt_idx)
+                face_data_csr, IDS, elem_conv, nxt_idx)
             prog += len(success)
             print("element grouping", prog, "/", len(centers))
             for P in polys:
                 res_indptr.append(res_indptr[-1] + len(P))
                 res += P
-            I = I[elem_conv[I] == -1]
-        if len(I) == 0:
+            IDS = IDS[elem_conv[IDS] == -1]
+        if len(IDS) == 0:
             continue
         # print("K", K, "I", I)
         lo = np.array([+np.inf, +np.inf, +np.inf])
         hi = np.array([-np.inf, -np.inf, -np.inf])
-        for i in I:
+        for i in IDS:
             lo = np.minimum(lo, centers[i])
             hi = np.maximum(hi, centers[i])
         ax = np.argmax(hi - lo)
-        mi = np.mean(centers[I, ax])
-        is_sm = np.empty(len(I), np.bool_)
-        for i in range(len(I)):
-            is_sm[i] = centers[I[i], ax] < mi
-        I1 = I[is_sm]
-        I2 = I[~is_sm]
+        mi = np.mean(centers[IDS, ax])
+        is_sm = np.empty(len(IDS), np.bool_)
+        for i in range(len(IDS)):
+            is_sm[i] = centers[IDS[i], ax] < mi
+        I1 = IDS[is_sm]
+        I2 = IDS[~is_sm]
         stack.append(I1)
         stack.append(I2)
     return (np.array(res_indptr), np.array(res))
