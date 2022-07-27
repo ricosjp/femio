@@ -1,35 +1,54 @@
+from gc import collect
 import femio
 import numpy as np
 from numba import njit
 from scipy.sparse import csr_matrix, save_npz
+from functools import lru_cache
 
 
 class MeshCompressor:
-    def __init__(self, *, fem_data=None, npz=None):
-        if not ((fem_data is None) ^ (npz is None)):
-            raise ValueError("just one of fem_data / npz is needed")
-        if fem_data is not None:
-            self.fem_data = fem_data
-            self.csr_raw = self.fem_data.face_data_csr()
-            self.csr = self.csr_raw
-            self.node_pos_raw = fem_data.nodes.data.copy()
-            self.node_pos = fem_data.nodes.data.copy()
-            self.elem_conv = np.arange(
-                len(fem_data.elements.data), dtype=np.int32)
-            self.node_conv = np.arange(
-                len(fem_data.nodes.data), dtype=np.int32)
-        else:
-            # load from npz
-            pass
+    def __init__(self, *, fem_data):
+        self.fem_data = fem_data
+        self.csr_raw = self.fem_data.face_data_csr()
+        self.csr = self.csr_raw
+        self.node_pos_raw = fem_data.nodes.data.copy()
+        self.node_pos = fem_data.nodes.data.copy()
+        self.elem_conv = np.arange(
+            len(fem_data.elements.data), dtype=np.int32)
+        self.node_conv = np.arange(
+            len(fem_data.nodes.data), dtype=np.int32)
         self.done = 0
 
     def compress(self, *,
-                 elem, cos_thresh, dist_thresh
+                 elem_num, cos_thresh, dist_thresh
                  ):
+        """
+        Compress the input FEMData.
+        After running this method, you can calculate the compressed FEMData
+        by calculate_compressed_fem_data method.
+
+        Args:
+            elem_num: int
+                The number of elements of output FEMData.
+                This param is just an estimate.
+                Typically, the number of output FEMData will be
+                1.0x ~ 2.0x, where x = elem_num.
+            cos_thresh:
+                Two faces, edges are merged if cos of its angle is
+                greater than cos_thresh.
+                Therefore, if cos_thresh is near 1.0 then the overall shape
+                of the FEMData tends to be preserved.
+            dist_thresh:
+                The nodes connected by a edge is merged if distance between
+                them is shorter than dist_thresh.
+                Therefore, if dist_thresh is near 0.0 then the overall shape
+                of the FEMData tends to be preserved.
+        """
+        assert self.done == 0
         self.done = 1
         print_stat(self.csr)
         print("begin merge elements")
-        K = len(self.csr[0] - 1) // elem
+        K = len(self.csr[0] - 1) // elem_num
         self.csr = merge_elements(
             self.csr, self.node_pos, self.elem_conv, K)
         for _ in range(10):
@@ -55,10 +74,16 @@ class MeshCompressor:
         reindex(self.csr, self.node_conv)
         self.node_pos = recalc_node_pos(self.node_pos_raw, self.node_conv)
 
-    def get_fem_data(self):
+    def calculate_compressed_fem_data(self):
+        """
+        Calculate the compressed FEMData.
+        Before running this method, you need to run compress method.
+
+        Returns:
+            output_fem_data: FEMData Object
+        """
         assert self.done
         node_pos = self.node_pos
-        N = len(node_pos)
         indptr, faces = self.csr
         P = len(indptr) - 1
         nodes = femio.FEMAttribute(
@@ -87,18 +112,36 @@ class MeshCompressor:
                             'face', ids=np.arange(P) + 1, data=face_data_list)})})
         print("nodes", len(fem_data.nodes.data))
         print("elements", len(fem_data.elements.data))
-        return fem_data
+        self.output_fem_data = fem_data
+        return self.output_fem_data
 
-    def get_matrix_node(self, knn=3):
+    @lru_cache
+    def calculate_conversion_matrix_nodal(self, knn):
+        """
+        Calculate the conversion matrix of nodal_data.
+        Let N be the number of the original FEMData, and
+        M be the number of the original FEMData.
+        Then create a sparse (M, N) matrix.
+
+        We can convert nodal_data between original FEMData and compressed
+        FEMData by using this matrix.
+        We can also convert them by using compress_nodal_data and
+        decompress_nodal_data method.
+
+        Args:
+            knn: int
+                The number of nodes related to a node in original fem_data.
+                In other words, the number of nonzero entry in each columns
+                in the calculated matrix.
+        Returns:
+            mat: csr_matrix (bool)
+                The conversion matrix of nodal_data.
+                Its shape is (M, N).
+        """
         assert self.done
-        nbd = calculate_nbd_in(self.csr_raw, self.node_conv, knn)
+        nbd = calculate_nodal_knn(self.csr_raw, self.node_conv, knn)
         N = len(self.node_conv)
         M = self.node_conv.max() + 1
-        cols = np.where(self.node_conv != -1)[0]
-        rows = self.node_conv[cols]
-        vals = np.ones(M, np.bool_)
-        mat1 = csr_matrix((vals, (rows, cols)), (M, N), dtype=np.bool_)
-
         rows = np.empty(knn * N, np.int32)
         for k in range(knn):
             rows[k::3] = np.arange(N)
@@ -107,12 +150,241 @@ class MeshCompressor:
         rows = rows[idx]
         cols = cols[idx]
         vals = np.ones(len(rows), np.bool_)
-        mat2 = csr_matrix((vals, (rows, cols)), (N, M), dtype=np.bool_)
-        return mat1, mat2
+        mat = csr_matrix((vals, (cols, rows)), (M, N), dtype=np.bool_)
+        return mat
+
+    def compress_nodal_data(self, *, name_1, name_2, kind, knn):
+        """
+        Convert nodal_data in original FEMData to compressed FEMData.
+        Converted nodal_data is automatically attached to the
+        compressed FEMData.
+
+        Args:
+            name_1: str
+                Name of the nodal_data in original FEMData.
+            name_2: str
+                Name of the nodal_data in compressed FEMData
+                which will be created.
+            kind: str, "sum" or "mean"
+                If kind == "mean", new data is computed as simple average of
+                original data related to it.
+                If kind == "sum", new data is computed as weighted sum of
+                original data related to it, and the sum of data of all nodes
+                is preserved.
+            knn: int
+                The number of nodes related to a node in
+                original fem_data.
+        """
+        if kind not in ["sum", "mean"]:
+            raise ValueError
+        mat = self.calculate_conversion_matrix_nodal(knn)
+        x = self.fem_data.nodal_data[name_1].data
+        if kind == "mean":
+            y = mat @ x
+            wt = mat.sum(axis=1)
+            y = y / wt
+            ids = self.output_fem_data.nodes.ids
+            self.output_fem_data.nodal_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+        if kind == "sum":
+            wt = mat.sum(axis=0)
+            x = x / wt
+            y = mat @ x
+            ids = self.output_fem_data.nodes.ids
+            self.output_fem_data.nodal_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+
+    def decompress_nodal_data(self, *, name_1, name_2, kind, knn):
+        """
+        Convert nodal_data in compressed FEMData to original FEMData.
+        Converted nodal_data is automatically attached to the
+        original FEMData.
+
+        Args:
+            name_1: str
+                Name of the nodal_data in compressed FEMData.
+            name_2: str
+                Name of the nodal_data in original FEMData
+                which will be created.
+            kind: str, "sum" or "mean"
+                If kind == "mean", new data is computed as simple average of
+                original data related to it.
+                If kind == "sum", new data is computed as weighted sum of
+                original data related to it, and the sum of data of all nodes
+                is preserved.
+            knn: int
+                The number of nodes related to a node in
+                original fem_data.
+        """
+        if kind not in ["sum", "mean"]:
+            raise ValueError
+        mat = self.calculate_conversion_matrix_nodal(knn)
+        mat = mat.T
+        x = self.output_fem_data.nodal_data[name_1].data
+        if kind == "mean":
+            y = mat @ x
+            wt = mat.sum(axis=1)
+            y = y / wt
+            ids = self.fem_data.nodes.ids
+            self.fem_data.nodal_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+        if kind == "sum":
+            wt = mat.sum(axis=0)
+            x = x / wt
+            y = mat @ x
+            ids = self.fem_data.nodes.ids
+            self.fem_data.nodal_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+
+    @lru_cache
+    def calculate_conversion_matrix_elemental(self, knn):
+        """
+        Calculate the conversion matrix of element_data.
+        Let N be the number of the original FEMData, and
+        M be the number of the original FEMData.
+        Then create a sparse (M, N) matrix.
+
+        We can convert elemental_data between original FEMData and compressed
+        FEMData by using this matrix.
+        We can also convert them by using compress_elemental_data_data and
+        decompress_elemental_data_data method.
+
+        Args:
+            knn: int
+                The number of elements related to a element in
+                original fem_data.
+                In other words, the number of nonzero entry in each columns
+                in the calculated matrix.
+        Returns:
+            mat: csr_matrix (bool)
+                The conversion matrix of elemental_data.
+                Its shape is (M, N).
+        """
+        assert self.done
+        nbd = calculate_elemental_knn(self.csr_raw, self.node_conv, knn)
+        N = len(self.node_conv)
+        M = self.node_conv.max() + 1
+        rows = np.empty(knn * N, np.int32)
+        for k in range(knn):
+            rows[k::3] = np.arange(N)
+        cols = nbd.ravel()
+        idx = cols != -1
+        rows = rows[idx]
+        cols = cols[idx]
+        vals = np.ones(len(rows), np.bool_)
+        mat = csr_matrix((vals, (cols, rows)), (M, N), dtype=np.bool_)
+        return mat
+
+    def compress_elemental_data(self, *, name_1, name_2, kind, knn):
+        """
+        Convert elemental_data in original FEMData to compressed FEMData.
+        Converted elemental_data is automatically attached to the
+        compressed FEMData.
+
+        Args:
+            name_1: str
+                Name of the elemental_data in original FEMData.
+            name_2: str
+                Name of the elemental_data in compressed FEMData
+                which will be created.
+            kind: str, "sum" or "mean"
+                If kind == "mean", new data is computed as simple average of
+                original data related to it.
+                If kind == "sum", new data is computed as weighted sum of
+                original data related to it, and the sum of data of all elements
+                is preserved.
+            knn: int
+                The number of elements related to a element in
+                original fem_data.
+        """
+        if kind not in ["sum", "mean"]:
+            raise ValueError
+        mat = self.calculate_conversion_matrix_elemental(knn)
+        x = self.fem_data.elemental_data[name_1].data
+        if kind == "mean":
+            y = mat @ x
+            wt = mat.sum(axis=1)
+            y = y / wt
+            ids = self.output_fem_data.elements.ids
+            self.output_fem_data.elemental_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+        if kind == "sum":
+            wt = mat.sum(axis=0)
+            x = x / wt
+            y = mat @ x
+            ids = self.output_fem_data.elements.ids
+            self.output_fem_data.elemental_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+
+    def decompress_elemental_data(self, *, name_1, name_2, kind, knn):
+        """
+        Convert elemental_data in compressed FEMData to original FEMData.
+        Converted elemental_data is automatically attached to the
+        original FEMData.
+
+        Args:
+            name_1: str
+                Name of the elemental_data in compressed FEMData.
+            name_2: str
+                Name of the elemental_data in original FEMData
+                which will be created.
+            kind: str, "sum" or "mean"
+                If kind == "mean", new data is computed as simple average of
+                original data related to it.
+                If kind == "sum", new data is computed as weighted sum of
+                original data related to it, and the sum of data of all elements
+                is preserved.
+            knn: int
+                The number of elements related to a element in
+                original fem_data.
+        """
+        if kind not in ["sum", "mean"]:
+            raise ValueError
+        mat = self.calculate_conversion_matrix_elemental(knn)
+        mat = mat.T
+        x = self.output_fem_data.elemental_data[name_1].data
+        if kind == "mean":
+            y = mat @ x
+            wt = mat.sum(axis=1)
+            y = y / wt
+            ids = self.fem_data.elements.ids
+            self.fem_data.elemental_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
+        if kind == "sum":
+            wt = mat.sum(axis=0)
+            x = x / wt
+            y = mat @ x
+            ids = self.fem_data.elements.ids
+            self.fem_data.elemental_data.update_data(
+                ids, {
+                    name_2: y
+                }
+            )
 
 
 @njit
-def calculate_nbd_in(csr, node_conv, knn):
+def calculate_nodal_knn(csr, node_conv, knn):
     N = len(node_conv)
     G_li = [(0, 0)] * 0
     indptr, face_data = csr
@@ -167,6 +439,45 @@ def calculate_nbd_in(csr, node_conv, knn):
                 continue
             nbd[v][k] = node_conv[nbd[v][k]]
     return nbd
+
+
+@njit
+def calculate_elemental_knn(csr_raw, csr_after, node_conv, knn):
+    nbd = calculate_nodal_knn(csr_raw, node_conv, knn)
+    indptr, face_data = csr_after
+    P = len(indptr) - 1
+    G_li = [(0, 0)] * 0
+    for p in range(P):
+        V = collect_vertex(face_data[indptr[p]:indptr[p + 1]])
+        for v in V:
+            G_li.append((v, p))
+    G_ve = np.array(G_li)
+    G_ve = G_ve[np.argsort(G_ve[:, 0])]
+    N = G_ve[:, 0].max() + 1
+    indptr_ve = np.zeros(N + 1, np.int32)
+
+    Q = len(csr_raw[0]) - 1
+    res = np.full((Q, knn), -1, np.int32)
+    indptr, face_data = csr_raw
+    for q in range(Q):
+        poly = face_data[indptr[q]:indptr[q + 1]]
+        V = collect_vertex(poly)
+        E = [0] * 0
+        for v in V:
+            for w in nbd[v]:
+                for e in G_ve[indptr_ve[w]:indptr_ve[w + 1]]:
+                    E.append(e)
+        key = np.unique(E)
+        K = len(key)
+        cnt = np.zeros(K, np.int32)
+        for e in E:
+            idx = np.searchsorted(key, e)
+            cnt[e] += 1
+        I = np.argsort(cnt)
+        I = I[::-1][:knn]
+        for k in range(len(I)):
+            res[q][k] = key[k]
+    return res
 
 
 @njit
