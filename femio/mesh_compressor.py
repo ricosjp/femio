@@ -474,10 +474,10 @@ def calculate_elemental_knn(csr_raw, csr_after, node_conv, knn):
         for e in E:
             idx = np.searchsorted(key, e)
             cnt[idx] += 1
-        I = np.argsort(cnt)
-        I = I[::-1][:knn]
-        for k in range(len(I)):
-            res[q][k] = key[I[k]]
+        IDS = np.argsort(cnt)
+        IDS = IDS[::-1][:knn]
+        for k in range(len(IDS)):
+            res[q][k] = key[IDS[k]]
     return res
 
 
