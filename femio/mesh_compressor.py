@@ -1,8 +1,7 @@
-from gc import collect
 import femio
 import numpy as np
 from numba import njit
-from scipy.sparse import csr_matrix, save_npz
+from scipy.sparse import csr_matrix
 from functools import lru_cache
 
 
@@ -68,7 +67,8 @@ class MeshCompressor:
                 THRESH=cos_thresh)
             print("merge vertices")
             self.csr, self.node_pos = merge_vertices(
-                self.csr, self.node_pos, self.elem_conv, self.node_conv, THRESH=dist_thresh)
+                self.csr, self.node_pos, self.elem_conv, self.node_conv,
+                THRESH=dist_thresh)
             if before_size == len(self.csr[1]):
                 break
         reindex(self.csr, self.node_conv)
@@ -109,7 +109,8 @@ class MeshCompressor:
                 'face': femio.FEMElementalAttribute(
                     'face', {
                         'polyhedron': femio.FEMAttribute(
-                            'face', ids=np.arange(P) + 1, data=face_data_list)})})
+                            'face', ids=np.arange(P) + 1,
+                            data=face_data_list)})})
         print("nodes", len(fem_data.nodes.data))
         print("elements", len(fem_data.elements.data))
         self.output_fem_data = fem_data
@@ -303,8 +304,8 @@ class MeshCompressor:
                 If kind == "mean", new data is computed as simple average of
                 original data related to it.
                 If kind == "sum", new data is computed as weighted sum of
-                original data related to it, and the sum of data of all elements
-                is preserved.
+                original data related to it, and the sum of data of
+                all elements is preserved.
             knn: int
                 The number of elements related to a element in
                 original fem_data.
@@ -350,8 +351,8 @@ class MeshCompressor:
                 If kind == "mean", new data is computed as simple average of
                 original data related to it.
                 If kind == "sum", new data is computed as weighted sum of
-                original data related to it, and the sum of data of all elements
-                is preserved.
+                original data related to it, and the sum of data of
+                all elements is preserved.
             knn: int
                 The number of elements related to a element in
                 original fem_data.
@@ -472,11 +473,11 @@ def calculate_elemental_knn(csr_raw, csr_after, node_conv, knn):
         cnt = np.zeros(K, np.int32)
         for e in E:
             idx = np.searchsorted(key, e)
-            cnt[e] += 1
+            cnt[idx] += 1
         I = np.argsort(cnt)
         I = I[::-1][:knn]
         for k in range(len(I)):
-            res[q][k] = key[k]
+            res[q][k] = key[I[k]]
     return res
 
 
