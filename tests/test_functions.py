@@ -119,7 +119,7 @@ class TestFunctions(unittest.TestCase):
             ],
         ])
         out_array = functions.convert_array2symmetric_matrix(
-                in_array, from_engineering=True)
+            in_array, from_engineering=True)
         np.testing.assert_almost_equal(out_array, desired_array)
 
     def test_array2symmetric_matrix_order(self):
@@ -250,7 +250,7 @@ class TestFunctions(unittest.TestCase):
             [4.11, 4.12, 4.31, 4.22, 4.23, 4.33],
         ])
         out_array = functions.convert_symmetric_matrix2array(
-                in_array, order=[0, 3, 5, 1, 4, 2])
+            in_array, order=[0, 3, 5, 1, 4, 2])
         np.testing.assert_almost_equal(out_array, desired_array)
 
     def test_calculate_principal_components(self):
