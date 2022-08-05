@@ -49,7 +49,7 @@ class SignalProcessorMixin:
 
     def convert_elemental2nodal(
             self, elemental_data, mode='mean', order1_only=True,
-            raise_negative_volume=True):
+            raise_negative_volume=True, weight=None, incidence=None):
         """Convert elemental data to nodal data.
 
         Args:
@@ -64,25 +64,36 @@ class SignalProcessorMixin:
                 If True, convert data only for order 1 nodes.
             raise_negative_volume: bool, optional [True]
                 If True, raise ValueError when negative volume found.
+            weight: numpy.ndarray
+                Weight to be used in 'mean' mode. False means equal weight.
+            incidence: scipy.sparse.csr_matrix
+                (n_node, n_element)-shaped incidence matrix.
         Returns:
             converted_data: numpy.ndarray
         """
         if len(elemental_data) != len(self.elements.ids):
             raise ValueError(
                 'Length of input data differs from that of elements')
-        incidence_matrix = self.calculate_incidence_matrix(
-            order1_only=order1_only)
+        if incidence is None:
+            incidence_matrix = self.calculate_incidence_matrix(
+                order1_only=order1_only)
+        else:
+            incidence_matrix = incidence
 
         if mode == 'effective':
-            if not order1_only:
-                raise NotImplementedError
             weighted_incidence_matrix = incidence_matrix.multiply(
                 1 / incidence_matrix.sum(axis=0))
 
         elif mode == 'mean':
-            metrics = self.calculate_element_metrics(
-                raise_negative_metric=raise_negative_volume)
-            metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
+            if weight is False:
+                metric_incidence_matrix = incidence_matrix
+            else:
+                if weight is None:
+                    metrics = self.calculate_element_metrics(
+                        raise_negative_metric=raise_negative_volume)
+                else:
+                    metrics = weight
+                metric_incidence_matrix = incidence_matrix.multiply(metrics.T)
             weighted_incidence_matrix = metric_incidence_matrix.multiply(
                 1 / metric_incidence_matrix.sum(axis=1))
 
@@ -143,45 +154,19 @@ class SignalProcessorMixin:
         self.material_overwritten = True
         return
 
-    def invert_strain(self, strain, is_engineering=False):
-        values, directions, vectors = self.calculate_principal_components(
-            strain, from_engineering=is_engineering)
-        # inverted_values = np.exp(- np.log(1 + values)) - 1
-        inverted_values = 1. / (1. + values) - 1.
-        return self.calculate_array_from_eigens(
-            inverted_values, directions, to_engineering=is_engineering)
-
-    def calculate_array_from_eigens(
-            self, eigenvalues, eigenvectors, to_engineering=False):
-        return self.convert_symmetric_matrix2array(
-            self.calculate_symmetric_matrices_from_eigens(
-                eigenvalues, eigenvectors), to_engineering=to_engineering)
-
-    def calculate_symmetric_matrices_from_eigens(
-            self, eigenvalues, eigenvectors):
-        diags = self.convert_array2symmetric_matrix(np.concatenate(
-            [eigenvalues, np.zeros(eigenvalues.shape)], axis=1))
-        rotation_matrices = np.stack([
-            eigenvectors[:, :3],
-            eigenvectors[:, 3:6],
-            eigenvectors[:, 6:],
-        ], axis=2)
-        return rotation_matrices @ diags @ np.transpose(
-            rotation_matrices, (0, 2, 1))
-
     def add_principal_vectors(self, name_variable):
         if name_variable in [
                 'lte_full', 'linear_thermal_expansion_coefficient_full']:
-            values, _, vectors = self.calculate_principal_components(
+            values, _, vectors = functions.calculate_principal_components(
                 self.elemental_data.get_attribute_data('lte_full'),
                 from_engineering=True)
         elif name_variable in [
                 'elemental_strain', 'ElementalSTRAIN']:
-            values, _, vectors = self.calculate_principal_components(
+            values, _, vectors = functions.calculate_principal_components(
                 self.elemental_data.get_attribute_data('elemental_strain'),
                 from_engineering=True)
         elif name_variable in ['fiber_orientation_tensor']:
-            values, _, vectors = self.calculate_principal_components(
+            values, _, vectors = functions.calculate_principal_components(
                 self.elemental_data.get_attribute_data(
                     'fiber_orientation_tensor'),
                 from_engineering=False, order=[0, 3, 5, 1, 4, 2])
@@ -198,107 +183,6 @@ class SignalProcessorMixin:
                 f"principal_{name_variable}_value_2": values[:, 1],
                 f"principal_{name_variable}_value_3": values[:, 2],
             }, allow_overwrite=True)
-
-    def calculate_principal_components(
-            self, in_array, *,
-            from_engineering=False, order=None):
-        """Calculate eigenvalues and eigenvectors of the input arrays which are
-        parts of symmetric matrices.
-
-        Args:
-            in_array: numpy.ndarray
-                (n, 6) shaped array to form symmetric matrices.
-            from_engineering: bool, optional [False]
-                If True, treat in_array as engineering-strain-like data.
-            order: array-like, optional [[0, 1, 2, 3, 4, 5]]
-                The order of in_array. The order should be
-                [11, 22, 33, 12, 23, 31] order.
-        Returns:
-            eigenvalues: numpy.ndarray
-                (n, 3) shaped array of eigenvalues.
-            eigenvectors: numpy.ndarray
-                (n, 9) shaped array of eigenvectors.
-        """
-        symmetrc_matrix = self.convert_array2symmetric_matrix(
-            in_array, from_engineering=from_engineering, order=order)
-        _eigenvalues, _directions = np.linalg.eigh(symmetrc_matrix)
-
-        # Sort descending order
-        eigenvalues = _eigenvalues[:, ::-1]
-        directions = _directions[:, :, ::-1]
-
-        # Make sure it right handed system
-        directions[:, :, 2] = np.cross(
-            directions[:, :, 0], directions[:, :, 1])
-
-        vectors = np.einsum(
-            'ik,ijk->ijk', eigenvalues, directions)
-        return (
-            eigenvalues,
-            np.concatenate([
-                directions[:, :, 0], directions[:, :, 1],
-                directions[:, :, 2]], axis=1),
-            np.concatenate([
-                vectors[:, :, 0], vectors[:, :, 1],
-                vectors[:, :, 2]], axis=1))
-
-    def convert_array2symmetric_matrix(
-            self, in_array, *,
-            from_engineering=False, order=None):
-        """Convert (n, 6) shaped array to (n, 3, 3) symmetric matrix.
-
-        Args:
-            in_array: numpy.ndarray
-                (n, 6) shaped array.
-            from_engineering: bool, optional [False]
-                If True, treat in_array as engineering-strain-like data.
-            order: array-like, optional [[0, 1, 2, 3, 4, 5]]
-                The order of in_array. The order should be
-                [11, 22, 33, 12, 23, 31] order.
-        Returns:
-            symmetrc_matrix: numpy.ndarray
-                (n, 6, 6) symmetric matrix.
-        """
-        if order is None:
-            order = [0, 1, 2, 3, 4, 5]
-        in_array = in_array[:, order]
-        if from_engineering:
-            # Handle engineering strain stuff
-            in_array[:, 3:] = in_array[:, 3:] / 2
-
-        indices_array2symmetric_matrix = [0, 3, 5, 3, 1, 4, 5, 4, 2]
-        return np.reshape(
-            in_array[:, indices_array2symmetric_matrix], (-1, 3, 3))
-
-    def convert_symmetric_matrix2array(
-            self, in_matrix, *,
-            to_engineering=False, order=None):
-        """Convert (n, 3, 3) shaped symmetric matrices to (n, 6) array.
-
-        Args:
-            in_matrix: numpy.ndarray
-                (n, 6, 6) symmetric matrix.
-            to_engineering: bool, optional [False]
-                If True, the out_array will be converted to
-                engineering-strain-like data.
-            order: array-like, optional [[0, 1, 2, 3, 4, 5]]
-                The order of out_array. The order should be
-                [11, 22, 33, 12, 23, 31] order.
-        Returns:
-            out_array: numpy.ndarray
-                (n, 6) shaped array.
-        """
-        if order is None:
-            order = [0, 1, 2, 3, 4, 5]
-
-        indices_symmetric_matrix2array = [0, 4, 8, 1, 5, 2]
-        out_array = np.reshape(in_matrix, (-1, 9))[
-            :, indices_symmetric_matrix2array]
-
-        if to_engineering:
-            # Handle engineering strain stuff
-            out_array[:, 3:] = out_array[:, 3:] * 2
-        return out_array[:, order]
 
     def integrate_elements(self, nodal_data):
         """Integrate nodal data with element volumes.
@@ -812,7 +696,7 @@ class SignalProcessorMixin:
             self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
             use_effective_volume=True, moment_matrix=False,
             consider_volume=True, normals=None, normal_weight=1.,
-            normal_weight_factor=None,
+            normal_weight_factor=None, adj=None,
             **kwargs):
         """Calculate spatial gradient (not graph gradient) matrix.
 
@@ -842,6 +726,8 @@ class SignalProcessorMixin:
             If fed, weight the normal vector. The weight is calculated with
             normal_weight_factor * sum_i volume_i, where the index i runs
             overt the graph neighbor including the self loop.
+        adj: scipy.sparse [None]
+            If fed, used as a adjacency matrix.
 
         Returns
         -------
@@ -877,9 +763,10 @@ class SignalProcessorMixin:
         else:
             raise ValueError(f"Unknown mode: {mode}")
 
-        adj = self.calculate_n_hop_adj(
-            mode=mode, n_hop=n_hop, include_self_loop=False,
-            order1_only=order1_only)
+        if adj is None:
+            adj = self.calculate_n_hop_adj(
+                mode=mode, n_hop=n_hop, include_self_loop=False,
+                order1_only=order1_only)
 
         diff_position_adjs = self.calculate_data_diff_adjs(adj, positions)
         distance_adj = self.calculate_norm_adj(diff_position_adjs)

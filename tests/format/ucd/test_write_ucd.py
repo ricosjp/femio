@@ -145,3 +145,7 @@ class TestWriteUCD(unittest.TestCase):
         if os.path.exists(write_dir_name):
             shutil.rmtree(write_dir_name)
         fem_data.write('ucd', write_dir_name / 'mesh.inp')
+
+        written_fem_data = fem_data.read_files(
+            'ucd', write_dir_name / 'mesh.inp')
+        self.assertTrue('TEMPERATURE_9' in written_fem_data.nodal_data)

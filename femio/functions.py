@@ -93,3 +93,136 @@ def remove_duplicates(connectivities, return_index=False):
         return connectivities[indices], indices
     else:
         return connectivities[indices]
+
+
+def convert_array2symmetric_matrix(
+        in_array, *,
+        from_engineering=False, order=None):
+    """Convert (n, 6) shaped array to (n, 3, 3) symmetric matrix.
+
+    Args:
+        in_array: numpy.ndarray
+            (n, 6) shaped array.
+        from_engineering: bool, optional [False]
+            If True, treat in_array as engineering-strain-like data.
+        order: array-like, optional [[0, 1, 2, 3, 4, 5]]
+            The order of in_array. The order should be
+            [11, 22, 33, 12, 23, 31] order.
+    Returns:
+        symmetrc_matrix: numpy.ndarray
+            (n, 6, 6) symmetric matrix.
+    """
+    if order is None:
+        order = [0, 1, 2, 3, 4, 5]
+    in_array = in_array[:, order]
+    if from_engineering:
+        # Handle engineering strain stuff
+        in_array[:, 3:] = in_array[:, 3:] / 2
+
+    indices_array2symmetric_matrix = [0, 3, 5, 3, 1, 4, 5, 4, 2]
+    return np.reshape(
+        in_array[:, indices_array2symmetric_matrix], (-1, 3, 3))
+
+
+def convert_symmetric_matrix2array(
+        in_matrix, *,
+        to_engineering=False, order=None):
+    """Convert (n, 3, 3) shaped symmetric matrices to (n, 6) array.
+
+    Args:
+        in_matrix: numpy.ndarray
+            (n, 6, 6) symmetric matrix.
+        to_engineering: bool, optional [False]
+            If True, the out_array will be converted to
+            engineering-strain-like data.
+        order: array-like, optional [[0, 1, 2, 3, 4, 5]]
+            The order of out_array. The order should be
+            [11, 22, 33, 12, 23, 31] order.
+    Returns:
+        out_array: numpy.ndarray
+            (n, 6) shaped array.
+    """
+    if order is None:
+        order = [0, 1, 2, 3, 4, 5]
+
+    indices_symmetric_matrix2array = [0, 4, 8, 1, 5, 2]
+    out_array = np.reshape(in_matrix, (-1, 9))[
+        :, indices_symmetric_matrix2array]
+
+    if to_engineering:
+        # Handle engineering strain stuff
+        out_array[:, 3:] = out_array[:, 3:] * 2
+    return out_array[:, order]
+
+
+def calculate_symmetric_matrices_from_eigens(
+        eigenvalues, eigenvectors):
+    diags = convert_array2symmetric_matrix(np.concatenate(
+        [eigenvalues, np.zeros(eigenvalues.shape)], axis=1))
+    rotation_matrices = np.stack([
+        eigenvectors[:, :3],
+        eigenvectors[:, 3:6],
+        eigenvectors[:, 6:],
+    ], axis=2)
+    return rotation_matrices @ diags @ np.transpose(
+        rotation_matrices, (0, 2, 1))
+
+
+def invert_strain(strain, is_engineering=False):
+    values, directions, vectors = calculate_principal_components(
+        strain, from_engineering=is_engineering)
+    # inverted_values = np.exp(- np.log(1 + values)) - 1
+    inverted_values = 1. / (1. + values) - 1.
+    return calculate_array_from_eigens(
+        inverted_values, directions, to_engineering=is_engineering)
+
+
+def calculate_array_from_eigens(
+        eigenvalues, eigenvectors, to_engineering=False):
+    return convert_symmetric_matrix2array(
+        calculate_symmetric_matrices_from_eigens(
+            eigenvalues, eigenvectors), to_engineering=to_engineering)
+
+
+def calculate_principal_components(
+        in_array, *,
+        from_engineering=False, order=None):
+    """Calculate eigenvalues and eigenvectors of the input arrays which are
+    parts of symmetric matrices.
+
+    Args:
+        in_array: numpy.ndarray
+            (n, 6) shaped array to form symmetric matrices.
+        from_engineering: bool, optional [False]
+            If True, treat in_array as engineering-strain-like data.
+        order: array-like, optional [[0, 1, 2, 3, 4, 5]]
+            The order of in_array. The order should be
+            [11, 22, 33, 12, 23, 31] order.
+    Returns:
+        eigenvalues: numpy.ndarray
+            (n, 3) shaped array of eigenvalues.
+        eigenvectors: numpy.ndarray
+            (n, 9) shaped array of eigenvectors.
+    """
+    symmetrc_matrix = convert_array2symmetric_matrix(
+        in_array, from_engineering=from_engineering, order=order)
+    _eigenvalues, _directions = np.linalg.eigh(symmetrc_matrix)
+
+    # Sort descending order
+    eigenvalues = _eigenvalues[:, ::-1]
+    directions = _directions[:, :, ::-1]
+
+    # Make sure it right handed system
+    directions[:, :, 2] = np.cross(
+        directions[:, :, 0], directions[:, :, 1])
+
+    vectors = np.einsum(
+        'ik,ijk->ijk', eigenvalues, directions)
+    return (
+        eigenvalues,
+        np.concatenate([
+            directions[:, :, 0], directions[:, :, 1],
+            directions[:, :, 2]], axis=1),
+        np.concatenate([
+            vectors[:, :, 0], vectors[:, :, 1],
+            vectors[:, :, 2]], axis=1))

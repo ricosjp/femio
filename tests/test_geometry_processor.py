@@ -136,6 +136,46 @@ class TestGeometryProcessor(unittest.TestCase):
         actual = fem_data.calculate_element_volumes(linear=False)
         np.testing.assert_almost_equal(actual, desired_volumes)
 
+    def test_calculate_volumes_polyhedron(self):
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/tet_3/mesh.vtk',
+        )
+        desired = fem_data.calculate_element_volumes()
+        fem_data = fem_data.to_polyhedron()
+        actual = fem_data.calculate_element_volumes()
+        np.testing.assert_almost_equal(actual, desired)
+
+        fem_data = FEMData.read_files(
+            'vtk', 'tests/data/vtk/hex/mesh.vtk',
+        )
+        desired = fem_data.calculate_element_volumes()
+        fem_data = fem_data.to_polyhedron()
+        actual = fem_data.calculate_element_volumes()
+        np.testing.assert_almost_equal(actual, desired)
+
+        fem_data = FEMData.read_files(
+            'ucd', 'tests/data/ucd/prism/mesh.inp',
+        )
+        desired = fem_data.calculate_element_volumes()
+        fem_data = fem_data.to_polyhedron()
+        actual = fem_data.calculate_element_volumes()
+        np.testing.assert_almost_equal(actual, desired)
+
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/pyramid/pyramid.vtu',
+        )
+        desired = fem_data.calculate_element_volumes()
+        fem_data = fem_data.to_polyhedron()
+        actual = fem_data.calculate_element_volumes()
+        np.testing.assert_almost_equal(actual, desired)
+
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/polyhedron/polyhedron.vtu',
+        )
+        desired = np.array([[19/24], [3/2], [1/24]])
+        actual = fem_data.calculate_element_volumes()
+        np.testing.assert_almost_equal(actual, desired)
+
     def test_normal_incidence_hex(self):
         fem_data = FEMData.read_files(
             'vtk', ['tests/data/vtk/hex/mesh.vtk'])
