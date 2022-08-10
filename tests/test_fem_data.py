@@ -803,3 +803,17 @@ class TestFEMData(unittest.TestCase):
             face_data[1], desired)
         for face in face_data:
             assert check_face_format(face)
+
+    def test_to_csr(self):
+        fem_data = FEMData.read_files(
+            'polyvtk', 'tests/data/vtu/polyhedron/polyhedron.vtu')
+        faces = fem_data.elemental_data['face']['polyhedron'].data
+        csr = fem_data.face_data_csr()
+        assert len(csr) == 2
+        indptr, dat = csr
+        assert len(indptr) == len(faces) + 1
+        assert indptr[-1] == len(dat)
+        for n in range(len(faces)):
+            desired = np.array(faces[n])
+            actual = dat[indptr[n]: indptr[n + 1]]
+            np.testing.assert_array_equal(desired, actual)
