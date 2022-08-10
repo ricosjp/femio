@@ -1129,19 +1129,19 @@ class FEMData(
             if tp == 'tet':
                 for i in indices:
                     face_dat[i] = self.tet_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'hex':
                 for i in indices:
                     face_dat[i] = self.hex_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'prism':
                 for i in indices:
                     face_dat[i] = self.prism_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'pyr':
                 for i in indices:
                     face_dat[i] = self.pyr_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'polyhedron':
                 pass
             else:
