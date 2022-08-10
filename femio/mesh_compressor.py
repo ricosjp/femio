@@ -51,6 +51,7 @@ class MeshCompressor:
         print_stat(self.csr)
         print("merge elements")
         K = len(self.csr[0] - 1) // elem_num
+        K = max(K, 1)
         self.csr = merge_elements(
             self.csr, self.node_pos, self.elem_conv, K)
         for _ in range(10):
@@ -67,11 +68,6 @@ class MeshCompressor:
             print("remove vertices")
             self.csr = remove_vertices_2(
                 self.csr, self.node_pos, self.elem_conv)
-            self.csr = remove_vertices(
-                self.csr,
-                self.node_pos,
-                self.elem_conv,
-                THRESH=cos_thresh)
             print(datetime.datetime.now())
             print("merge vertices")
             self.csr, self.node_pos = merge_vertices(
@@ -81,9 +77,13 @@ class MeshCompressor:
                 break
         reindex(self.csr, self.node_conv)
         self.node_pos = recalc_node_pos(self.node_pos_raw, self.node_conv)
-        self._calculate_compressed_fem_data()
+        if len(self.node_pos) == 0:
+            print("compressed to 0 elements. try another parameter")
+            return
+        self.calculate_compressed_fem_data()
 
-    def _calculate_compressed_fem_data(self):
+    @lru_cache
+    def calculate_compressed_fem_data(self):
         """
         Calculate the compressed FEMData.
         Before running this method, you need to run compress method.
@@ -149,7 +149,8 @@ class MeshCompressor:
                 Its shape is (M, N).
         """
         assert self.done
-        nbd = calculate_nodal_knn(self.csr_raw, self.node_conv, knn)
+        nbd = calculate_nodal_knn(
+            self.csr_raw, self.node_conv, self.node_pos, knn)
         N = len(self.node_conv)
         M = self.node_conv.max() + 1
         rows = np.empty(knn * N, np.int32)
@@ -282,12 +283,11 @@ class MeshCompressor:
                 The conversion matrix of elemental_data.
                 Its shape is (M, N).
         """
-
         assert self.done
         N = len(self.csr_raw[0]) - 1
         M = len(self.csr[0]) - 1
         nbd1, nbd2 = calculate_elemental_knn(
-            self.csr_raw, self.csr, self.node_conv, knn)
+            self.csr_raw, self.csr, self.node_conv, self.node_pos, knn)
         rows1 = np.empty(knn * N, np.int32)
         for k in range(knn):
             rows1[k::knn] = np.arange(N)
@@ -402,7 +402,7 @@ class MeshCompressor:
 
 
 @njit
-def calculate_nodal_knn(csr, node_conv, knn):
+def calculate_nodal_knn(csr, node_conv, node_pos, knn):
     N = len(node_conv)
     G_li = [(0, 0)] * 0
     indptr, face_data = csr
@@ -412,9 +412,8 @@ def calculate_nodal_knn(csr, node_conv, knn):
         for v in V:
             G_li.append((v, p))
     G_ve = np.array(G_li)
-    G_ev = G_ve[:, ::-1].copy()
+    G_ev = G_ve[:, ::-1]
     G_ve = G_ve[np.argsort(G_ve[:, 0])]
-    G_ev = G_ev[np.argsort(G_ev[:, 0])]
     indptr_ve = np.zeros(N + 1, np.int32)
     indptr_ev = np.zeros(P + 1, np.int32)
     for i in range(len(G_ve)):
@@ -435,33 +434,47 @@ def calculate_nodal_knn(csr, node_conv, knn):
             qr += 1
     while ql < qr:
         v, frm = que[ql]
+        a = ql * 10 // len(que)
         ql += 1
+        b = ql * 10 // len(que)
+        if a < b:
+            print(ql, "/", len(que))
         for i in range(indptr_ve[v], indptr_ve[v + 1]):
+            assert G_ve[i, 0] == v
             e = G_ve[i, 1]
             for j in range(indptr_ev[e], indptr_ev[e + 1]):
+                assert G_ev[j, 0] == e
                 to = G_ev[j, 1]
-                success = False
+                if np.any(nbd[to] == frm):
+                    continue
                 for k in range(knn):
                     if nbd[to, k] == -1:
                         nbd[to, k] = frm
+                        que[qr, 0] = to
+                        que[qr, 1] = frm
+                        qr += 1
                         break
-                    if nbd[to, k] == frm:
-                        break
-                if not success:
-                    continue
-                que[qr] = (to, frm)
-                qr += 1
     for v in range(N):
         for k in range(knn):
             if nbd[v][k] == -1:
                 continue
             nbd[v][k] = node_conv[nbd[v][k]]
+    W = np.where(node_conv != -1)[0]
+    V = np.where(nbd[:, 0] == -1)
+    for i in range(len(V)):
+        v = V[i]
+        min_dist = np.inf
+        for w in W:
+            d = ((node_pos[v] - node_pos[w]) ** 2).sum()
+            if min_dist > d:
+                min_dist = d
+                nbd[v][0] = node_conv[w]
     return nbd
 
 
 @njit
-def calculate_elemental_knn(csr_raw, csr_after, node_conv, knn):
-    nbd = calculate_nodal_knn(csr_raw, node_conv, knn)
+def calculate_elemental_knn(csr_raw, csr_after, node_conv, node_pos, knn):
+    nbd = calculate_nodal_knn(csr_raw, node_conv, node_pos, knn)
 
     def calc_from_raw():
         indptr, face_data = csr_after
@@ -920,7 +933,7 @@ def remove_edges(face_data_csr, node_pos, elem_conv, THRESH=0.99):
         a = i * 10 // len(E)
         b = (i + 1) * 10 // len(E)
         if a < b:
-            print(i, "/", len(E))
+            print(i + 1, "/", len(E))
         L = np.searchsorted(edge_data[:, 0], e)
         R = np.searchsorted(edge_data[:, 0], e + 1)
         if np.min(edge_data[L:R, 2]) == 0:
@@ -1088,6 +1101,7 @@ def check_polyhedron(poly):
         e_rev = b << 32 | a
         i = np.searchsorted(edges, e_rev)
         if i == len(edges) or edges[i] != e_rev:
+            print("ng")
             return False
     return True
 
@@ -1149,6 +1163,7 @@ def remove_vertices_2(face_data_csr, node_pos, elem_conv):
                 poly[0] -= 1
         poly = poly[rest]
         ok = check_polyhedron(poly)
+        assert ok
         if ok:
             polyhedrons[p] = poly
             continue
@@ -1156,7 +1171,7 @@ def remove_vertices_2(face_data_csr, node_pos, elem_conv):
         a = 10 * p // P
         b = 10 * (p + 1) // P
         if a < b:
-            print(p, "/", P)
+            print(p + 1, "/", P)
         poly = polyhedrons[p]
         assert check_polyhedron(poly)
         cand = [0] * 0
@@ -1405,25 +1420,26 @@ def merge_polyhedrons(face_data_csr, IDS, elem_conv, nxt_idx):
 
 
 @njit
-def merge_elements(face_data_csr, node_pos, elem_conv, K):
-    indptr, dat = face_data_csr
-    elem_conv[:] = -1
+def calc_centers(face_data_csr, node_pos):
+    indptr, faces = face_data_csr
+    n = len(indptr) - 1
+    centers = np.empty((n, 3), np.float64)
+    for p in range(n):
+        P = faces[indptr[p]:indptr[p + 1]]
+        V = collect_vertex(P)
+        cnt = len(V)
+        x, y, z = 0, 0, 0
+        for v in V:
+            x += node_pos[v, 0]
+            y += node_pos[v, 1]
+            z += node_pos[v, 2]
+        centers[p] = (x / cnt, y / cnt, z / cnt)
+    return centers
 
-    def calc_centers(face_data_csr, node_pos):
-        indptr, faces = face_data_csr
-        n = len(indptr) - 1
-        centers = np.empty((n, 3), np.float64)
-        for p in range(n):
-            P = faces[indptr[p]:indptr[p + 1]]
-            V = collect_vertex(P)
-            cnt = len(V)
-            x, y, z = 0, 0, 0
-            for v in V:
-                x += node_pos[v, 0]
-                y += node_pos[v, 1]
-                z += node_pos[v, 2]
-            centers[p] = (x / cnt, y / cnt, z / cnt)
-        return centers
+
+@njit
+def merge_elements(face_data_csr, node_pos, elem_conv, K):
+    elem_conv[:] = -1
     centers = calc_centers(face_data_csr, node_pos)
     n = len(centers)
     stack = [np.arange(n)]
