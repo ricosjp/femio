@@ -735,6 +735,20 @@ class FEMData(
             nodes=self.nodes, elements=elements, nodal_data=self.nodal_data,
             elemental_data={})
 
+    @staticmethod
+    @njit
+    def convert_polyhedron(now_ids, new_ids, poly):
+        m = poly[0]
+        L = 1
+        for _ in range(m):
+            k = poly[L]
+            L += 1
+            R = L + k
+            poly[L:R] = now_ids[poly[L:R]]
+            poly[L:R] = np.searchsorted(new_ids, poly[L:R])
+            L = R
+        return list(poly)
+
     def cut_with_element_ids(self, element_ids):
         node_ids = np.unique(np.concatenate([
             np.concatenate(e.data) for e
@@ -756,17 +770,9 @@ class FEMData(
             n = len(dat)
             newdat = np.empty(n, object)
             for i in range(n):
-                poly = dat[i].copy()
-                m = poly[0]
-                L = 1
-                for _ in range(m):
-                    k = poly[L]
-                    L += 1
-                    R = L + k
-                    poly[L:R] = self.nodes.ids[poly[L:R]]
-                    poly[L:R] = np.searchsorted(node_ids, poly[L:R])
-                    L = R
-                newdat[i] = list(poly)
+                poly = np.array(dat[i])
+                newdat[i] = self.convert_polyhedron(
+                    self.nodes.ids, node_ids, poly)
             elemental_data['face']['polyhedron'].data = newdat
         cut_fem_data = FEMData(
             nodes=nodes,
@@ -1123,19 +1129,19 @@ class FEMData(
             if tp == 'tet':
                 for i in indices:
                     face_dat[i] = self.tet_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'hex':
                 for i in indices:
                     face_dat[i] = self.hex_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'prism':
                 for i in indices:
                     face_dat[i] = self.prism_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'pyr':
                 for i in indices:
                     face_dat[i] = self.pyr_to_polyhedron(
-                        elements[i], node_ids, argsort)
+                        elements[i].astype(np.int32), node_ids, argsort)
             elif tp == 'polyhedron':
                 pass
             else:
@@ -1163,9 +1169,15 @@ class FEMData(
                 FEMAttribute('face', ids=self.elements.ids, data=face_dat)
             }
         )
-        elemental_data = FEMAttributes({'face': face}, is_elemental=True)
         fem_data = FEMData(
             nodes=nodes, elements=elements,
-            nodal_data=self.nodal_data, elemental_data=elemental_data
+            nodal_data=self.nodal_data, elemental_data=self.elemental_data
         )
+        fem_data.elemental_data.update({'face': face})
         return fem_data
+
+    def face_data_csr(self):
+        face_data_list = self.elemental_data['face']['polyhedron'].data
+        indptr = [len(row) for row in face_data_list]
+        indptr = np.append(0, np.cumsum(indptr))
+        return (indptr, np.concatenate(face_data_list))
