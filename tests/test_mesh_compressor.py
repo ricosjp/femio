@@ -1,8 +1,7 @@
-import sys
 import unittest
 import numpy as np
-import pathlib
-from femio.mesh_compressor import *
+import femio
+from femio.mesh_compressor import MeshCompressor, calc_centers, merge_elements
 
 
 class TestCase(unittest.TestCase):
