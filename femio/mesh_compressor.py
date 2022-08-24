@@ -101,7 +101,8 @@ class MeshCompressor:
             data=node_pos)
         element_data = np.empty(P, object)
         for p in range(P):
-            element_data[p] = collect_vertex(faces[indptr[p]:indptr[p + 1]])
+            element_data[p] = collect_vertex(
+                faces[indptr[p]:indptr[p + 1]]) + 1
         polyhedron = femio.FEMAttribute(
             'polyhedron',
             ids=np.arange(len(element_data)) + 1,

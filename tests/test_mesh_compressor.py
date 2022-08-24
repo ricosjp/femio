@@ -18,7 +18,6 @@ class TestCase(unittest.TestCase):
             [0.24, 0.2, 0.48]
         ])
         actual = calc_centers(csr, node_pos)
-        print(actual)
         np.testing.assert_array_equal(desired, actual)
 
     def test_merge_elements(self):
@@ -55,7 +54,10 @@ class TestCase(unittest.TestCase):
             fem_data_1.nodes.data)
         for P, Q in zip(new_fem_data.elements.data,
                         fem_data_1.elements.data):
-            np.testing.assert_array_equal(P, Q - 1)
+            np.testing.assert_array_equal(P, Q)
+        for P, Q in zip(new_fem_data.elemental_data['face'].data,
+                        fem_data_1.elemental_data['face'].data):
+            np.testing.assert_array_equal(P, Q)
 
     def test_merge_vertices(self):
         fem_data = femio.read_files(
@@ -70,7 +72,10 @@ class TestCase(unittest.TestCase):
             fem_data_1.nodes.data)
         for P, Q in zip(new_fem_data.elements.data,
                         fem_data_1.elements.data):
-            np.testing.assert_array_equal(P, Q - 1)
+            np.testing.assert_array_equal(P, Q)
+        for P, Q in zip(new_fem_data.elemental_data['face'].data,
+                        fem_data_1.elemental_data['face'].data):
+            np.testing.assert_array_equal(P, Q)
 
     def test_run_without_err(self):
         import itertools
