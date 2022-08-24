@@ -87,4 +87,9 @@ class TestCase(unittest.TestCase):
 
         for e, c, d in itertools.product(es, cs, ds):
             compressor = MeshCompressor(fem_data=fem_data)
-            compressor.compress(elem_num=e, cos_thresh=c, dist_thresh=d)
+            ok = compressor.compress(elem_num=e, cos_thresh=c, dist_thresh=d)
+            if not ok:
+                continue
+            compressed_data = compressor.calculate_compressed_fem_data()
+            compressed_data.calculate_incidence_matrix()
+            compressed_data.calculate_adjacency_matrix()

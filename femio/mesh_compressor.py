@@ -79,8 +79,9 @@ class MeshCompressor:
         self.node_pos = recalc_node_pos(self.node_pos_raw, self.node_conv)
         if len(self.node_pos) == 0:
             print("compressed to 0 elements. try another parameter")
-            return
+            return False
         self.calculate_compressed_fem_data()
+        return True
 
     @lru_cache
     def calculate_compressed_fem_data(self):
