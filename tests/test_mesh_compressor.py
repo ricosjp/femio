@@ -18,7 +18,6 @@ class TestCase(unittest.TestCase):
             [0.24, 0.2, 0.48]
         ])
         actual = calc_centers(csr, node_pos)
-        print(actual)
         np.testing.assert_array_equal(desired, actual)
 
     def test_merge_elements(self):
@@ -55,7 +54,10 @@ class TestCase(unittest.TestCase):
             fem_data_1.nodes.data)
         for P, Q in zip(new_fem_data.elements.data,
                         fem_data_1.elements.data):
-            np.testing.assert_array_equal(P, Q - 1)
+            np.testing.assert_array_equal(P, Q)
+        for P, Q in zip(new_fem_data.elemental_data['face'].data,
+                        fem_data_1.elemental_data['face'].data):
+            np.testing.assert_array_equal(P, Q)
 
     def test_merge_vertices(self):
         fem_data = femio.read_files(
@@ -70,7 +72,13 @@ class TestCase(unittest.TestCase):
             fem_data_1.nodes.data)
         for P, Q in zip(new_fem_data.elements.data,
                         fem_data_1.elements.data):
-            np.testing.assert_array_equal(P, Q - 1)
+            np.testing.assert_array_equal(P, Q)
+        for P, Q in zip(new_fem_data.elemental_data['face'].data,
+                        fem_data_1.elemental_data['face'].data):
+            np.testing.assert_array_equal(P, Q)
+        inc = new_fem_data.calculate_incidence_matrix().toarray()
+        np.testing.assert_array_equal(np.where(inc[:, 0])[0], np.array(
+            [4, 5, 7, 8, 11, 12, 17, 18, 20, 21]))
 
     def test_run_without_err(self):
         import itertools
@@ -82,4 +90,9 @@ class TestCase(unittest.TestCase):
 
         for e, c, d in itertools.product(es, cs, ds):
             compressor = MeshCompressor(fem_data=fem_data)
-            compressor.compress(elem_num=e, cos_thresh=c, dist_thresh=d)
+            ok = compressor.compress(elem_num=e, cos_thresh=c, dist_thresh=d)
+            if not ok:
+                continue
+            compressed_data = compressor.calculate_compressed_fem_data()
+            compressed_data.calculate_incidence_matrix()
+            compressed_data.calculate_adjacency_matrix()
