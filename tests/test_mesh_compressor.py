@@ -76,6 +76,9 @@ class TestCase(unittest.TestCase):
         for P, Q in zip(new_fem_data.elemental_data['face'].data,
                         fem_data_1.elemental_data['face'].data):
             np.testing.assert_array_equal(P, Q)
+        inc = new_fem_data.calculate_incidence_matrix().toarray()
+        np.testing.assert_array_equal(np.where(inc[:, 0])[0], np.array(
+            [4, 5, 7, 8, 11, 12, 17, 18, 20, 21]))
 
     def test_run_without_err(self):
         import itertools
