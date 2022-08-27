@@ -53,7 +53,7 @@ copyright = '2020, RICOS Co. Ltd.'
 author = 'RICOS Co. Ltd.'
 
 # The full version, including alpha/beta/rc tags
-release = '0.3.2'
+release = '0.3.3'
 
 
 # -- General configuration ---------------------------------------------------
