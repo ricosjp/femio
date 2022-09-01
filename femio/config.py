@@ -192,6 +192,7 @@ DICT_EXT = {
 
 DICT_VTK_ID_TO_ELEMENT_TYPE = {
     10: 'tet',
+    11: 'voxel',
     12: 'hex',
     13: 'prism',
     14: 'pyr',
