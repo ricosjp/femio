@@ -526,13 +526,13 @@ class GeometryProcessorMixin:
         return vectors
 
     def _calculate_polygon_normals(self, elements):
-        vectors = np.stack([
-            self._calculate_polygon_normal(e) for e in elements.data], axis=0)
+        vectors = functions.normalize(np.stack([
+            self._calculate_polygon_cross(e) for e in elements.data], axis=0))
         return vectors
 
-    def _calculate_polygon_normal(self, element):
+    def _calculate_polygon_cross(self, element):
         triangle_elements = self._trianglate_polygon(element)
-        return np.mean(self._calculate_tri_normals(triangle_elements), axis=0)
+        return np.mean(self._calculate_tri_crosses(triangle_elements), axis=0)
 
     def _trianglate_polygon(self, element):
         n_points = len(element)
