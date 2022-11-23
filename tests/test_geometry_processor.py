@@ -462,6 +462,21 @@ class TestGeometryProcessor(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(normals, desired_normals)
 
+    def test_calculate_elementl_normals_curved_polygon(self):
+        data_directory = pathlib.Path('tests/data/vtp/curved')
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        normals = fem_data.calculate_element_normals()
+
+        desired_normals = np.array([
+            [0., 0., 1.],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals, decimal=2)
+
+        normal_norms = np.linalg.norm(normals, axis=1)
+        desired_normal_norms = np.array([1.])
+        np.testing.assert_almost_equal(normal_norms, desired_normal_norms)
+
     def test_calculate_elemental_normals_mixed_polygon(self):
         data_directory = pathlib.Path('tests/data/vtp/closed')
         fem_data = FEMData.read_directory(
