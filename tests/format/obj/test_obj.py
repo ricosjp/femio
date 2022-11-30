@@ -43,3 +43,24 @@ class TestFEMDataObj(unittest.TestCase):
                 [1, 2, 3, 4],
                 [3, 6, 7, 4],
             ]))
+
+    def test_obj_polygon(self):
+        fem_data = FEMData.read_files(
+            'obj', 'tests/data/obj/polygon/polygon.obj')
+
+        np.testing.assert_array_equal(
+            fem_data.elements.ids, np.array([1, 2, 3]))
+
+        np.testing.assert_array_equal(
+            fem_data.elements['quad'].data,
+            np.array([
+                [6, 7, 11, 10]
+            ]))
+        np.testing.assert_array_equal(
+            fem_data.elements['polygon'].data[0],
+            [1, 2, 6, 10, 14, 13, 9, 5]
+        )
+        np.testing.assert_array_equal(
+            fem_data.elements['polygon'].data[1],
+            [3, 4, 8, 12, 16, 15, 11, 7]
+        )

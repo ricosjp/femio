@@ -1,4 +1,3 @@
-
 import pandas as pd
 
 
@@ -21,7 +20,7 @@ class OBJWriter():
             # Node
             n_node = len(self.fem_data.nodes.ids)
             f.write(pd.DataFrame(
-                index=['v']*n_node, data=self.fem_data.nodes.data
+                index=['v'] * n_node, data=self.fem_data.nodes.data
             ).to_csv(sep=' ', header=False, na_rep='NaN'))
 
             surface_indices, _ \
@@ -29,14 +28,13 @@ class OBJWriter():
             if isinstance(surface_indices, dict):
                 # Mixed elements
                 for v in surface_indices.values():
-                    n_element = len(v)
-                    f.write(pd.DataFrame(
-                        index=['f']*n_element, data=v+1
-                    ).to_csv(sep=' ', header=False, na_rep='NaN'))
+                    row_strings = [
+                        "f " + " ".join(str(x + 1) for x in row)
+                        for row in v.tolist()]
+                    f.write("\n".join(row_strings) + "\n")
             else:
-                n_element = len(surface_indices)
-                f.write(pd.DataFrame(
-                    index=['f']*n_element, data=surface_indices+1
-                ).to_csv(sep=' ', header=False, na_rep='NaN'))
-
+                row_strings = [
+                    "f " + " ".join(str(x + 1) for x in row)
+                    for row in surface_indices.tolist()]
+                f.write("\n".join(row_strings) + "\n")
         return file_name

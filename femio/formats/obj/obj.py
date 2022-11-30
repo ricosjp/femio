@@ -58,12 +58,20 @@ class ObjData(FEMData):
             for s in str_element_data], dtype=object)
         element_ids = np.arange(len(element_data), dtype=int) + 1
         lengths = np.array([len(e) for e in element_data])
-        unique_lengths = np.unique(lengths)
 
-        elements = {
-            self.DICT_LENGTH2TYPE[length]:
-            self.extract_elements(element_ids, element_data, lengths, length)
-            for length in unique_lengths}
+        keys = list(self.DICT_LENGTH2TYPE.keys())
+        is_polygon = ~np.isin(lengths, keys)
+
+        elements = {}
+        for length in keys:
+            if np.all(lengths != length):
+                continue
+            elements[self.DICT_LENGTH2TYPE[length]] = self.extract_elements(
+                element_ids, element_data, lengths, length)
+        if np.any(is_polygon):
+            elements['polygon'] = FEMAttribute(
+                'polygon', element_ids[is_polygon], element_data[is_polygon]
+            )
         return FEMElementalAttribute('ELEMENT', elements)
 
     def extract_elements(self, element_ids, element_data, lengths, length):
