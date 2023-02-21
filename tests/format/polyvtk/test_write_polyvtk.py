@@ -202,3 +202,21 @@ class TestWriteVTK(unittest.TestCase):
         np.testing.assert_almost_equal(ae[0], np.sort(de[0]))
         np.testing.assert_almost_equal(ae[1], de[2])
         np.testing.assert_almost_equal(ae[2], de[1])
+
+    def test_read_stl_write_vtu(self):
+        file_name = pathlib.Path('tests/data/stl/binary/out.stl')
+        write_file_name = pathlib.Path(
+            'tests/data/vtu/write_stl/mesh.vtu')
+        if write_file_name.exists():
+            shutil.rmtree(write_file_name.parent)
+        fem_data = FEMData.read_files('stl', file_name)
+        fem_data.write('vtu', write_file_name)
+
+    def test_read_obj_write_vtu(self):
+        file_name = pathlib.Path('tests/data/obj/mixture_graph/mesh.obj')
+        write_file_name = pathlib.Path(
+            'tests/data/vtu/write_obj/mesh.vtu')
+        if write_file_name.exists():
+            shutil.rmtree(write_file_name.parent)
+        fem_data = FEMData.read_files('obj', file_name)
+        fem_data.write('vtu', write_file_name)
