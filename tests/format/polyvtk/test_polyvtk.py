@@ -240,19 +240,19 @@ class TestPolyVTK(unittest.TestCase):
                 vtk_fem_data.elements.data):
             np.testing.assert_almost_equal(ae, np.array(de))
 
-        volumes = fem_data.calculate_element_volumes(linear=True)
+        volumes = fem_data.calculate_element_volumes(mode="linear")
         # fem_data.write('polyvtk', 'tmp.vtu', overwrite=True)
-        vtk_fem_data.calculate_element_volumes(linear=True)
+        vtk_fem_data.calculate_element_volumes(mode="linear")
         # vtk_fem_data.write('vtk', 'tmp.vtk', overwrite=True)
         np.testing.assert_almost_equal(
             volumes[[3, 1, 2, 0]],
-            vtk_fem_data.calculate_element_volumes(linear=True))
+            vtk_fem_data.calculate_element_volumes(mode="linear"))
 
     def test_read_vtk_voxel(self):
         file_name = pathlib.Path('tests/data/vtu/voxel/mesh.vtu')
         fem_data = FEMData.read_files('polyvtk', [file_name])
 
-        volumes = fem_data.calculate_element_volumes(linear=True)
+        volumes = fem_data.calculate_element_volumes(mode="linear")
         np.testing.assert_almost_equal(volumes, .5)
         write_file_name = 'tests/data/vtu/write_voxel/mesh.vtu'
         fem_data.write(

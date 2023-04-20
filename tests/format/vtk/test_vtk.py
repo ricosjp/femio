@@ -219,10 +219,10 @@ class TestVTK(unittest.TestCase):
                 np.ones((2, 1)) * .3 * .3 * .1,
                 np.array([[.1 * .1 * .1]]),
                 np.ones((2, 1)) * .3 * .3 * .1,
-                np.ones((2, 1)) * .1 / 6 * (.4 * .3 * 2 + (.3**2 + .4**2)*2),
+                np.ones((2, 1)) * .1 / 6 * (.4 * .3 * 2 + (.3**2 + .4**2) * 2),
                 np.array([[.1 * .1 * .1]]),
-                np.ones((2, 1)) * .1 / 6 * (.4 * .3 * 2 + (.3**2 + .4**2)*2),
-                np.ones((4, 1)) * (.3*.3 + .02) * .1,
+                np.ones((2, 1)) * .1 / 6 * (.4 * .3 * 2 + (.3**2 + .4**2) * 2),
+                np.ones((4, 1)) * (.3 * .3 + .02) * .1,
                 np.ones((4, 1)) * ((.3 + .4) * .3 * .1 / 2 + .02 * .1)
             ]))
 
@@ -230,7 +230,7 @@ class TestVTK(unittest.TestCase):
         file_name = Path('tests/data/vtu/pyramid/pyramid.vtu')
         fem_data = FEMData.read_files('vtk', [file_name])
 
-        volumes = fem_data.calculate_element_volumes(linear=True)
+        volumes = fem_data.calculate_element_volumes(mode="linear")
         desired_volumes = np.array([
             1. / 2 - 1. / 3, 1. / 3, 1. / 3, 1.])[:, None]
         np.testing.assert_almost_equal(volumes, desired_volumes)
@@ -254,7 +254,7 @@ class TestVTK(unittest.TestCase):
         file_name = Path('tests/data/vtu/wedge/mesh.vtu')
         fem_data = FEMData.read_files('vtk', [file_name])
 
-        volumes = fem_data.calculate_element_volumes(linear=True)
+        volumes = fem_data.calculate_element_volumes(mode="linear")
         desired_volumes = np.array([
             1. / 2 * 1. / 3, 1. / 2 * 1. / 3, 1. / 2, 1. / 2])[:, None]
         np.testing.assert_almost_equal(volumes, desired_volumes)
