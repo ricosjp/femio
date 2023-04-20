@@ -379,7 +379,8 @@ class GeometryProcessorMixin:
                 surface_normals, mode=mode), keep_zeros=True)
         nodal_normals = FEMAttribute(
             'normal', self.nodes.ids, np.zeros((len(self.nodes.ids), 3)))
-        nodal_normals.loc[surface_fem_data.nodes.ids].data = surface_nodal_normals
+        nodal_normals.loc[surface_fem_data.nodes.ids].data = \
+            surface_nodal_normals
         self.nodal_data.update({'normal': nodal_normals})
         return nodal_normals.data
 
