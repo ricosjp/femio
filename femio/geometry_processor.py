@@ -11,7 +11,7 @@ from . import functions
 class GeometryProcessorMixin:
 
     def calculate_element_areas(
-            self, *, linear=False, raise_negative_area=False,
+            self, *, mode="centroid", raise_negative_area=False,
             return_abs_area=True, elements=None, element_type=None,
             update=True):
         """Calculate areas of each element assuming that the geometry of
@@ -21,10 +21,13 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
-        linear: bool, optional [False]
-            If False, areas are calculated by gaussian integral.
-            If True, areas are calculated under the assumption that
+        mode: str, optional ["centroid"]
+            If "gaussian", areas are calculated by gaussian integral.
+            If "linear", areas are calculated under the assumption that
             all elements is linear, and it runs a bit faster.
+            If "centroid", areas are calculated by decomposing it into
+            triangles at centroid. Therefore, the result doesn't depend on
+            the node labels.
         raise_negative_area: bool, optional [False]
             If True, raise ValueError when negative area exists.
         return_abs_area: bool, optional [True]
@@ -54,12 +57,20 @@ class GeometryProcessorMixin:
         if element_type in ['tri']:
             areas = self._calculate_element_areas_tri(elements)
         elif element_type in ['quad']:
-            if linear:
+            if mode == "linear":
                 areas = self._calculate_element_areas_quad(elements)
-            else:
+            elif mode == "gaussian":
                 areas = self._calculate_element_areas_quad_gaussian(elements)
+            elif mode == "centroid":
+                areas = self._calculate_element_areas_quad_centroid(elements)
+            else:
+                raise ValueError("Unknown mode")
         elif element_type in ['polygon']:
-            areas = self._calculate_element_areas_polygon(elements)
+            if mode == "centroid":
+                areas = self._calculate_element_areas_polygon(elements)
+            else:
+                areas = self._calculate_element_areas_polygon_centroid(
+                    elements)
         elif element_type in ['mix']:
             areas = np.zeros((len(self.elements), 1))
             for k, e in self.elements.items():
@@ -134,6 +145,20 @@ class GeometryProcessorMixin:
         res /= 16
         return res.reshape(-1, 1)
 
+    def _calculate_element_areas_quad_centroid(self, elements):
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p = (p0 + p1 + p2 + p3) / 4
+        v0, v1, v2, v3 = p0 - p, p1 - p, p2 - p, p3 - p
+        cross_0 = np.cross(v0, v1)
+        cross_1 = np.cross(v1, v2)
+        cross_2 = np.cross(v2, v3)
+        cross_3 = np.cross(v3, v0)
+        normals = sum([cross_0, cross_1, cross_2, cross_3])
+        return np.linalg.norm(normals, axis=1, keepdims=True) * 0.5
+
     def _calculate_element_areas_polygon(self, elements):
         areas = np.stack([
             self._calculate_element_area_polygon(e)
@@ -144,6 +169,24 @@ class GeometryProcessorMixin:
         triangle_elements = self._trianglate_polygon(element)
         return np.linalg.norm(np.sum(
             self._calculate_tri_crosses(triangle_elements), axis=0)) * .5
+
+    def _calculate_element_areas_polygon_centroid(self, elements):
+        areas = np.stack([
+            self._calculate_element_area_polygon_centroid(e)
+            for e in elements.data], axis=0)[..., None]
+        return areas
+
+    def _calculate_element_area_polygon_centroid(self, element):
+        points = self.collect_node_positions_by_ids(element)
+        n = len(points)
+        p = points.mean(axis=0)
+        n = len(points)
+        normal = np.zeros(3, np.float32)
+        for i in range(n):
+            v1 = points[i - 1] - p
+            v2 = points[i] - p
+            normal += np.cross(v1, v2)
+        return np.linalg.norm(normal) * 0.5
 
     def _calculate_element_volumes_hex_gaussian(self, elements):
         element_data = elements.data
@@ -208,7 +251,7 @@ class GeometryProcessorMixin:
             res -= J00 * J21 * J12 + J10 * J01 * J22 + J20 * J11 * J02
         return res.reshape(-1, 1) / 512
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_edge_lengths(self):
         """Calculate edge lengths of each element.
         Calculated lengths are returned and also stored in
@@ -241,7 +284,7 @@ class GeometryProcessorMixin:
 
         return edge_lengths
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_angles(self):
         """Calculate angles of each element.
         Calculated angles are returned and also stored in
@@ -276,7 +319,7 @@ class GeometryProcessorMixin:
 
         return angles
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_jacobians(self):
         """Calculate jacobians of each element.
         Calculated jacobians are returned and also stored in
@@ -315,7 +358,7 @@ class GeometryProcessorMixin:
         cross = np.cross(vector1, vector2)
         return np.linalg.norm(cross, axis=1)
 
-    @functools.lru_cache(maxsize=2)
+    @ functools.lru_cache(maxsize=2)
     def calculate_surface_normals(self, mode='mean'):
         """Calculate nodal normal vectors of the surface of a solid mesh.
         If an node is not on the surface, the vector will be zero.
@@ -336,8 +379,7 @@ class GeometryProcessorMixin:
                 surface_normals, mode=mode), keep_zeros=True)
         nodal_normals = FEMAttribute(
             'normal', self.nodes.ids, np.zeros((len(self.nodes.ids), 3)))
-        nodal_normals.loc[surface_fem_data.nodes.ids].data\
-            = surface_nodal_normals
+        nodal_normals.loc[surface_fem_data.nodes.ids].data = surface_nodal_normals
         self.nodal_data.update({'normal': nodal_normals})
         return nodal_normals.data
 
@@ -392,7 +434,7 @@ class GeometryProcessorMixin:
             signed_incidence_data, (coo.row, coo.col)))
         return facet_data, signed_incidence, facet_normals
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_all_element_normals(self, facet_data=None):
         """Calculate normal vectors of each elements. If the elements are
         solid, then multiple normal vectors per solid will be generated.
@@ -418,14 +460,19 @@ class GeometryProcessorMixin:
         return np.reshape(
             normals, (len(self.elements), n_facet_per_element, 3))
 
-    @functools.lru_cache(maxsize=1)
+    @ functools.lru_cache(maxsize=1)
     def calculate_element_normals(
-            self, elements=None, element_type=None, update=True):
+            self, mode="centroid", elements=None, element_type=None,
+            update=True):
         """Calculate normal vectors of each shell elements. Please note that
         the calculated normal may not be aligned with neighbor elements. To
         make vector field smooth, use femio.extract_direction_feature() method.
 
         Args:
+        mode: str, optional ["centroid"]
+            If "centroid", normal vectors are calculated by decomposing
+            it into triangles at centroid. Therefore, the result doesn't
+            depend on the node labels.
         Returns:
             normals: numpy.ndarray
                 (n_element, 3)-shaped array.
@@ -434,13 +481,18 @@ class GeometryProcessorMixin:
             elements = self.elements
         if element_type is None:
             element_type = self.elements.element_type
-
         if element_type in ['tri']:
             normals = self._calculate_tri_normals(elements)
         elif element_type in ['quad']:
-            normals = self._calculate_quad_normals(elements)
+            if mode == "centroid":
+                normals = self._calculate_quad_normals_centroid(elements)
+            else:
+                normals = self._calculate_quad_normals(elements)
         elif element_type in ['polygon']:
-            normals = self._calculate_polygon_normals(elements)
+            if mode == "centroid":
+                normals = self._calculate_polygon_normals_centroid(elements)
+            else:
+                normals = self._calculate_polygon_normals(elements)
         elif element_type in ['mix']:
             normals = np.zeros((len(self.elements), 3))
             for k, e in self.elements.items():
@@ -525,14 +577,46 @@ class GeometryProcessorMixin:
         vectors = functions.normalize(vectors)
         return vectors
 
+    def _calculate_quad_normals_centroid(self, elements):
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p = (p0 + p1 + p2 + p3) / 4
+        v0, v1, v2, v3 = p0 - p, p1 - p, p2 - p, p3 - p
+        cross_0 = np.cross(v0, v1)
+        cross_1 = np.cross(v1, v2)
+        cross_2 = np.cross(v2, v3)
+        cross_3 = np.cross(v3, v0)
+        normals = sum([cross_0, cross_1, cross_2, cross_3])
+        return functions.normalize(normals)
+
     def _calculate_polygon_normals(self, elements):
         vectors = functions.normalize(np.stack([
             self._calculate_polygon_cross(e) for e in elements.data], axis=0))
         return vectors
 
+    def _calculate_polygon_normals_centroid(self, elements):
+        vectors = functions.normalize(np.stack([
+            self._calculate_polygon_cross_centroid(e) for e in elements.data],
+            axis=0))
+        return vectors
+
     def _calculate_polygon_cross(self, element):
         triangle_elements = self._trianglate_polygon(element)
         return np.mean(self._calculate_tri_crosses(triangle_elements), axis=0)
+
+    def _calculate_polygon_cross_centroid(self, element):
+        points = self.collect_node_positions_by_ids(element)
+        n = len(points)
+        p = points.mean(axis=0)
+        n = len(points)
+        normal = np.zeros(3, np.float32)
+        for i in range(n):
+            v1 = points[i - 1] - p
+            v2 = points[i] - p
+            normal += np.cross(v1, v2)
+        return normal
 
     def _trianglate_polygon(self, element):
         n_points = len(element)
@@ -617,7 +701,7 @@ class GeometryProcessorMixin:
         return metric
 
     def calculate_element_volumes(
-            self, *, linear=False, raise_negative_volume=True,
+            self, *, mode="centroid", raise_negative_volume=True,
             return_abs_volume=False, elements=None, element_type=None,
             faces=None, update=True):
         """Calculate volume of each element assuming that the geometry of
@@ -627,10 +711,13 @@ class GeometryProcessorMixin:
 
         Parameters
         ----------
-        linear: bool, optional [False]
-            If False, areas are calculated by gaussian integral.
-            If True, areas are calculated under the assumption that
-            all elements is linear, and it runs a bit faster.
+        mode: str, optional ["centroid"]
+            If "gaussian", volumes are calculated by gaussian integral.
+            If "linear", volumes are calculated under the assumption that
+            all elements are linear, and it runs a bit faster.
+            If "centroid", volumes are calculated by decomposing their surfaces
+            into triangles at centroid. Therefore, the result doesn't depend on
+            the node labels.
         raise_negative_volume: bool, optional [True]
             If True, raise ValueError when negative volume exists.
         return_abs_volume: bool, optional [False]
@@ -663,21 +750,42 @@ class GeometryProcessorMixin:
             volumes = self._calculate_element_volumes_tet_like(
                 elements)
         elif element_type in ['hex']:
-            if linear:
+            if mode == "linear":
                 volumes = self._calculate_element_volumes_hex(
                     elements)
-            else:
+            elif mode == "gaussian":
                 volumes = self._calculate_element_volumes_hex_gaussian(
                     elements)
+            elif mode == "centroid":
+                volumes = self._calculate_element_volumes_hex_centroid(
+                    elements)
+            else:
+                raise ValueError("Unknown mode")
         elif element_type in ['pyr']:
-            volumes = self._calculate_element_volumes_pyr(elements)
+            if mode == "centroid":
+                volumes = self._calculate_element_volumes_pyr_centroid(
+                    elements)
+            else:
+                volumes = self._calculate_element_volumes_pyr(elements)
         elif element_type in ['prism']:
-            volumes = self._calculate_element_volumes_prism(elements)
+            if mode == "centroid":
+                volumes = self._calculate_element_volumes_prism_centroid(
+                    elements)
+            else:
+                volumes = self._calculate_element_volumes_prism(elements)
         elif element_type in ['hexprism']:
-            volumes = self._calculate_element_volumes_hexprism(
-                elements)
+            if mode == "centroid":
+                volumes = self._calculate_element_volumes_hexprism(
+                    elements)
+            else:
+                volumes = self._calculate_element_volumes_hexprism(
+                    elements)
         elif element_type in ['polyhedron']:
-            volumes = self._calculate_element_volumes_polyhedron(faces)
+            if mode == "centroid":
+                volumes = self._calculate_element_volumes_polyhedron_centroid(
+                    faces)
+            else:
+                volumes = self._calculate_element_volumes_polyhedron(faces)
         elif element_type == 'mix':
             volumes = np.zeros((len(self.elements), 1))
             for k, e in self.elements.items():
@@ -686,7 +794,7 @@ class GeometryProcessorMixin:
                 else:
                     faces = None
                 partial_volumes = self.calculate_element_volumes(
-                    elements=e, element_type=k, update=False, linear=linear,
+                    elements=e, element_type=k, update=False, mode=mode,
                     raise_negative_volume=raise_negative_volume,
                     return_abs_volume=return_abs_volume,
                     faces=faces
@@ -764,6 +872,35 @@ class GeometryProcessorMixin:
             + np.linalg.det(np.stack([p1 - p5, p4 - p5, p6 - p5], axis=1))
         )[:, None]
 
+    def _calculate_volumes_quad_centroid(self, p0, p1, p2, p3):
+        n = len(p0)
+        p = (p0 + p1 + p2 + p3) / 4
+        res = np.zeros(n, np.float32)
+        res += np.linalg.det(np.stack([p, p0, p1], axis=1))
+        res += np.linalg.det(np.stack([p, p1, p2], axis=1))
+        res += np.linalg.det(np.stack([p, p2, p3], axis=1))
+        res += np.linalg.det(np.stack([p, p3, p0], axis=1))
+        return res
+
+    def _calculate_element_volumes_hex_centroid(self, elements):
+        n = len(elements.data)
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
+        p6 = self.collect_node_positions_by_ids(elements.data[:, 6])
+        p7 = self.collect_node_positions_by_ids(elements.data[:, 7])
+        res = np.zeros(n, np.float32)
+        res += self._calculate_volumes_quad_centroid(p3, p2, p1, p0)
+        res += self._calculate_volumes_quad_centroid(p5, p4, p0, p1)
+        res += self._calculate_volumes_quad_centroid(p6, p7, p4, p5)
+        res += self._calculate_volumes_quad_centroid(p2, p3, p7, p6)
+        res += self._calculate_volumes_quad_centroid(p5, p1, p2, p6)
+        res += self._calculate_volumes_quad_centroid(p4, p7, p3, p0)
+        return (res / 6).reshape(n, 1)
+
     def _calculate_element_volumes_pyr(self, elements):
         p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
         p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
@@ -773,6 +910,21 @@ class GeometryProcessorMixin:
         return self._calculate_element_volumes_tet_like_core(
             p0, p1, p2, p4) + self._calculate_element_volumes_tet_like_core(
                 p0, p2, p3, p4)
+
+    def _calculate_element_volumes_pyr_centroid(self, elements):
+        n = len(elements.data)
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        vol = np.zeros(n, np.float32)
+        vol += np.linalg.det(np.stack([p0, p1, p4], axis=1))
+        vol += np.linalg.det(np.stack([p1, p2, p4], axis=1))
+        vol += np.linalg.det(np.stack([p2, p3, p4], axis=1))
+        vol += np.linalg.det(np.stack([p3, p0, p4], axis=1))
+        vol += self._calculate_volumes_quad_centroid(p1, p0, p3, p2)
+        return (vol / 6).reshape(n, -1)
 
     def _calculate_element_volumes_prism(self, elements):
         p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
@@ -787,6 +939,22 @@ class GeometryProcessorMixin:
                 p1, p3, p2, p4) \
             + self._calculate_element_volumes_tet_like_core(
                 p2, p4, p3, p5)
+
+    def _calculate_element_volumes_prism_centroid(self, elements):
+        n = len(elements.data)
+        p0 = self.collect_node_positions_by_ids(elements.data[:, 0])
+        p1 = self.collect_node_positions_by_ids(elements.data[:, 1])
+        p2 = self.collect_node_positions_by_ids(elements.data[:, 2])
+        p3 = self.collect_node_positions_by_ids(elements.data[:, 3])
+        p4 = self.collect_node_positions_by_ids(elements.data[:, 4])
+        p5 = self.collect_node_positions_by_ids(elements.data[:, 5])
+        vol = np.zeros(n, np.float32)
+        vol += np.linalg.det(np.stack([p0, p1, p2], axis=1))
+        vol += np.linalg.det(np.stack([p5, p4, p3], axis=1))
+        vol += self._calculate_volumes_quad_centroid(p2, p5, p3, p0)
+        vol += self._calculate_volumes_quad_centroid(p1, p4, p5, p2)
+        vol += self._calculate_volumes_quad_centroid(p0, p3, p4, p1)
+        return (vol / 6).reshape(n, -1)
 
     def _calculate_element_volumes_hexprism(self, elements):
         """Calculate volume of each hexprism elements.
@@ -857,6 +1025,40 @@ class GeometryProcessorMixin:
         face_csr = (indptr, np.concatenate(faces))
         nodes = self.nodes.data
         volumes = self._calculate_element_volumes_polyhedron_core(
+            face_csr, nodes)
+        return volumes.reshape((-1, 1))
+
+    @staticmethod
+    @njit
+    def _calculate_element_volumes_polyhedron_centroid_core(face_csr, nodes):
+        indptr, dat = face_csr
+        P = len(indptr) - 1
+        volumes = np.empty(P)
+        for p in range(P):
+            poly = dat[indptr[p]:indptr[p + 1]]
+            n = poly[0]
+            L = 1
+            volume = 0.0
+            for _ in range(n):
+                k = poly[L]
+                L += 1
+                F = nodes[poly[L:L + k]]
+                L += k
+                centroid = np.zeros(3, np.float32)
+                for i in range(k):
+                    centroid += F[i]
+                centroid /= k
+                for i in range(k):
+                    volume += np.dot(np.cross(centroid, F[i - 1]), F[i])
+            volumes[p] = volume / 6
+        return volumes
+
+    def _calculate_element_volumes_polyhedron_centroid(self, faces):
+        indptr = np.append(0, np.array([len(x) for x in faces], np.int64))
+        np.cumsum(indptr, out=indptr)
+        face_csr = (indptr, np.concatenate(faces))
+        nodes = self.nodes.data
+        volumes = self._calculate_element_volumes_polyhedron_centroid_core(
             face_csr, nodes)
         return volumes.reshape((-1, 1))
 
