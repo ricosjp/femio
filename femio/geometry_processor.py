@@ -251,7 +251,7 @@ class GeometryProcessorMixin:
             res -= J00 * J21 * J12 + J10 * J01 * J22 + J20 * J11 * J02
         return res.reshape(-1, 1) / 512
 
-    @ functools.lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def calculate_edge_lengths(self):
         """Calculate edge lengths of each element.
         Calculated lengths are returned and also stored in
@@ -284,7 +284,7 @@ class GeometryProcessorMixin:
 
         return edge_lengths
 
-    @ functools.lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def calculate_angles(self):
         """Calculate angles of each element.
         Calculated angles are returned and also stored in
@@ -319,7 +319,7 @@ class GeometryProcessorMixin:
 
         return angles
 
-    @ functools.lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def calculate_jacobians(self):
         """Calculate jacobians of each element.
         Calculated jacobians are returned and also stored in
@@ -358,7 +358,7 @@ class GeometryProcessorMixin:
         cross = np.cross(vector1, vector2)
         return np.linalg.norm(cross, axis=1)
 
-    @ functools.lru_cache(maxsize=2)
+    @functools.lru_cache(maxsize=2)
     def calculate_surface_normals(self, mode='mean'):
         """Calculate nodal normal vectors of the surface of a solid mesh.
         If an node is not on the surface, the vector will be zero.
@@ -435,7 +435,7 @@ class GeometryProcessorMixin:
             signed_incidence_data, (coo.row, coo.col)))
         return facet_data, signed_incidence, facet_normals
 
-    @ functools.lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def calculate_all_element_normals(self, facet_data=None):
         """Calculate normal vectors of each elements. If the elements are
         solid, then multiple normal vectors per solid will be generated.
@@ -461,7 +461,7 @@ class GeometryProcessorMixin:
         return np.reshape(
             normals, (len(self.elements), n_facet_per_element, 3))
 
-    @ functools.lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def calculate_element_normals(
             self, mode="centroid", elements=None, element_type=None,
             update=True):
