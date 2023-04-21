@@ -27,13 +27,9 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
             save=False)
-        linear_volumes = fem_data.calculate_element_volumes(mode="linear")
-        gaussian_volumes = fem_data.calculate_element_volumes(mode="gaussian")
-        centroid_volumes = fem_data.calculate_element_volumes(mode="centroid")
+        actual_volumes = fem_data.calculate_element_volumes(linear=True)
         desired_volumes = np.ones((7, 1)) * 8.
-        np.testing.assert_almost_equal(linear_volumes, desired_volumes)
-        np.testing.assert_almost_equal(gaussian_volumes, desired_volumes)
-        np.testing.assert_almost_equal(centroid_volumes, desired_volumes)
+        np.testing.assert_almost_equal(actual_volumes, desired_volumes)
 
     def test_calculate_volume_tet_negative_raise_valueerror(self):
         fem_data = FEMData.read_directory(
@@ -61,7 +57,7 @@ class TestGeometryProcessor(unittest.TestCase):
             [3.],
             [6.],
         ])
-        fem_data.calculate_element_areas()
+        fem_data.calculate_element_areas(linear=True)
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
@@ -74,12 +70,9 @@ class TestGeometryProcessor(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        linear_areas = fem_data.calculate_element_areas(mode="linear")
-        gaussian_areas = fem_data.calculate_element_areas(mode="gaussian")
-        centroid_areas = fem_data.calculate_element_areas(mode="centroid")
-        np.testing.assert_almost_equal(linear_areas, desired_areas)
-        np.testing.assert_almost_equal(gaussian_areas, desired_areas)
-        np.testing.assert_almost_equal(centroid_areas, desired_areas)
+        fem_data.calculate_element_areas(linear=True)
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
     def test_calculate_area_quad_gaussian(self):
         data_directory = 'tests/data/obj/quad'
@@ -98,7 +91,7 @@ class TestGeometryProcessor(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        actual = fem_data.calculate_element_areas(mode="gaussian")
+        actual = fem_data.calculate_element_areas(linear=False)
         np.testing.assert_almost_equal(actual, desired_areas)
 
     def test_calculate_area_polygon(self):
@@ -111,10 +104,9 @@ class TestGeometryProcessor(unittest.TestCase):
             [1.16],
             [1.25],
         ])
-        linear_areas = fem_data.calculate_element_areas(mode="linear")
-        centroid_areas = fem_data.calculate_element_areas(mode="centroid")
-        np.testing.assert_almost_equal(linear_areas, desired_areas)
-        np.testing.assert_almost_equal(centroid_areas, desired_areas)
+        fem_data.calculate_element_areas(linear=True)
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
     def test_calculate_area_nonconvex(self):
         data_directory = 'tests/data/vtp/nonconvex'
@@ -123,10 +115,9 @@ class TestGeometryProcessor(unittest.TestCase):
         desired_areas = np.array([
             [3.],
         ])
-        linear_areas = fem_data.calculate_element_areas(mode="linear")
-        centroid_areas = fem_data.calculate_element_areas(mode="centroid")
-        np.testing.assert_almost_equal(linear_areas, desired_areas)
-        np.testing.assert_almost_equal(centroid_areas, desired_areas)
+        fem_data.calculate_element_areas(linear=True)
+        np.testing.assert_almost_equal(
+            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
     def test_calculate_volumes_hex_gaussian(self):
         fem_data = FEMData.read_directory(
@@ -142,7 +133,7 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data.translation(vx, vy, vz)
 
         desired_volumes = np.full((7, 1), 8.0)
-        actual = fem_data.calculate_element_volumes(mode="gaussian")
+        actual = fem_data.calculate_element_volumes(linear=False)
         np.testing.assert_almost_equal(actual, desired_volumes)
 
     def test_calculate_volumes_polyhedron(self):
@@ -181,7 +172,7 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data = FEMData.read_files(
             'polyvtk', 'tests/data/vtu/polyhedron/polyhedron.vtu',
         )
-        desired = np.array([[19 / 24], [3 / 2], [1 / 24]])
+        desired = np.array([[19/24], [3/2], [1/24]])
         actual = fem_data.calculate_element_volumes()
         np.testing.assert_almost_equal(actual, desired)
 
@@ -280,13 +271,10 @@ class TestGeometryProcessor(unittest.TestCase):
             [0., 0., 1.],
             [-np.sqrt(.5), -np.sqrt(.5), 0.],
         ])
-        normals = fem_data.calculate_element_normals()
-        normals_centroid = fem_data.calculate_element_normals(mode="centroid")
+        fem_data.calculate_element_normals()
         np.testing.assert_almost_equal(
-            fem_data.extract_direction_feature(normals),
-            fem_data.extract_direction_feature(desired_normals), decimal=5)
-        np.testing.assert_almost_equal(
-            fem_data.extract_direction_feature(normals_centroid),
+            fem_data.extract_direction_feature(
+                fem_data.elemental_data.get_attribute_data('normal')),
             fem_data.extract_direction_feature(desired_normals), decimal=5)
 
     def test_calculate_surface_normals(self):
@@ -452,7 +440,7 @@ class TestGeometryProcessor(unittest.TestCase):
                 [27, 29, 30, 28]]),
             'polygon': np.array([
                 np.array([1, 2, 9, 20, 19]),
-                np.array([5, 23, 24, 12, 6]),
+                np.array([5, 23, 24, 12,  6]),
                 np.array([4, 8, 14, 18, 17, 11]),
                 np.array([20, 21, 27, 28, 25, 24])], dtype=object)
         }
@@ -505,7 +493,7 @@ class TestGeometryProcessor(unittest.TestCase):
             [1., 0., -0.],
             [0.70710678, 0.70710678, -0.],
             [0.70710678, 0.70710678, -0.],
-            [-0.70710678, 0.70710678, 0.],
+            [-0.70710678, 0.70710678,  0.],
             [-1., 0., 0.],
             [0., 0., 1.],
             [0., 0., 1.],
@@ -692,14 +680,14 @@ class TestGeometryProcessor(unittest.TestCase):
             'obj', data_directory, read_npy=False, save=False)
         fem_data.nodal_data.reset()
 
-        fem_data.rotation(1, 1, 1, np.pi / 2)
-        a, b, c = 1 / 3, (1 + 3**.5) / 3, (1 - 3**.5) / 3
+        fem_data.rotation(1, 1, 1, np.pi/2)
+        a, b, c = 1/3, (1+3**.5)/3, (1-3**.5)/3
         desired = np.array([0, 0, 0, a, b, c, c, a, b, b, c, a]).reshape(4, 3)
         np.testing.assert_almost_equal(fem_data.nodes.data, desired)
 
         fem_data.translation(1, 2, 3)
-        desired = np.array([1, 2, 3, a + 1, b + 2, c + 3, c + 1, a + 2,
-                            b + 3, b + 1, c + 2, a + 3]).reshape(4, 3)
+        desired = np.array([1, 2, 3, a+1, b+2, c+3, c+1, a+2,
+                            b+3, b+1, c+2, a+3]).reshape(4, 3)
         np.testing.assert_almost_equal(fem_data.nodes.data, desired)
 
         vx, vy, vz = np.random.random(3)
@@ -712,8 +700,7 @@ class TestGeometryProcessor(unittest.TestCase):
         dist = np.empty((4, 4))
         for i in range(4):
             for j in range(4):
-                dist[i, j] = (X[i] - X[j])**2 + \
-                    (Y[i] - Y[j])**2 + (Z[i] - Z[j])**2
+                dist[i, j] = (X[i]-X[j])**2 + (Y[i]-Y[j])**2 + (Z[i]-Z[j])**2
         desired = np.array([0, 1, 1, 1, 1, 0, 2, 2, 1, 2, 0,
                             2, 1, 2, 2, 0], np.float64).reshape(4, 4)
         np.testing.assert_almost_equal(dist, desired)
@@ -725,8 +712,8 @@ class TestGeometryProcessor(unittest.TestCase):
             'values', np.array([3, 1, 4, 1, 5], np.float32))
         # 123, 124, 134, 235, 245, 345
         sq2 = 2 ** .5
-        areas = [1 / 2, 1 / 2, 1 / 2, sq2 / 2, sq2 / 2, 1 / 2]
-        vals = [8 / 3, 5 / 3, 8 / 3, 10 / 3, 7 / 3, 10 / 3]
-        desired = sum(x * y for x, y in zip(areas, vals))
+        areas = [1/2, 1/2, 1/2, sq2/2, sq2/2, 1/2]
+        vals = [8/3, 5/3, 8/3, 10/3, 7/3, 10/3]
+        desired = sum(x*y for x, y in zip(areas, vals))
         actual = fem_data.integrate_node_attribute_over_surface('values')
         np.testing.assert_almost_equal(actual, desired)
