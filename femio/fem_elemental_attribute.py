@@ -94,6 +94,7 @@ class FEMElementalAttribute(dict):
             cls._from_meshio(k, v)
             for k, v in cell_data.items()
             if k in [
+                'line', 'quad', 'triangle',
                 'tetra', 'tetra10', 'hexahedron', 'wedge',
                 'pyramid', 'hexa_prism']})
 

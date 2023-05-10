@@ -192,6 +192,8 @@ DICT_EXT = {
 
 # https://vtk.org/doc/nightly/html/vtkCellType_8h_source.html
 DICT_VTK_ID_TO_ELEMENT_TYPE = {
+    1: 'pt',
+    3: 'line',
     5: 'tri',
     9: 'quad',
     10: 'tet',
