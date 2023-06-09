@@ -210,6 +210,33 @@ class TestGeometryProcessor(unittest.TestCase):
             for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)]
         np.testing.assert_almost_equal(all_normals, desired_normals)
 
+    def test_normal_incidence_openfoam(self):
+        # fem_data = FEMData.read_files(
+        #     'vtu', ['tests/data/vtu/complex/mesh.vtu'])
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/openfoam/internal.vtu'])
+        _, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+        coo = inc_facet2cell.tocoo()
+        desired_normals = np.array([
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+            [0., 0., -1.],
+            [0., -1., 0.],
+            [-1., 0., 0.],
+            [1., 0., 0.],
+            [0., 1., 0.],
+            [0., 0., 1.],
+        ])
+        all_normals = [
+            data * normals[i_facet]
+            for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)]
+        np.testing.assert_almost_equal(all_normals, desired_normals)
+
     def test_relative_incidence_graph_tet1(self):
         fem_data = FEMData.read_files(
             'fistr', ['tests/data/fistr/graph_tet1/mesh.msh'])

@@ -402,9 +402,13 @@ class GeometryProcessorMixin:
             facet_data, minimum_n_sharing=3)
         coo = relative_incidence.tocoo()
 
-        tuple_facets = self.extract_facets(
-            remove_duplicates=False, method=np.stack)[
-                self.elements.element_type]
+        dict_facets = self.extract_facets(
+            remove_duplicates=False, method=np.stack)
+        raise ValueError(dict_facets)
+        if self.elements.element_type == 'mix':
+            raise ValueError(self.elements.keys())
+        else:
+            tuple_facets = dict_facets[self.elements.element_type]
         tuple_all_facets = tuple(f[coo.row] for f in tuple_facets)
         all_normals = self.calculate_all_element_normals()[coo.row]
         col_facet_elements = facet_data.elements.data[coo.col]

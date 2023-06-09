@@ -71,7 +71,7 @@ def align_nnz(sparses):
         return align_nnz([s.tocsr() for s in sparses])
 
 
-def remove_duplicates(connectivities, return_index=False):
+def remove_duplicates(connectivities, return_index=False, end=None):
     """Remove duplicating elements.
 
     Parameters
@@ -80,6 +80,8 @@ def remove_duplicates(connectivities, return_index=False):
         Element connectivities.
     return_index: bool, optional
         If True, return also indices of unique.
+    end: int, optional
+        If fed, use only first `end` elements to detect duplication.
 
     Returns
     -------
@@ -87,7 +89,7 @@ def remove_duplicates(connectivities, return_index=False):
         Element connectivities without duplications.
     """
     sorted_connectivities = [
-        np.sort(connectivity) for connectivity in connectivities]
+        np.sort(connectivity)[:end] for connectivity in connectivities]
     _, indices = np.unique(sorted_connectivities, axis=0, return_index=True)
     if return_index:
         return connectivities[indices], indices

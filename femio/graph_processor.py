@@ -227,7 +227,10 @@ class GraphProcessorMixin:
                 elements, element_type, method=method)
 
         if remove_duplicates:
-            facets = tuple(functions.remove_duplicates(f) for f in facets)
+            facets = tuple(
+                functions.remove_duplicates(f) for f in facets)
+            # facets = tuple(
+            #     functions.remove_duplicates(f, end=3) for f in facets)
 
         return {element_type: facets}
 
@@ -339,9 +342,16 @@ class GraphProcessorMixin:
             assert 'face' in self.elemental_data, \
                 'No face definition found for polyhedron: ' \
                 f"{self.elemental_data.keys()}"
-            face_ids = method([
+            faces = [
                 self._parse_polyhedron_faces(f)
-                for f in self.elemental_data.get_attribute_data('face')])
+                for f in self.elemental_data.get_attribute_data('face')]
+            n_vertices = np.unique([
+                len(_f) for f in faces for _f in f])
+
+            # NOTE: It uses concatenate ignoring `method`
+            face_ids = tuple(
+                np.concatenate(self._collect_faces(faces, n))
+                for n in n_vertices)
         else:
             raise NotImplementedError(
                 f"Unexpected element type: {element_type}")
@@ -350,6 +360,13 @@ class GraphProcessorMixin:
             return face_ids
         else:
             return (face_ids,)
+
+    def _collect_faces(self, faces, n_vertex):
+        collected_faces = [
+            [f for f in face if len(f) == n_vertex]
+            for face in faces
+        ]
+        return [np.stack(f) for f in collected_faces if len(f) > 0]
 
     def _parse_polyhedron_faces(self, faces):
         def split(n, f):
