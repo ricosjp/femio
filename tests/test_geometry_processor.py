@@ -4,6 +4,7 @@ import unittest
 import numpy as np
 
 from femio.fem_data import FEMData
+from femio.util import brick_generator
 
 
 RUN_FISTR = True
@@ -11,6 +12,10 @@ RUN_FISTR = True
 FISTR_MSH_FILE = 'tests/data/fistr/thermal/hex.msh'
 FISTR_RES_FILE = 'tests/data/fistr/thermal/hex.res.0.1'
 FISTR_INP_FILE = 'tests/data/fistr/thermal/fistr_hex.inp'
+
+
+def rmse(x, y):
+    return np.mean((x - y)**2)**.5
 
 
 class TestGeometryProcessor(unittest.TestCase):
@@ -188,9 +193,23 @@ class TestGeometryProcessor(unittest.TestCase):
     def test_normal_incidence_hex(self):
         fem_data = FEMData.read_files(
             'vtk', ['tests/data/vtk/hex/mesh.vtk'])
-        _, inc_facet2cell, normals \
+        facet_data, inc_facet2cell, normals \
             = fem_data.calculate_normal_incidence_matrix()
         coo = inc_facet2cell.tocoo()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+        # fem_data.elemental_data.update_data(
+        #     fem_data.elements.ids, {'grad_x': actual_grad_x})
+        # fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
         desired_normals = np.array([
             [0., 0., -1.],
             [0., -1., 0.],
@@ -210,32 +229,113 @@ class TestGeometryProcessor(unittest.TestCase):
             for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)]
         np.testing.assert_almost_equal(all_normals, desired_normals)
 
-    def test_normal_incidence_openfoam(self):
-        # fem_data = FEMData.read_files(
-        #     'vtu', ['tests/data/vtu/complex/mesh.vtu'])
-        fem_data = FEMData.read_files(
-            'vtu', ['tests/data/vtu/openfoam/internal.vtu'])
-        _, inc_facet2cell, normals \
+    def test_normal_incidence_brick_hex(self):
+        fem_data = brick_generator.generate_brick('hex', 2, 3, 4)
+        facet_data, inc_facet2cell, normals \
             = fem_data.calculate_normal_incidence_matrix()
-        coo = inc_facet2cell.tocoo()
-        desired_normals = np.array([
-            [0., 0., -1.],
-            [0., -1., 0.],
-            [-1., 0., 0.],
-            [1., 0., 0.],
-            [0., 1., 0.],
-            [0., 0., 1.],
-            [0., 0., -1.],
-            [0., -1., 0.],
-            [-1., 0., 0.],
-            [1., 0., 0.],
-            [0., 1., 0.],
-            [0., 0., 1.],
-        ])
-        all_normals = [
-            data * normals[i_facet]
-            for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)]
-        np.testing.assert_almost_equal(all_normals, desired_normals)
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        # fem_data.elemental_data.update_data(
+        #     fem_data.elements.ids, {'grad_x': actual_grad_x})
+        # fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+    def test_normal_incidence_brick_tet(self):
+        fem_data = brick_generator.generate_brick('tet', 2, 3, 4)
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+    def test_normal_incidence_wedge(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/wedge/mesh.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+        facet_data.elemental_data.update_data(
+            facet_data.elements.ids, {'normal': normals}, allow_overwrite=True)
+        facet_data.write('vtp', 'data/tmp/mesh.vtp', overwrite=True)
+
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+    def test_normal_incidence_cylinder(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/cylinder/internal.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
+        np.testing.assert_almost_equal(
+            rmse(actual_grad_x[:, 0], 1.), 0, decimal=3)
+        np.testing.assert_almost_equal(
+            rmse(actual_grad_x[:, 1:], 0.), 0, decimal=2)
+
+    def test_normal_incidence_openfoam(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/light_openfoam/internal.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+        facet_data.elemental_data.update_data(
+            facet_data.elements.ids, {'normal': normals}, allow_overwrite=True)
+        facet_data.write('vtp', 'data/tmp/mesh.vtp', overwrite=True)
+
+        np.testing.assert_almost_equal(
+            rmse(actual_grad_x[:, 0], 1.), 0, decimal=3)
+        np.testing.assert_almost_equal(
+            rmse(actual_grad_x[:, 1:], 0.), 0, decimal=2)
 
     def test_relative_incidence_graph_tet1(self):
         fem_data = FEMData.read_files(

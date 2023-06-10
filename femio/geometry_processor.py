@@ -399,44 +399,25 @@ class GeometryProcessorMixin:
         """
         facet_data = self.to_facets(remove_duplicates=True)
         relative_incidence = self.calculate_relative_incidence_metrix_element(
-            facet_data, minimum_n_sharing=3)
-        coo = relative_incidence.tocoo()
+            facet_data, minimum_n_sharing=3)  # TODO: Fix minimum_n_sharing
+        coo = relative_incidence.tocoo()  # [n_cell, n_facet]
 
-        dict_facets = self.extract_facets(
-            remove_duplicates=False, method=np.stack)
-        raise ValueError(dict_facets)
-        if self.elements.element_type == 'mix':
-            raise ValueError(self.elements.keys())
-        else:
-            tuple_facets = dict_facets[self.elements.element_type]
-        tuple_all_facets = tuple(f[coo.row] for f in tuple_facets)
-        all_normals = self.calculate_all_element_normals()[coo.row]
-        col_facet_elements = facet_data.elements.data[coo.col]
+        cell_pos = self.convert_nodal2elemental(
+            self.nodes.data, calc_average=True)
+        facet_pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
         facet_normals = facet_data.calculate_element_normals()
-        col_facet_normals = facet_normals[coo.col]
-
-        if len(tuple_all_facets) > 1:
-            raise NotImplementedError
-        else:
-            all_facets = tuple_all_facets[0]
-
-        inner_prods = np.concatenate([
-            np.dot(
-                all_normal[np.all(np.isin(all_facet, facet_element), axis=1)],
-                facet_normal)
-            for all_facet, all_normal, facet_element, facet_normal
-            in zip(
-                all_facets, all_normals,
-                col_facet_elements, col_facet_normals)])
-        if np.sum(np.logical_and(
-                -1 + 1e-3 < inner_prods, inner_prods < 1 - 1e-3)) > 0:
-            raise ValueError(
-                f"Normal vector computation failed: {inner_prods}")
-        signed_incidence_data = np.zeros(len(inner_prods), dtype=int)
-        signed_incidence_data[1. - 1e-3 < inner_prods] = 1
-        signed_incidence_data[inner_prods < -1. + 1e-3] = -1
-        signed_incidence = sp.csr_matrix((
-            signed_incidence_data, (coo.row, coo.col)))
+        rela_x = coo.multiply(facet_pos[:, 0]) - coo.T.multiply(
+            cell_pos[:, 0]).T
+        rela_y = coo.multiply(facet_pos[:, 1]) - coo.T.multiply(
+            cell_pos[:, 1]).T
+        rela_z = coo.multiply(facet_pos[:, 2]) - coo.T.multiply(
+            cell_pos[:, 2]).T
+        dots = rela_x.multiply(facet_normals[:, 0]) + rela_y.multiply(
+            facet_normals[:, 1]) + rela_z.multiply(facet_normals[:, 2])
+        dots.data[dots.data < 0] = -1
+        dots.data[dots.data >= 0] = 1
+        signed_incidence = coo.multiply(dots).tocsr()
         return facet_data, signed_incidence, facet_normals
 
     @functools.lru_cache(maxsize=1)

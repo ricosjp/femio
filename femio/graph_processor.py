@@ -210,13 +210,36 @@ class GraphProcessorMixin:
 
         if hasattr(elements, 'element_type'):
             if elements.element_type == 'mix':
-                return {
+                dict_element_facet = {
                     element_type:
                     self.extract_facets(
                         element, element_type=element_type,
-                        remove_duplicates=remove_duplicates, method=method)[
+                        remove_duplicates=False, method=method)[
                             element_type]
                     for element_type, element in self.elements.items()}
+                n_vertices = np.unique([
+                    len(f[0]) for facet in dict_element_facet.values()
+                    for f in facet])
+
+                dict_vertices_facet = {}
+                for i_vertices in n_vertices:
+                    dict_vertices_facet[i_vertices] = []
+                    for key, facet in dict_element_facet.items():
+                        for f in facet:
+                            if len(f[0]) == i_vertices:
+                                dict_vertices_facet[i_vertices].append(f)
+
+                    if remove_duplicates:
+                        dict_vertices_facet[i_vertices] \
+                            = functions.remove_duplicates(np.concatenate(
+                                dict_vertices_facet[i_vertices]))
+                    else:
+                        dict_vertices_facet[i_vertices] \
+                            = np.concatenate(
+                                dict_vertices_facet[i_vertices])
+
+                return {'mix': tuple(v for v in dict_vertices_facet.values())}
+
             else:
                 elements = list(elements.values())[0]
 
@@ -229,8 +252,6 @@ class GraphProcessorMixin:
         if remove_duplicates:
             facets = tuple(
                 functions.remove_duplicates(f) for f in facets)
-            # facets = tuple(
-            #     functions.remove_duplicates(f, end=3) for f in facets)
 
         return {element_type: facets}
 
@@ -349,9 +370,16 @@ class GraphProcessorMixin:
                 len(_f) for f in faces for _f in f])
 
             # NOTE: It uses concatenate ignoring `method`
-            face_ids = tuple(
-                np.concatenate(self._collect_faces(faces, n))
-                for n in n_vertices)
+            if method == np.concatenate:
+                face_ids = tuple(
+                    np.concatenate(self._collect_faces_concat(faces, n))
+                    for n in n_vertices)
+            elif method == np.stack:
+                face_ids = tuple(
+                    np.array(self._collect_faces_stack(faces, n))
+                    for n in n_vertices)
+            else:
+                raise ValueError(f"Unexpected method: {method}")
         else:
             raise NotImplementedError(
                 f"Unexpected element type: {element_type}")
@@ -361,12 +389,18 @@ class GraphProcessorMixin:
         else:
             return (face_ids,)
 
-    def _collect_faces(self, faces, n_vertex):
+    def _collect_faces_concat(self, faces, n_vertex):
         collected_faces = [
             [f for f in face if len(f) == n_vertex]
             for face in faces
         ]
         return [np.stack(f) for f in collected_faces if len(f) > 0]
+
+    def _collect_faces_stack(self, faces, n_vertex):
+        return np.array([
+            np.array([f for f in face if len(f) == n_vertex])
+            for face in faces
+        ])
 
     def _parse_polyhedron_faces(self, faces):
         def split(n, f):

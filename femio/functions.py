@@ -71,7 +71,8 @@ def align_nnz(sparses):
         return align_nnz([s.tocsr() for s in sparses])
 
 
-def remove_duplicates(connectivities, return_index=False, end=None):
+def remove_duplicates(
+        connectivities, return_index=False, return_inverse=False, end=None):
     """Remove duplicating elements.
 
     Parameters
@@ -80,6 +81,8 @@ def remove_duplicates(connectivities, return_index=False, end=None):
         Element connectivities.
     return_index: bool, optional
         If True, return also indices of unique.
+    return_inverse: bool, optional
+        If True, return also the inverse_indice
     end: int, optional
         If fed, use only first `end` elements to detect duplication.
 
@@ -90,11 +93,20 @@ def remove_duplicates(connectivities, return_index=False, end=None):
     """
     sorted_connectivities = [
         np.sort(connectivity)[:end] for connectivity in connectivities]
-    _, indices = np.unique(sorted_connectivities, axis=0, return_index=True)
+    unique = np.unique(
+        sorted_connectivities, axis=0,
+        return_index=True, return_inverse=return_inverse)
+    indices = unique[1]
+    ret = [connectivities[indices]]
+
     if return_index:
-        return connectivities[indices], indices
+        ret.append(indices)
+    if return_inverse:
+        ret.append(unique[-1])
+    if len(ret) == 1:
+        return ret[0]
     else:
-        return connectivities[indices]
+        return tuple(ret)
 
 
 def convert_array2symmetric_matrix(
