@@ -447,7 +447,7 @@ class GraphProcessorMixin:
         return filter_
 
     def calculate_relative_incidence_metrix_element(
-            self, other_fem_data, minimum_n_sharing):
+            self, other_fem_data, minimum_n_sharing=None):
         """Calculate incidence matrix from other_fem_data to self based on
         elements, i.e., the resultant incidence matrix being of the shape
         (n_self_element, n_other_element).
@@ -468,8 +468,17 @@ class GraphProcessorMixin:
             int)  # (n_self_element, n_node)
         other_incidence = other_fem_data.calculate_incidence_matrix().astype(
             int)  # (n_node, n_other_element)
-        relative_incidence = self_incidence.dot(other_incidence) \
-            >= minimum_n_sharing  # (n_self_element, n_other_elemnt)
+        if minimum_n_sharing is None:
+            n_vertex = np.array(other_incidence.sum(axis=0))[0]
+            dot = self_incidence.dot(other_incidence).tocoo()
+            col = dot.col
+            filter_ = dot.data >= n_vertex[col]
+            relative_incidence = sp.csr_matrix((
+                np.ones(np.sum(filter_), dtype=bool),
+                (dot.row[filter_], dot.col[filter_])), shape=dot.shape)
+        else:
+            relative_incidence = self_incidence.dot(other_incidence) \
+                >= minimum_n_sharing  # (n_self_element, n_other_elemnt)
         return relative_incidence
 
     @functools.lru_cache(maxsize=1)

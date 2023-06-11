@@ -2,13 +2,95 @@ import functools
 
 from numba import njit
 import numpy as np
-import scipy.sparse as sp
 
 from .fem_attribute import FEMAttribute
 from . import functions
 
 
 class GeometryProcessorMixin:
+
+    def calculate_element_centroids(self, element_type=None, elements=None):
+        """Calculate centroid of each element.
+
+        Parameters
+        ----------
+        element_type: str, optional
+            Element type of the element.
+        elements: femio.FEMAttribute, optional
+            If fed, compute centroids for the fed one.
+
+        Returns
+        -------
+        centroid: numpy.ndarray[float]
+            [n_elemnt, 3] shaped array of centroid coordinates.
+        """
+        if elements is None:
+            element_type = self.elements.element_type
+            elements = self.elements
+        if element_type is None:
+            raise ValueError('Feed element_type when elements is fed')
+
+        if element_type == 'tri':
+            centroid = self.convert_nodal2elemental(self.nodes.data)
+        elif element_type == 'quad':
+            centroid = self._calculate_element_centroids_quad(elements)
+        elif element_type == 'polygon':
+            centroid = self._calculate_element_centroids_polygon(elements)
+        elif element_type == 'mix':
+            centroid = np.zeros((len(self.elements), 3))
+            for k, e in self.elements.items():
+                partial_centroid = self.calculate_element_centroids(
+                    elements=e, element_type=k)
+                centroid[self.elements.types == k] = partial_centroid
+        else:
+            raise NotImplementedError(element_type)
+
+        return centroid
+
+    def _calculate_element_centroids_quad(self, elements):
+        element_data = elements.data
+        node0_points = self.collect_node_positions_by_ids(element_data[:, 0])
+        node1_points = self.collect_node_positions_by_ids(element_data[:, 1])
+        node2_points = self.collect_node_positions_by_ids(element_data[:, 2])
+        node3_points = self.collect_node_positions_by_ids(element_data[:, 3])
+
+        v10 = node1_points - node0_points
+        v20 = node2_points - node0_points
+        crosses1 = np.cross(v10, v20)
+        v32 = node3_points - node2_points
+        v02 = node0_points - node2_points
+        crosses2 = np.cross(v32, v02)
+        areas1 = np.linalg.norm(crosses1, axis=1, keepdims=True) / 2
+        areas2 = np.linalg.norm(crosses2, axis=1, keepdims=True) / 2
+
+        center1 = (node0_points + node1_points + node2_points) / 3
+        center2 = (node0_points + node2_points + node3_points) / 3
+
+        return (center1 * areas1 + center2 * areas2) / (areas1 + areas2)
+
+    def _calculate_element_centroids_polygon(self, elements):
+        centroid = np.stack([
+            self._calculate_element_centroid_polygon(e)
+            for e in elements.data], axis=0)
+        return centroid
+
+    def _calculate_element_centroid_polygon(self, element):
+        triangle_elements = self._trianglate_polygon(element)
+        node0_points = self.collect_node_positions_by_ids(
+            triangle_elements[:, 0])
+        node1_points = self.collect_node_positions_by_ids(
+            triangle_elements[:, 1])
+        node2_points = self.collect_node_positions_by_ids(
+            triangle_elements[:, 2])
+        centers = (node0_points + node1_points + node2_points) / 3
+
+        v10 = node1_points - node0_points
+        v20 = node2_points - node0_points
+        crosses = np.cross(v10, v20)
+        return np.einsum(
+            'e,ep->p',
+            np.linalg.norm(crosses, axis=1), centers) \
+            / np.linalg.norm(np.sum(crosses, axis=0))
 
     def calculate_element_areas(
             self, *, mode="centroid", raise_negative_area=False,
@@ -399,7 +481,7 @@ class GeometryProcessorMixin:
         """
         facet_data = self.to_facets(remove_duplicates=True)
         relative_incidence = self.calculate_relative_incidence_metrix_element(
-            facet_data, minimum_n_sharing=3)  # TODO: Fix minimum_n_sharing
+            facet_data, minimum_n_sharing=None)  # TODO: Fix minimum_n_sharing
         coo = relative_incidence.tocoo()  # [n_cell, n_facet]
 
         cell_pos = self.convert_nodal2elemental(
