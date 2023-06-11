@@ -444,6 +444,40 @@ class TestGraphProcessor(unittest.TestCase):
         np.testing.assert_array_equal(
             inc_facet2cell.toarray().astype(int), desired_inc)
 
+    def test_relative_incidence_graph_complex(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/complex/mesh.vtu'])
+        facet_fem_data = fem_data.to_facets()
+        facet_fem_data.calculate_element_normals()
+        facet_fem_data.write('vtp', 'data/tmp/mesh.vtp', overwrite=True)
+        inc_facet2cell = fem_data.calculate_relative_incidence_metrix_element(
+            facet_fem_data, minimum_n_sharing=3)
+        desired_inc = np.array([
+            [
+                1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 1, 0, 0, 0, 1, 1, 0, 0, 0, 0],
+            [
+                0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0],
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0,
+                1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 1],
+            [
+                0, 0, 0, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1,
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0,
+                0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1,
+                1, 1, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+            [
+                0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 0,
+                0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0],
+        ])
+        np.testing.assert_array_equal(
+            inc_facet2cell.toarray().astype(int), desired_inc)
+
     def test_filter_first_order_nodes(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/tet2_3', read_npy=False)

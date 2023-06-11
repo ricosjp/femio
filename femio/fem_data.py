@@ -713,7 +713,9 @@ class FEMData(
             nodes=nodes, elements=elements, nodal_data=nodal_data,
             elemental_data={})
 
-    def to_facets(self, remove_duplicates=True):
+    def to_facets(
+            self, remove_duplicates=True, return_dict_facets=False,
+            dict_facets=None):
         """Convert the FEMData object to the facet data including facets inside
         the solid.
 
@@ -722,18 +724,27 @@ class FEMData(
         remove_duplicates: bool, optional
             If True, remove duplicated faces and remain only one. The default
             is True.
+        return_dict_facets: bool, optional
+            If True, also return dict_facets.
 
         Returns
         -------
         FEMData:
             Facets FEMData object.
         """
-        dict_facets = self.extract_facets(remove_duplicates=remove_duplicates)
-        elements = self.elements.to_surface(dict_facets)
+        if dict_facets is None:
+            dict_facets = self.extract_facets(
+                remove_duplicates=remove_duplicates)
 
-        return FEMData(
+        elements = self.elements.to_surface(dict_facets)
+        facet_fem_data = FEMData(
             nodes=self.nodes, elements=elements, nodal_data=self.nodal_data,
             elemental_data={})
+
+        if return_dict_facets:
+            return facet_fem_data, dict_facets
+        else:
+            return facet_fem_data
 
     @staticmethod
     @njit

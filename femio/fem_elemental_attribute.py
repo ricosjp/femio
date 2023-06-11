@@ -409,13 +409,33 @@ class FEMElementalAttribute(dict):
 
     def _generate_surface(self, tuple_surface_ids):
         ret = {}
+        last_id_end = 0
         for surface_ids in tuple_surface_ids:
             if len(surface_ids) == 0:
                 continue
-            ret.update(self._generate_surface_core(surface_ids))
+            item_surface = self._generate_surface_core(
+                surface_ids, last_id_end)
+            key = list(item_surface.keys())[0]
+            new_value = list(item_surface.values())[0]
+            if key in ret:
+                original_value = ret[key]
+                try:
+                    data = np.concatenate(
+                        [original_value.data, new_value.data])
+                except ValueError:
+                    # Manage if the arrays are not in the same shape
+                    data = np.array(
+                        list(original_value.data) + list(new_value.data))
+                ret[key] = FEMAttribute(
+                    key,
+                    ids=np.concatenate([original_value.ids, new_value.ids]),
+                    data=data)
+            else:
+                ret.update(item_surface)
+            last_id_end = new_value.ids[-1]
         return ret
 
-    def _generate_surface_core(self, surface_ids):
+    def _generate_surface_core(self, surface_ids, last_id_end=0):
         shape = surface_ids.shape
         if len(shape) == 1:
             element_type = 'polygon'
@@ -425,13 +445,16 @@ class FEMElementalAttribute(dict):
                 element_type = 'tri'
             elif n_node_per_element == 4:
                 element_type = 'quad'
+            elif n_node_per_element > 4:
+                element_type = 'polygon'
             else:
                 raise NotImplementedError(
                     f"Unsupported shape of elements: {shape}")
         return {
             element_type:
             FEMAttribute(
-                element_type, np.arange(len(surface_ids)) + 1, surface_ids)}
+                element_type,
+                np.arange(len(surface_ids)) + last_id_end + 1, surface_ids)}
 
     def detect_element_type(self, element_data):
         n_node_per_element = element_data.shape[1]
