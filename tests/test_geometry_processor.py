@@ -512,13 +512,15 @@ class TestGeometryProcessor(unittest.TestCase):
         data_file = pathlib.Path('tests/data/vtu/complex/mesh.vtu')
         fem_data = FEMData.read_files('polyvtk', data_file)
         normals = fem_data.calculate_surface_normals()
-        fem_data.write(
-            'polyvtk', 'tests/data/vtu/write_complex/mesh.vtu',
-            overwrite=True)
         surface_fem_data = fem_data.to_surface()
-        surface_fem_data.write(
-            'vtp', 'tests/data/vtp/write_surface_complex/mesh.vtp',
-            overwrite=True)
+
+        # fem_data.write(
+        #     'polyvtk', 'tests/data/vtu/write_complex/mesh.vtu',
+        #     overwrite=True)
+        # surface_fem_data.write(
+        #     'vtp', 'tests/data/vtp/write_surface_complex/mesh.vtp',
+        #     overwrite=True)
+
         desired_normals = np.array([
             [-0.57735027, -0.57735027, -0.57735027],
             [0., -0.6, -0.8],

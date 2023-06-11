@@ -68,10 +68,14 @@ class GraphProcessorMixin:
                     if 4 in unique_n_nodes:
                         dict_facet_shapes['quad'].append(
                             np.stack(f[n_nodes == 4]))
-                    dict_facet_shapes['polygon'].append(f[n_nodes > 4])
+                    dict_facet_shapes['polygon'] += list(f[n_nodes > 4])
 
         extracted_surface_info = {
-            k: self._extract_surface(np.concatenate(v, axis=0), facet_type=k)
+            k:
+            self._extract_surface(np.array(v), facet_type=k)
+            if k == 'polygon'
+            else
+            self._extract_surface(np.concatenate(v, axis=0), facet_type=k)
             for k, v in dict_facet_shapes.items() if len(v) > 0}
         if len(extracted_surface_info) == 1:
             s = list(extracted_surface_info.values())[0]
