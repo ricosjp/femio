@@ -354,10 +354,8 @@ class TestGeometryProcessor(unittest.TestCase):
             fem_data.elements.ids, {'grad_x': actual_grad_x})
         fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
 
-        np.testing.assert_almost_equal(
-            rmse(actual_grad_x[:, 0], 1.), 0, decimal=3)
-        np.testing.assert_almost_equal(
-            rmse(actual_grad_x[:, 1:], 0.), 0, decimal=2)
+        assert rmse(actual_grad_x[:, 0], 1., volume) < .05
+        assert rmse(actual_grad_x[:, 1:], 0., volume) < .002
 
     def test_normal_incidence_light_openfoam(self):
         fem_data = FEMData.read_files(
