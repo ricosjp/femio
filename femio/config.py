@@ -195,6 +195,7 @@ DICT_VTK_ID_TO_ELEMENT_TYPE = {
     1: 'pt',
     3: 'line',
     5: 'tri',
+    7: 'polygon',
     9: 'quad',
     10: 'tet',
     11: 'voxel',
