@@ -266,3 +266,15 @@ class TestPolyVTK(unittest.TestCase):
                 [1, 8, 9, 3, 5, 10, 11, 7],
             ])
         )
+
+    def test_read_vtk_polygon(self):
+        file_name = pathlib.Path('tests/data/vtu/polygons/mesh.vtu')
+        fem_data = FEMData.read_files('vtu', [file_name])
+
+        ref_file_name = pathlib.Path('tests/data/vtp/polys/mesh.vtp')
+        ref_fem_data = FEMData.read_files('vtp', [ref_file_name])
+
+        np.testing.assert_almost_equal(
+            fem_data.nodes.data, ref_fem_data.nodes.data)
+        for d, r in zip(fem_data.elements.data, ref_fem_data.elements.data):
+            np.testing.assert_array_equal(d, r)

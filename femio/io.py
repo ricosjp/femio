@@ -146,7 +146,7 @@ def convert_to_2d_if_needed(x):
 
 
 def stack_if_needed(type_id, data):
-    if type_id == 42:
+    if type_id in [42, 7]:
         return data
     else:
         return np.stack(data)
