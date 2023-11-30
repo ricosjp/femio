@@ -68,10 +68,14 @@ class GraphProcessorMixin:
                     if 4 in unique_n_nodes:
                         dict_facet_shapes['quad'].append(
                             np.stack(f[n_nodes == 4]))
-                    dict_facet_shapes['polygon'].append(f[n_nodes > 4])
+                    dict_facet_shapes['polygon'] += list(f[n_nodes > 4])
 
         extracted_surface_info = {
-            k: self._extract_surface(np.concatenate(v, axis=0), facet_type=k)
+            k:
+            self._extract_surface(np.array(v), facet_type=k)
+            if k == 'polygon'
+            else
+            self._extract_surface(np.concatenate(v, axis=0), facet_type=k)
             for k, v in dict_facet_shapes.items() if len(v) > 0}
         if len(extracted_surface_info) == 1:
             s = list(extracted_surface_info.values())[0]
@@ -210,13 +214,36 @@ class GraphProcessorMixin:
 
         if hasattr(elements, 'element_type'):
             if elements.element_type == 'mix':
-                return {
+                dict_element_facet = {
                     element_type:
                     self.extract_facets(
                         element, element_type=element_type,
-                        remove_duplicates=remove_duplicates, method=method)[
+                        remove_duplicates=False, method=method)[
                             element_type]
                     for element_type, element in self.elements.items()}
+                n_vertices = np.unique([
+                    len(f[0]) for facet in dict_element_facet.values()
+                    for f in facet])
+
+                dict_vertices_facet = {}
+                for i_vertices in n_vertices:
+                    dict_vertices_facet[i_vertices] = []
+                    for key, facet in dict_element_facet.items():
+                        for f in facet:
+                            if len(f[0]) == i_vertices:
+                                dict_vertices_facet[i_vertices].append(f)
+
+                    if remove_duplicates:
+                        dict_vertices_facet[i_vertices] \
+                            = functions.remove_duplicates(np.concatenate(
+                                dict_vertices_facet[i_vertices]))
+                    else:
+                        dict_vertices_facet[i_vertices] \
+                            = np.concatenate(
+                                dict_vertices_facet[i_vertices])
+
+                return {'mix': tuple(v for v in dict_vertices_facet.values())}
+
             else:
                 elements = list(elements.values())[0]
 
@@ -227,7 +254,8 @@ class GraphProcessorMixin:
                 elements, element_type, method=method)
 
         if remove_duplicates:
-            facets = tuple(functions.remove_duplicates(f) for f in facets)
+            facets = tuple(
+                functions.remove_duplicates(f) for f in facets)
 
         return {element_type: facets}
 
@@ -339,9 +367,23 @@ class GraphProcessorMixin:
             assert 'face' in self.elemental_data, \
                 'No face definition found for polyhedron: ' \
                 f"{self.elemental_data.keys()}"
-            face_ids = method([
+            faces = [
                 self._parse_polyhedron_faces(f)
-                for f in self.elemental_data.get_attribute_data('face')])
+                for f in self.elemental_data.get_attribute_data('face')]
+            n_vertices = np.unique([
+                len(_f) for f in faces for _f in f])
+
+            # NOTE: It uses concatenate ignoring `method`
+            if method == np.concatenate:
+                face_ids = tuple(
+                    np.concatenate(self._collect_faces_concat(faces, n))
+                    for n in n_vertices)
+            elif method == np.stack:
+                face_ids = tuple(
+                    np.array(self._collect_faces_stack(faces, n))
+                    for n in n_vertices)
+            else:
+                raise ValueError(f"Unexpected method: {method}")
         else:
             raise NotImplementedError(
                 f"Unexpected element type: {element_type}")
@@ -350,6 +392,19 @@ class GraphProcessorMixin:
             return face_ids
         else:
             return (face_ids,)
+
+    def _collect_faces_concat(self, faces, n_vertex):
+        collected_faces = [
+            [f for f in face if len(f) == n_vertex]
+            for face in faces
+        ]
+        return [np.stack(f) for f in collected_faces if len(f) > 0]
+
+    def _collect_faces_stack(self, faces, n_vertex):
+        return np.array([
+            np.array([f for f in face if len(f) == n_vertex])
+            for face in faces
+        ])
 
     def _parse_polyhedron_faces(self, faces):
         def split(n, f):
@@ -392,7 +447,7 @@ class GraphProcessorMixin:
         return filter_
 
     def calculate_relative_incidence_metrix_element(
-            self, other_fem_data, minimum_n_sharing):
+            self, other_fem_data, minimum_n_sharing=None):
         """Calculate incidence matrix from other_fem_data to self based on
         elements, i.e., the resultant incidence matrix being of the shape
         (n_self_element, n_other_element).
@@ -413,8 +468,17 @@ class GraphProcessorMixin:
             int)  # (n_self_element, n_node)
         other_incidence = other_fem_data.calculate_incidence_matrix().astype(
             int)  # (n_node, n_other_element)
-        relative_incidence = self_incidence.dot(other_incidence) \
-            >= minimum_n_sharing  # (n_self_element, n_other_elemnt)
+        if minimum_n_sharing is None:
+            n_vertex = np.array(other_incidence.sum(axis=0))[0]
+            dot = self_incidence.dot(other_incidence).tocoo()
+            col = dot.col
+            filter_ = dot.data >= n_vertex[col]
+            relative_incidence = sp.csr_matrix((
+                np.ones(np.sum(filter_), dtype=bool),
+                (dot.row[filter_], dot.col[filter_])), shape=dot.shape)
+        else:
+            relative_incidence = self_incidence.dot(other_incidence) \
+                >= minimum_n_sharing  # (n_self_element, n_other_elemnt)
         return relative_incidence
 
     @functools.lru_cache(maxsize=1)

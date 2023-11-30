@@ -240,10 +240,41 @@ class TestPolyVTK(unittest.TestCase):
                 vtk_fem_data.elements.data):
             np.testing.assert_almost_equal(ae, np.array(de))
 
-        volumes = fem_data.calculate_element_volumes(linear=True)
+        volumes = fem_data.calculate_element_volumes(mode="linear")
         # fem_data.write('polyvtk', 'tmp.vtu', overwrite=True)
-        vtk_fem_data.calculate_element_volumes(linear=True)
+        vtk_fem_data.calculate_element_volumes(mode="linear")
         # vtk_fem_data.write('vtk', 'tmp.vtk', overwrite=True)
         np.testing.assert_almost_equal(
             volumes[[3, 1, 2, 0]],
-            vtk_fem_data.calculate_element_volumes(linear=True))
+            vtk_fem_data.calculate_element_volumes(mode="linear"))
+
+    def test_read_vtk_voxel(self):
+        file_name = pathlib.Path('tests/data/vtu/voxel/mesh.vtu')
+        fem_data = FEMData.read_files('polyvtk', [file_name])
+
+        volumes = fem_data.calculate_element_volumes(mode="linear")
+        np.testing.assert_almost_equal(volumes, .5)
+        write_file_name = 'tests/data/vtu/write_voxel/mesh.vtu'
+        fem_data.write(
+            'polyvtk', write_file_name, overwrite=True)
+        written_fem_data = FEMData.read_files('polyvtk', write_file_name)
+        np.testing.assert_array_equal(
+            written_fem_data.elements.data - 1,
+            np.array([
+                [3, 9, 13, 12, 7, 11, 15, 14],  # Original hex comes first
+                [0, 1, 3, 2, 4, 5, 7, 6],
+                [1, 8, 9, 3, 5, 10, 11, 7],
+            ])
+        )
+
+    def test_read_vtk_polygon(self):
+        file_name = pathlib.Path('tests/data/vtu/polygons/mesh.vtu')
+        fem_data = FEMData.read_files('vtu', [file_name])
+
+        ref_file_name = pathlib.Path('tests/data/vtp/polys/mesh.vtp')
+        ref_fem_data = FEMData.read_files('vtp', [ref_file_name])
+
+        np.testing.assert_almost_equal(
+            fem_data.nodes.data, ref_fem_data.nodes.data)
+        for d, r in zip(fem_data.elements.data, ref_fem_data.elements.data):
+            np.testing.assert_array_equal(d, r)

@@ -65,6 +65,7 @@ def convert_vtk_unstructured_to_femio(mesh):
             data=stack_if_needed(
                 t, element_connectivities[cell_types == t]) + 1)
         for t in unique_cell_types}
+    update_voxel2hex_if_needed(elements_data)
     elements = FEMElementalAttribute('ELEMENT', elements_data)
 
     obj = FEMData(nodes=nodes, elements=elements)
@@ -112,6 +113,31 @@ def convert_vtk_unstructured_to_femio(mesh):
     return obj
 
 
+def update_voxel2hex_if_needed(elements_data):
+    if 'voxel' not in elements_data:
+        return elements_data
+    voxel = elements_data.pop('voxel')
+    d = voxel.data
+
+    ids = voxel.ids
+    data = np.stack([
+        d[:, 0],
+        d[:, 1],
+        d[:, 3],
+        d[:, 2],
+        d[:, 4],
+        d[:, 5],
+        d[:, 7],
+        d[:, 6],
+    ], axis=-1)
+    if 'hex' in elements_data:
+        ids = np.concatenate([elements_data['hex'].ids, ids])
+        data = np.concatenate([elements_data['hex'].data, data])
+
+    elements_data.update({'hex': FEMAttribute(name='hex', ids=ids, data=data)})
+    return
+
+
 def convert_to_2d_if_needed(x):
     if len(x.shape) == 1:
         return x[:, None]
@@ -120,7 +146,7 @@ def convert_to_2d_if_needed(x):
 
 
 def stack_if_needed(type_id, data):
-    if type_id == 42:
+    if type_id in [42, 7]:
         return data
     else:
         return np.stack(data)

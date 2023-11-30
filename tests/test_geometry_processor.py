@@ -4,6 +4,9 @@ import unittest
 import numpy as np
 
 from femio.fem_data import FEMData
+from femio.fem_attribute import FEMAttribute
+from femio.fem_elemental_attribute import FEMElementalAttribute
+from femio.util import brick_generator
 
 
 RUN_FISTR = True
@@ -13,7 +16,56 @@ FISTR_RES_FILE = 'tests/data/fistr/thermal/hex.res.0.1'
 FISTR_INP_FILE = 'tests/data/fistr/thermal/fistr_hex.inp'
 
 
+def rmse(x, y, weight=None):
+    if weight is None:
+        weight = 1
+    return (np.sum((x - y)**2 * weight) / np.sum(weight))**.5
+
+
 class TestGeometryProcessor(unittest.TestCase):
+
+    def test_calculate_element_centroids_quad(self):
+        fem_data = brick_generator.generate_brick(
+            'quad', 3, 1, x_length=3., y_length=1.)
+        fem_data.nodes.data[-1, 0] = 2.
+        # raise ValueError(fem_data.nodes.data)
+        actual_centroid = fem_data.calculate_element_centroids()
+        desired_centroid = np.array([
+            [.5, .5, 0.],
+            [1.5, .5, 0.],
+            [2 + 1/3, 1/3, 0],
+        ])
+        np.testing.assert_almost_equal(actual_centroid, desired_centroid)
+
+    def test_calculate_element_centroids_polygon(self):
+        nodes = FEMAttribute(
+            'NODE', ids=np.arange(7)+1, data=np.array([
+                [0., 0., 0.],
+                [1., 0., 0.],
+                [1.5, 0., 0.],
+                [2., 0., 0.],
+                [0., 1., 0.],
+                [1., 1., 0.],
+                [2., 1., 0.]]))
+        elements = FEMElementalAttribute(
+            'ELEMENT', ids=np.array([1, 2]),
+            data={
+                'quad': FEMAttribute(
+                    'quad', ids=np.array([1]), data=np.array([
+                        [1, 2, 6, 5],
+                    ])),
+                'polygon': FEMAttribute(
+                    'polygon', ids=np.array([2]), data=np.array([
+                        [2, 3, 4, 7, 6],
+                    ])),
+            })
+        fem_data = FEMData(nodes=nodes, elements=elements)
+        actual_centroid = fem_data.calculate_element_centroids()
+        desired_centroid = np.array([
+            [.5, .5, 0.],
+            [1.5, .5, 0.],
+        ])
+        np.testing.assert_almost_equal(actual_centroid, desired_centroid)
 
     def test_calculate_volume_tet(self):
         fem_data = FEMData.read_directory(
@@ -27,9 +79,13 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/hex_cross', read_npy=False,
             save=False)
-        actual_volumes = fem_data.calculate_element_volumes(linear=True)
+        linear_volumes = fem_data.calculate_element_volumes(mode="linear")
+        gaussian_volumes = fem_data.calculate_element_volumes(mode="gaussian")
+        centroid_volumes = fem_data.calculate_element_volumes(mode="centroid")
         desired_volumes = np.ones((7, 1)) * 8.
-        np.testing.assert_almost_equal(actual_volumes, desired_volumes)
+        np.testing.assert_almost_equal(linear_volumes, desired_volumes)
+        np.testing.assert_almost_equal(gaussian_volumes, desired_volumes)
+        np.testing.assert_almost_equal(centroid_volumes, desired_volumes)
 
     def test_calculate_volume_tet_negative_raise_valueerror(self):
         fem_data = FEMData.read_directory(
@@ -57,7 +113,7 @@ class TestGeometryProcessor(unittest.TestCase):
             [3.],
             [6.],
         ])
-        fem_data.calculate_element_areas(linear=True)
+        fem_data.calculate_element_areas()
         np.testing.assert_almost_equal(
             fem_data.elemental_data.get_attribute_data('area'), desired_areas)
 
@@ -70,9 +126,12 @@ class TestGeometryProcessor(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        fem_data.calculate_element_areas(linear=True)
-        np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
+        linear_areas = fem_data.calculate_element_areas(mode="linear")
+        gaussian_areas = fem_data.calculate_element_areas(mode="gaussian")
+        centroid_areas = fem_data.calculate_element_areas(mode="centroid")
+        np.testing.assert_almost_equal(linear_areas, desired_areas)
+        np.testing.assert_almost_equal(gaussian_areas, desired_areas)
+        np.testing.assert_almost_equal(centroid_areas, desired_areas)
 
     def test_calculate_area_quad_gaussian(self):
         data_directory = 'tests/data/obj/quad'
@@ -91,7 +150,7 @@ class TestGeometryProcessor(unittest.TestCase):
             [1.5],
             [np.sqrt(2)],
         ])
-        actual = fem_data.calculate_element_areas(linear=False)
+        actual = fem_data.calculate_element_areas(mode="gaussian")
         np.testing.assert_almost_equal(actual, desired_areas)
 
     def test_calculate_area_polygon(self):
@@ -104,9 +163,10 @@ class TestGeometryProcessor(unittest.TestCase):
             [1.16],
             [1.25],
         ])
-        fem_data.calculate_element_areas(linear=True)
-        np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
+        linear_areas = fem_data.calculate_element_areas(mode="linear")
+        centroid_areas = fem_data.calculate_element_areas(mode="centroid")
+        np.testing.assert_almost_equal(linear_areas, desired_areas)
+        np.testing.assert_almost_equal(centroid_areas, desired_areas)
 
     def test_calculate_area_nonconvex(self):
         data_directory = 'tests/data/vtp/nonconvex'
@@ -115,9 +175,10 @@ class TestGeometryProcessor(unittest.TestCase):
         desired_areas = np.array([
             [3.],
         ])
-        fem_data.calculate_element_areas(linear=True)
-        np.testing.assert_almost_equal(
-            fem_data.elemental_data.get_attribute_data('area'), desired_areas)
+        linear_areas = fem_data.calculate_element_areas(mode="linear")
+        centroid_areas = fem_data.calculate_element_areas(mode="centroid")
+        np.testing.assert_almost_equal(linear_areas, desired_areas)
+        np.testing.assert_almost_equal(centroid_areas, desired_areas)
 
     def test_calculate_volumes_hex_gaussian(self):
         fem_data = FEMData.read_directory(
@@ -133,7 +194,7 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data.translation(vx, vy, vz)
 
         desired_volumes = np.full((7, 1), 8.0)
-        actual = fem_data.calculate_element_volumes(linear=False)
+        actual = fem_data.calculate_element_volumes(mode="gaussian")
         np.testing.assert_almost_equal(actual, desired_volumes)
 
     def test_calculate_volumes_polyhedron(self):
@@ -172,16 +233,30 @@ class TestGeometryProcessor(unittest.TestCase):
         fem_data = FEMData.read_files(
             'polyvtk', 'tests/data/vtu/polyhedron/polyhedron.vtu',
         )
-        desired = np.array([[19/24], [3/2], [1/24]])
+        desired = np.array([[19 / 24], [3 / 2], [1 / 24]])
         actual = fem_data.calculate_element_volumes()
         np.testing.assert_almost_equal(actual, desired)
 
     def test_normal_incidence_hex(self):
         fem_data = FEMData.read_files(
             'vtk', ['tests/data/vtk/hex/mesh.vtk'])
-        _, inc_facet2cell, normals \
+        facet_data, inc_facet2cell, normals \
             = fem_data.calculate_normal_incidence_matrix()
         coo = inc_facet2cell.tocoo()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+        # fem_data.elemental_data.update_data(
+        #     fem_data.elements.ids, {'grad_x': actual_grad_x})
+        # fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
         desired_normals = np.array([
             [0., 0., -1.],
             [0., -1., 0.],
@@ -200,6 +275,147 @@ class TestGeometryProcessor(unittest.TestCase):
             data * normals[i_facet]
             for data, i_cell, i_facet in zip(coo.data, coo.row, coo.col)]
         np.testing.assert_almost_equal(all_normals, desired_normals)
+
+    def test_normal_incidence_brick_hex(self):
+        fem_data = brick_generator.generate_brick('hex', 2, 3, 4)
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        # fem_data.elemental_data.update_data(
+        #     fem_data.elements.ids, {'grad_x': actual_grad_x})
+        # fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+    def test_normal_incidence_brick_tet(self):
+        fem_data = brick_generator.generate_brick('tet', 2, 3, 4)
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+    def test_normal_incidence_wedge(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/wedge/mesh.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+        facet_data.elemental_data.update_data(
+            facet_data.elements.ids, {'normal': normals}, allow_overwrite=True)
+        facet_data.write('vtp', 'data/tmp/mesh.vtp', overwrite=True)
+
+        np.testing.assert_almost_equal(actual_grad_x[:, 0], 1)
+        np.testing.assert_almost_equal(actual_grad_x[:, 1:], 0)
+
+    def test_normal_incidence_cylinder(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/cylinder/internal.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.convert_nodal2elemental(
+            facet_data.nodes.data, calc_average=True)
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        fem_data.elemental_data.update_data(
+            fem_data.elements.ids, {'grad_x': actual_grad_x})
+        fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+
+        assert rmse(actual_grad_x[:, 0], 1., volume) < .05
+        assert rmse(actual_grad_x[:, 1:], 0., volume) < .002
+
+    def test_normal_incidence_light_openfoam(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/light_openfoam/internal.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.calculate_element_centroids()
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        # cell_pos = fem_data.convert_nodal2elemental(
+        #     fem_data.nodes.data, calc_average=True)
+        # fem_data.elemental_data.update_data(
+        #     fem_data.elements.ids, {
+        #         'elem_index': fem_data.elements.ids[:, None] - 1,
+        #         'grad_x': actual_grad_x, 'pos': cell_pos,
+        #     })
+        # fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+        # facet_data.elemental_data.update_data(
+        #     facet_data.elements.ids, {
+        #         'elem_index': facet_data.elements.ids[:, None] - 1,
+        #         'normal': normals, 'pos': pos,
+        #     }, allow_overwrite=True)
+        # facet_data.write('vtp', 'data/tmp/mesh.vtp', overwrite=True)
+
+        assert rmse(actual_grad_x[:, 0], 1., volume) < .02
+        assert rmse(actual_grad_x[:, 1:], 0., volume) < .002
+
+    def test_normal_incidence_mid_openfoam(self):
+        fem_data = FEMData.read_files(
+            'vtu', ['tests/data/vtu/mid_openfoam/internal.vtu'])
+        facet_data, inc_facet2cell, normals \
+            = fem_data.calculate_normal_incidence_matrix()
+
+        pos = facet_data.calculate_element_centroids()
+        volume = fem_data.calculate_element_volumes()
+        area = facet_data.calculate_element_areas()
+        actual_grad_x = inc_facet2cell.dot(
+            np.einsum('f,f,fp->fp', pos[:, 0], area[:, 0], normals)) / volume
+
+        # cell_pos = fem_data.convert_nodal2elemental(
+        #     fem_data.nodes.data, calc_average=True)
+        # fem_data.elemental_data.update_data(
+        #     fem_data.elements.ids, {
+        #         'elem_index': fem_data.elements.ids[:, None] - 1,
+        #         'grad_x': actual_grad_x, 'pos': cell_pos,
+        #     })
+        # fem_data.write('vtu', 'data/tmp/mesh.vtu', overwrite=True)
+        # facet_data.elemental_data.update_data(
+        #     facet_data.elements.ids, {
+        #         'elem_index': facet_data.elements.ids[:, None] - 1,
+        #         'normal': normals, 'pos': pos,
+        #     }, allow_overwrite=True)
+        # facet_data.write('vtp', 'data/tmp/mesh.vtp', overwrite=True)
+
+        assert rmse(actual_grad_x[:, 0], 1., volume) < .2
+        assert rmse(actual_grad_x[:, 1:], 0., volume) < .005
 
     def test_relative_incidence_graph_tet1(self):
         fem_data = FEMData.read_files(
@@ -271,10 +487,13 @@ class TestGeometryProcessor(unittest.TestCase):
             [0., 0., 1.],
             [-np.sqrt(.5), -np.sqrt(.5), 0.],
         ])
-        fem_data.calculate_element_normals()
+        normals = fem_data.calculate_element_normals()
+        normals_centroid = fem_data.calculate_element_normals(mode="centroid")
         np.testing.assert_almost_equal(
-            fem_data.extract_direction_feature(
-                fem_data.elemental_data.get_attribute_data('normal')),
+            fem_data.extract_direction_feature(normals),
+            fem_data.extract_direction_feature(desired_normals), decimal=5)
+        np.testing.assert_almost_equal(
+            fem_data.extract_direction_feature(normals_centroid),
             fem_data.extract_direction_feature(desired_normals), decimal=5)
 
     def test_calculate_surface_normals(self):
@@ -373,13 +592,15 @@ class TestGeometryProcessor(unittest.TestCase):
         data_file = pathlib.Path('tests/data/vtu/complex/mesh.vtu')
         fem_data = FEMData.read_files('polyvtk', data_file)
         normals = fem_data.calculate_surface_normals()
-        fem_data.write(
-            'polyvtk', 'tests/data/vtu/write_complex/mesh.vtu',
-            overwrite=True)
         surface_fem_data = fem_data.to_surface()
-        surface_fem_data.write(
-            'vtp', 'tests/data/vtp/write_surface_complex/mesh.vtp',
-            overwrite=True)
+
+        # fem_data.write(
+        #     'polyvtk', 'tests/data/vtu/write_complex/mesh.vtu',
+        #     overwrite=True)
+        # surface_fem_data.write(
+        #     'vtp', 'tests/data/vtp/write_surface_complex/mesh.vtp',
+        #     overwrite=True)
+
         desired_normals = np.array([
             [-0.57735027, -0.57735027, -0.57735027],
             [0., -0.6, -0.8],
@@ -440,7 +661,7 @@ class TestGeometryProcessor(unittest.TestCase):
                 [27, 29, 30, 28]]),
             'polygon': np.array([
                 np.array([1, 2, 9, 20, 19]),
-                np.array([5, 23, 24, 12,  6]),
+                np.array([5, 23, 24, 12, 6]),
                 np.array([4, 8, 14, 18, 17, 11]),
                 np.array([20, 21, 27, 28, 25, 24])], dtype=object)
         }
@@ -462,6 +683,21 @@ class TestGeometryProcessor(unittest.TestCase):
         ])
         np.testing.assert_almost_equal(normals, desired_normals)
 
+    def test_calculate_elementl_normals_curved_polygon(self):
+        data_directory = pathlib.Path('tests/data/vtp/curved')
+        fem_data = FEMData.read_directory(
+            'vtp', data_directory, read_npy=False, save=False)
+        normals = fem_data.calculate_element_normals()
+
+        desired_normals = np.array([
+            [0., 0., 1.],
+        ])
+        np.testing.assert_almost_equal(normals, desired_normals, decimal=2)
+
+        normal_norms = np.linalg.norm(normals, axis=1)
+        desired_normal_norms = np.array([1.])
+        np.testing.assert_almost_equal(normal_norms, desired_normal_norms)
+
     def test_calculate_elemental_normals_mixed_polygon(self):
         data_directory = pathlib.Path('tests/data/vtp/closed')
         fem_data = FEMData.read_directory(
@@ -478,7 +714,7 @@ class TestGeometryProcessor(unittest.TestCase):
             [1., 0., -0.],
             [0.70710678, 0.70710678, -0.],
             [0.70710678, 0.70710678, -0.],
-            [-0.70710678, 0.70710678,  0.],
+            [-0.70710678, 0.70710678, 0.],
             [-1., 0., 0.],
             [0., 0., 1.],
             [0., 0., 1.],
@@ -665,14 +901,14 @@ class TestGeometryProcessor(unittest.TestCase):
             'obj', data_directory, read_npy=False, save=False)
         fem_data.nodal_data.reset()
 
-        fem_data.rotation(1, 1, 1, np.pi/2)
-        a, b, c = 1/3, (1+3**.5)/3, (1-3**.5)/3
+        fem_data.rotation(1, 1, 1, np.pi / 2)
+        a, b, c = 1 / 3, (1 + 3**.5) / 3, (1 - 3**.5) / 3
         desired = np.array([0, 0, 0, a, b, c, c, a, b, b, c, a]).reshape(4, 3)
         np.testing.assert_almost_equal(fem_data.nodes.data, desired)
 
         fem_data.translation(1, 2, 3)
-        desired = np.array([1, 2, 3, a+1, b+2, c+3, c+1, a+2,
-                            b+3, b+1, c+2, a+3]).reshape(4, 3)
+        desired = np.array([1, 2, 3, a + 1, b + 2, c + 3, c + 1, a + 2,
+                            b + 3, b + 1, c + 2, a + 3]).reshape(4, 3)
         np.testing.assert_almost_equal(fem_data.nodes.data, desired)
 
         vx, vy, vz = np.random.random(3)
@@ -685,7 +921,8 @@ class TestGeometryProcessor(unittest.TestCase):
         dist = np.empty((4, 4))
         for i in range(4):
             for j in range(4):
-                dist[i, j] = (X[i]-X[j])**2 + (Y[i]-Y[j])**2 + (Z[i]-Z[j])**2
+                dist[i, j] = (X[i] - X[j])**2 + \
+                    (Y[i] - Y[j])**2 + (Z[i] - Z[j])**2
         desired = np.array([0, 1, 1, 1, 1, 0, 2, 2, 1, 2, 0,
                             2, 1, 2, 2, 0], np.float64).reshape(4, 4)
         np.testing.assert_almost_equal(dist, desired)
@@ -697,8 +934,8 @@ class TestGeometryProcessor(unittest.TestCase):
             'values', np.array([3, 1, 4, 1, 5], np.float32))
         # 123, 124, 134, 235, 245, 345
         sq2 = 2 ** .5
-        areas = [1/2, 1/2, 1/2, sq2/2, sq2/2, 1/2]
-        vals = [8/3, 5/3, 8/3, 10/3, 7/3, 10/3]
-        desired = sum(x*y for x, y in zip(areas, vals))
+        areas = [1 / 2, 1 / 2, 1 / 2, sq2 / 2, sq2 / 2, 1 / 2]
+        vals = [8 / 3, 5 / 3, 8 / 3, 10 / 3, 7 / 3, 10 / 3]
+        desired = sum(x * y for x, y in zip(areas, vals))
         actual = fem_data.integrate_node_attribute_over_surface('values')
         np.testing.assert_almost_equal(actual, desired)
