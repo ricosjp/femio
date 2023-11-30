@@ -1,0 +1,134 @@
+femio package
+=============
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 4
+
+   femio.formats
+   femio.util
+
+Submodules
+----------
+
+femio.config module
+-------------------
+
+.. automodule:: femio.config
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.fem\_attribute module
+---------------------------
+
+.. automodule:: femio.fem_attribute
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.fem\_attributes module
+----------------------------
+
+.. automodule:: femio.fem_attributes
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.fem\_data module
+----------------------
+
+.. automodule:: femio.fem_data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.fem\_elemental\_attribute module
+--------------------------------------
+
+.. automodule:: femio.fem_elemental_attribute
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.fem\_writer module
+------------------------
+
+.. automodule:: femio.fem_writer
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.functions module
+----------------------
+
+.. automodule:: femio.functions
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.geometry\_processor module
+--------------------------------
+
+.. automodule:: femio.geometry_processor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.graph\_processor module
+-----------------------------
+
+.. automodule:: femio.graph_processor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.io module
+---------------
+
+.. automodule:: femio.io
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.mesh\_compressor module
+-----------------------------
+
+.. automodule:: femio.mesh_compressor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.nodal\_data module
+------------------------
+
+.. automodule:: femio.nodal_data
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.signal\_processor module
+------------------------------
+
+.. automodule:: femio.signal_processor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+femio.time\_series\_dataframe module
+------------------------------------
+
+.. automodule:: femio.time_series_dataframe
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: femio
+   :members:
+   :undoc-members:
+   :show-inheritance:
