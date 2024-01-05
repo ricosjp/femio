@@ -500,7 +500,7 @@ class GraphProcessorMixin:
 
     @functools.lru_cache(maxsize=2)
     def calculate_adjacency_matrix(
-            self, *, mode='elemental', order1_only=True):
+            self, *, mode='elemental', order1_only=False):
         """Calculate graph adjacency matrix.
 
         Parameters
@@ -528,7 +528,7 @@ class GraphProcessorMixin:
         return adj
 
     @functools.lru_cache(maxsize=1)
-    def calculate_adjacency_matrix_element(self):
+    def calculate_adjacency_matrix_element(self, order1_only=False):
         """Calculate graph adjacency matrix regarding elements sharing the same
         node as connected.
 
@@ -541,11 +541,11 @@ class GraphProcessorMixin:
         print(dt.datetime.now())
         # raise ValueError(node_ids, element_data, )
         incidence_matrix = self.calculate_incidence_matrix(
-            order1_only=True)
+            order1_only=order1_only)
         return incidence_matrix.T.dot(incidence_matrix).tocsr()
 
     @functools.lru_cache(maxsize=1)
-    def calculate_adjacency_matrix_node(self, order1_only=True):
+    def calculate_adjacency_matrix_node(self, order1_only=False):
         """Calculate graph adjacency matrix regarding nodes connected with
         edges. Edges are defined by element shearing.
 
@@ -567,7 +567,7 @@ class GraphProcessorMixin:
         return incidence_matrix.dot(incidence_matrix.T)
 
     @functools.lru_cache(maxsize=1)
-    def calculate_incidence_matrix(self, order1_only=True):
+    def calculate_incidence_matrix(self, order1_only=False):
         """Calculate graph incidence matrix, which is
         (n_node, n_element)-shaped matrix with bool.
 
@@ -617,7 +617,7 @@ class GraphProcessorMixin:
         return incidence_matrix
 
     @functools.lru_cache(maxsize=2)
-    def calculate_laplacian_matrix(self, mode='nodal', order1_only=True):
+    def calculate_laplacian_matrix(self, mode='nodal', order1_only=False):
         """Calculate edge-based graph incidence matrix, which is
         (n_edge, n_node)-shaped matrix with bool.
 
@@ -645,7 +645,7 @@ class GraphProcessorMixin:
         return adj_wo_loop - degree
 
     @functools.lru_cache(maxsize=1)
-    def calculate_edge_gradient_matrix(self, mode='nodal', order1_only=True):
+    def calculate_edge_gradient_matrix(self, mode='nodal', order1_only=False):
         """Calculate edge-based graph gradient matrix, which is
         (n_edge, n_vertex)-shaped matrix with bool. n_vertex can be either
         n_node or n_element, depending on the `mode` option.
@@ -682,7 +682,7 @@ class GraphProcessorMixin:
     @functools.lru_cache(maxsize=15)
     def calculate_n_hop_adj(
             self, mode='elemental', n_hop=1, include_self_loop=True,
-            order1_only=True):
+            order1_only=False):
         if mode == 'elemental':
             adj = self.calculate_adjacency_matrix_element()
 
