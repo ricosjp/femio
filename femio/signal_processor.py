@@ -48,7 +48,7 @@ class SignalProcessorMixin:
         return elemental_data
 
     def convert_elemental2nodal(
-            self, elemental_data, mode='mean', order1_only=True,
+            self, elemental_data, mode='mean', order1_only=False,
             raise_negative_volume=True, weight=None, incidence=None):
         """Convert elemental data to nodal data.
 
@@ -283,7 +283,7 @@ class SignalProcessorMixin:
         return averaged_data
 
     def calculate_moving_average_nodal_data(
-            self, nodal_data, *, hops=1, weight=.1, order1_only=True):
+            self, nodal_data, *, hops=1, weight=.1, order1_only=False):
         """Perform moving average according with adjacency of the mesh.
 
         Args:
@@ -324,7 +324,7 @@ class SignalProcessorMixin:
         return averaged_data
 
     def calculate_median_filter(
-            self, data, *, mode='elemental', hops=1, order1_only=True):
+            self, data, *, mode='elemental', hops=1, order1_only=False):
         """Perform median filter according with adjacency of the mesh.
 
         Args:
@@ -358,7 +358,7 @@ class SignalProcessorMixin:
         return filtered_data
 
     def calculate_frame_expansion_adjs(
-            self, data, mode='nodal', n_hop=1, order1_only=True, **kwargs):
+            self, data, mode='nodal', n_hop=1, order1_only=False, **kwargs):
         """Calculate frame expansion adjacency matrices.
 
         Parameters
@@ -402,7 +402,7 @@ class SignalProcessorMixin:
 
     @functools.lru_cache(maxsize=10)
     def calculate_frame_tensor_adjs(
-            self, mode='elemental', n_hop=1, order1_only=True, tensor_rank=1):
+            self, mode='elemental', n_hop=1, order1_only=False, tensor_rank=1):
         """Calculate frame adjacency matrices F s.t. phi = F phi,
         based on frame which are set of relative vectors coming from mesh
         topology.
@@ -654,7 +654,7 @@ class SignalProcessorMixin:
             grad_adj.dot(elemental_data) for grad_adj in grad_adjs], axis=1)
 
     def calculate_nodal_spatial_gradients(
-            self, nodal_data, n_hop=1, kernel=None, order1_only=True,
+            self, nodal_data, n_hop=1, kernel=None, order1_only=False,
             normals=None, **kwargs):
         """Calculate spatial gradient (not graph gradient) w.r.t nodal
         data.
@@ -693,7 +693,7 @@ class SignalProcessorMixin:
             for grad_adj in grad_adjs], axis=1)
 
     def calculate_spatial_gradient_adjacency_matrices(
-            self, mode='elemental', n_hop=1, kernel=None, order1_only=True,
+            self, mode='elemental', n_hop=1, kernel=None, order1_only=False,
             use_effective_volume=True, moment_matrix=False,
             consider_volume=True, normals=None, normal_weight=1.,
             normal_weight_factor=None, adj=None,
@@ -897,7 +897,7 @@ class SignalProcessorMixin:
         return grad_adjs
 
     def calculate_spatial_gradient_incidence_matrix(
-            self, mode='nodal', order1_only=True,
+            self, mode='nodal', order1_only=False,
             moment_matrix=True, normals=None, normal_weight=1., **kwargs):
         """Calculate spatial gradient (not graph gradient) incidence matrix.
 
