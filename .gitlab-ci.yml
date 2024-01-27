@@ -3,6 +3,8 @@ image: registry.ritc.jp/ricos/simulation/femio/fistr_ricos:0.3.2py3.9
 default:
   before_script:
     - poetry config virtualenvs.create false
+    - python3.9 -m pip install vtk==9.2.6
+    - python3.9 -m pip install mayavi==4.8.1
     - poetry build
     - python3.9 -m pip install dist/femio-*.whl  # Only install root project, not dependencies
     # - poetry env use /usr/bin/python3.9
