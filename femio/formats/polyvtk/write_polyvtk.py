@@ -1,6 +1,4 @@
 
-import fileinput
-
 import numpy as np
 from tvtk.api import tvtk
 
@@ -62,10 +60,6 @@ class PolyVTKWriter(fem_writer.FEMWriter):
         writer.set_input_data(unstructured_grid)
         writer.write()
 
-        # Replace int64 with int32 because tvtk has trouble to read it
-        with fileinput.input(file_name, inplace=True) as file:
-            for line in file:
-                print(line.replace('Int64', 'Int32'), end='')
         return file_name
 
     def _reorder_cell_data(self, data):
