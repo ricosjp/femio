@@ -678,7 +678,9 @@ class FEMData(
         surface_indices, _ = self.extract_surface()
         if isinstance(surface_indices, dict):
             unique_indices = np.unique(np.concatenate([
-                flatten(v, k) for k, v in surface_indices.items()]))
+                flatten(v, k) for k, v in surface_indices.items()
+                if len(v) > 0
+            ]))
             surface_ids = {
                 t: self.nodes.ids[ids] for t, ids in surface_indices.items()
                 if t != 'polygon'}
