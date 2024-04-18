@@ -144,6 +144,33 @@ class TestFEMData(unittest.TestCase):
             surface_fem_data.nodal_data.get_attribute_data(
                 'INITIAL_TEMPERATURE'), desired_initial_temperature)
 
+    def test_to_surface_wo_polygon_surface(self):
+        fem_data = FEMData.read_files(
+            'vtu', 'tests/data/vtu/no_polygon_surface/mesh.vtu')
+        surface_fem_data = fem_data.to_surface()
+        nodes = surface_fem_data.nodes.data
+
+        min_x = np.min(nodes[:, 0])
+        max_x = np.max(nodes[:, 0])
+        min_y = np.min(nodes[:, 1])
+        max_y = np.max(nodes[:, 1])
+        min_z = np.min(nodes[:, 2])
+        max_z = np.max(nodes[:, 2])
+
+        assert np.all(
+            np.logical_or(
+                np.logical_or(
+                    np.logical_or(
+                        np.abs(nodes[:, 0] - min_x) < 1e-5,
+                        np.abs(nodes[:, 0] - max_x) < 1e-5),
+                    np.logical_or(
+                        np.abs(nodes[:, 1] - min_y) < 1e-5,
+                        np.abs(nodes[:, 1] - max_y) < 1e-5)),
+                np.logical_or(
+                    np.abs(nodes[:, 2] - min_z) < 1e-5,
+                    np.abs(nodes[:, 2] - max_z) < 1e-5)),
+            )
+
     def test_to_surface_mix(self):
         fem_data = FEMData.read_directory(
             'vtk', 'tests/data/vtk/mix_hex_hexprism',
