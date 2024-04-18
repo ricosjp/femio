@@ -169,7 +169,7 @@ class TestFEMData(unittest.TestCase):
                 np.logical_or(
                     np.abs(nodes[:, 2] - min_z) < 1e-5,
                     np.abs(nodes[:, 2] - max_z) < 1e-5)),
-            )
+        )
 
     def test_to_surface_mix(self):
         fem_data = FEMData.read_directory(
