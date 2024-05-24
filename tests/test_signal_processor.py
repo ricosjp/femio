@@ -175,13 +175,14 @@ class TestSignalProcessor(unittest.TestCase):
 
         # Moving average with 1 hop
         desired_ave1 = adj @ nodal_data * normalizers
-        actual_ave1 = fem_data.calculate_moving_average_nodal_data(nodal_data)
+        actual_ave1 = fem_data.calculate_moving_average_nodal_data(
+            nodal_data, order1_only=True)
         np.testing.assert_almost_equal(actual_ave1, desired_ave1)
 
         # Moving average with 2 hops
         desired_ave2 = adj @ (adj @ nodal_data * normalizers) * normalizers
         actual_ave2 = fem_data.calculate_moving_average_nodal_data(
-            nodal_data, hops=2)
+            nodal_data, hops=2, order1_only=True)
         np.testing.assert_almost_equal(actual_ave2, desired_ave2)
 
     def test_calculate_moving_average_nodal_data_disordered(self):
@@ -334,7 +335,8 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/tet2_cube',
             read_npy=False, read_mesh_only=True, save=False)
         xs = fem_data.nodal_data.get_attribute_data('node')
-        actual_grads = fem_data.calculate_nodal_spatial_gradients(xs[:, [0]])
+        actual_grads = fem_data.calculate_nodal_spatial_gradients(
+            xs[:, [0]], order1_only=True)
 
         np.testing.assert_almost_equal(
             np.mean(actual_grads, axis=0)[:, 0], [1., 0., 0.], decimal=2)
@@ -967,9 +969,9 @@ class TestSignalProcessor(unittest.TestCase):
             save=False)
         volumes = tet_fem_data.calculate_element_volumes()
         tet_converted_volumes = tet_fem_data.convert_elemental2nodal(
-            volumes, mode='effective')
+            volumes, mode='effective', order1_only=True)
         tet2_converted_volumes = tet2_fem_data.convert_elemental2nodal(
-            volumes, mode='effective')
+            volumes, mode='effective', order1_only=True)
 
         np.testing.assert_almost_equal(
             tet2_converted_volumes, tet_converted_volumes)
@@ -1112,7 +1114,7 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/tet2_cube',
             read_npy=False, save=False)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
-            mode='nodal', n_hop=1, moment_matrix=True)
+            mode='nodal', n_hop=1, moment_matrix=True, order1_only=True)
 
         filter_ = fem_data.filter_first_order_nodes()
         n = np.sum(filter_)
@@ -1136,9 +1138,11 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
             = fem_data.calculate_spatial_gradient_adjacency_matrices(
-                mode='nodal', n_hop=1, moment_matrix=True, normals=None)
+                mode='nodal', n_hop=1, moment_matrix=True, normals=None,
+                order1_only=True)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
-            mode='nodal', n_hop=1, moment_matrix=True, normals=True)
+            mode='nodal', n_hop=1, moment_matrix=True, normals=True,
+            order1_only=True)
 
         inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
             'inversed_moment_tensors')
@@ -1190,10 +1194,12 @@ class TestSignalProcessor(unittest.TestCase):
             'vtk', 'tests/data/vtk/tet2_cube', read_npy=False, save=False)
         grads_wo_neumann \
             = fem_data.calculate_spatial_gradient_adjacency_matrices(
-                mode='nodal', n_hop=1, moment_matrix=True, normals=None)
+                mode='nodal', n_hop=1, moment_matrix=True, normals=None,
+                order1_only=True)
         grads = fem_data.calculate_spatial_gradient_adjacency_matrices(
             mode='nodal', n_hop=1, moment_matrix=True, normals=True,
-            normal_weight_factor=1., consider_volume=False)
+            normal_weight_factor=1., consider_volume=False,
+            order1_only=True)
 
         inversed_moment_tensors = fem_data.nodal_data.get_attribute_data(
             'inversed_moment_tensors')

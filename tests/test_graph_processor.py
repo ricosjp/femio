@@ -44,7 +44,8 @@ class TestGraphProcessor(unittest.TestCase):
     def test_calculate_adjacency_matrix_node_tet2(self):
         fem_data = FEMData.read_directory(
             'fistr', 'tests/data/fistr/graph_tet2', read_npy=False)
-        adjacency_matrix = fem_data.calculate_adjacency_matrix_node()
+        adjacency_matrix = fem_data.calculate_adjacency_matrix_node(
+            order1_only=True)
         desired = np.array([
             [1, 1, 1, 1, 0],
             [1, 1, 1, 1, 1],
