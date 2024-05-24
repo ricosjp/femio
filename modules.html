@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>femio &mdash; femio 0.3.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d5a15cff"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            femio
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="femio.html">femio package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">femio</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">femio</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/modules.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="femio">
+<h1>femio<a class="headerlink" href="#femio" title="Link to this heading"></a></h1>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="femio.html">femio package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.formats.html">femio.formats package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.formats.html#module-femio.formats">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="femio.util.html">femio.util package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.util.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.util.html#module-femio.util.brick_generator">femio.util.brick_generator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.util.html#module-femio.util.random_generator">femio.util.random_generator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.util.html#module-femio.util.string_parser">femio.util.string_parser module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.util.html#module-femio.util">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.config">femio.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_attribute">femio.fem_attribute module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute"><code class="docutils literal notranslate"><span class="pre">FEMAttribute</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.name"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.name</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.ids"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.ids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.data"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.data_unit"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.data_unit</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.time_series"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.time_series</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#id0"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.data_frame"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.data_frame</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.filter_with_ids"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.filter_with_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.from_dict"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.from_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#id1"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.ids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.ids2indices"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.ids2indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.iloc"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.iloc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.load"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.loc"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.loc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.save"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.to_dict"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.update"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.update_data"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.update_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attribute.FEMAttribute.values"><code class="docutils literal notranslate"><span class="pre">FEMAttribute.values</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_attributes">femio.fem_attributes module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes"><code class="docutils literal notranslate"><span class="pre">FEMAttributes</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.data"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.are_same_lengths"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.are_same_lengths()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.extract_dict"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.extract_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.filter_with_ids"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.filter_with_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.from_dict"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.from_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.from_meshio"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.from_meshio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.get_attribute_data"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.get_attribute_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.get_attribute_ids"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.get_attribute_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.get_data_length"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.get_data_length()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.get_n_material"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.get_n_material()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.has_material"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.has_material()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.items"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.keys"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.load"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.overwrite"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.overwrite()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.pop"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.pop()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.reset"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.reset()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.save"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.set_attribute_data"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.set_attribute_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.to_dict"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.to_meshio"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.to_meshio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.update"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.update_data"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.update_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.update_time_series"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.update_time_series()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_attributes.FEMAttributes.values"><code class="docutils literal notranslate"><span class="pre">FEMAttributes.values()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_data">femio.fem_data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.fem_data.FEMData"><code class="docutils literal notranslate"><span class="pre">FEMData</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.file_names"><code class="docutils literal notranslate"><span class="pre">FEMData.file_names</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.nodes"><code class="docutils literal notranslate"><span class="pre">FEMData.nodes</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.elements"><code class="docutils literal notranslate"><span class="pre">FEMData.elements</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.nodal_data"><code class="docutils literal notranslate"><span class="pre">FEMData.nodal_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.elemental_data"><code class="docutils literal notranslate"><span class="pre">FEMData.elemental_data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.node_groups"><code class="docutils literal notranslate"><span class="pre">FEMData.node_groups</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.element_groups"><code class="docutils literal notranslate"><span class="pre">FEMData.element_groups</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.materials"><code class="docutils literal notranslate"><span class="pre">FEMData.materials</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.sections"><code class="docutils literal notranslate"><span class="pre">FEMData.sections</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.settings"><code class="docutils literal notranslate"><span class="pre">FEMData.settings</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.add_extension_if_needed"><code class="docutils literal notranslate"><span class="pre">FEMData.add_extension_if_needed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.add_static_material"><code class="docutils literal notranslate"><span class="pre">FEMData.add_static_material()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.convert_polyhedron"><code class="docutils literal notranslate"><span class="pre">FEMData.convert_polyhedron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.create_element_group_from_node_group"><code class="docutils literal notranslate"><span class="pre">FEMData.create_element_group_from_node_group()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.create_node_group"><code class="docutils literal notranslate"><span class="pre">FEMData.create_node_group()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.cut_elements_with_node_ids"><code class="docutils literal notranslate"><span class="pre">FEMData.cut_elements_with_node_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.cut_with_element_ids"><code class="docutils literal notranslate"><span class="pre">FEMData.cut_with_element_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.cut_with_element_type"><code class="docutils literal notranslate"><span class="pre">FEMData.cut_with_element_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.cut_with_node_ids"><code class="docutils literal notranslate"><span class="pre">FEMData.cut_with_node_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.extract_with_element_indices"><code class="docutils literal notranslate"><span class="pre">FEMData.extract_with_element_indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.face_data_csr"><code class="docutils literal notranslate"><span class="pre">FEMData.face_data_csr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.from_meshio"><code class="docutils literal notranslate"><span class="pre">FEMData.from_meshio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.generate_graph_fem_data"><code class="docutils literal notranslate"><span class="pre">FEMData.generate_graph_fem_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.hex_to_polyhedron"><code class="docutils literal notranslate"><span class="pre">FEMData.hex_to_polyhedron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.overwritten_material_exists"><code class="docutils literal notranslate"><span class="pre">FEMData.overwritten_material_exists()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.prism_to_polyhedron"><code class="docutils literal notranslate"><span class="pre">FEMData.prism_to_polyhedron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.pyr_to_polyhedron"><code class="docutils literal notranslate"><span class="pre">FEMData.pyr_to_polyhedron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.read_directory"><code class="docutils literal notranslate"><span class="pre">FEMData.read_directory()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.read_files"><code class="docutils literal notranslate"><span class="pre">FEMData.read_files()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.read_meshio_file"><code class="docutils literal notranslate"><span class="pre">FEMData.read_meshio_file()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.read_npy_directory"><code class="docutils literal notranslate"><span class="pre">FEMData.read_npy_directory()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.remove_useless_nodes"><code class="docutils literal notranslate"><span class="pre">FEMData.remove_useless_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.resolve_degeneracy"><code class="docutils literal notranslate"><span class="pre">FEMData.resolve_degeneracy()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.save"><code class="docutils literal notranslate"><span class="pre">FEMData.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.tet_to_polyhedron"><code class="docutils literal notranslate"><span class="pre">FEMData.tet_to_polyhedron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.to_facets"><code class="docutils literal notranslate"><span class="pre">FEMData.to_facets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.to_first_order"><code class="docutils literal notranslate"><span class="pre">FEMData.to_first_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.to_meshio"><code class="docutils literal notranslate"><span class="pre">FEMData.to_meshio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.to_polyhedron"><code class="docutils literal notranslate"><span class="pre">FEMData.to_polyhedron()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.to_surface"><code class="docutils literal notranslate"><span class="pre">FEMData.to_surface()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_data.FEMData.write"><code class="docutils literal notranslate"><span class="pre">FEMData.write()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_elemental_attribute">femio.fem_elemental_attribute module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.ELEMENT_TYPES"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.ELEMENT_TYPES</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.data"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.data</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.detect_element_type"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.detect_element_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.dict_type_ids"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.dict_type_ids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.element_type"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.element_type</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.filter_with_ids"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.filter_with_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.from_dict"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.from_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.from_meshio"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.from_meshio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.generate_elemental_attribute"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.generate_elemental_attribute()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.get_attribute_ids"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.get_attribute_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.get_n_element_type"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.get_n_element_type()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.id2index"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.id2index</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.ids"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.ids</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.ids_types"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.ids_types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.is_first_order"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.is_first_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.items"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.items()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.keys"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.keys()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.load"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.load()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.save"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.save()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.to_dict"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.to_dict()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.to_first_order"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.to_first_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.to_meshio"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.to_meshio()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.to_surface"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.to_surface()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.to_vtk"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.to_vtk()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.types"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.unique_types"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.unique_types</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.update"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.update()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_elemental_attribute.FEMElementalAttribute.values"><code class="docutils literal notranslate"><span class="pre">FEMElementalAttribute.values()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_writer">femio.fem_writer module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.fem_writer.FEMWriter"><code class="docutils literal notranslate"><span class="pre">FEMWriter</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.fem_writer.FEMWriter.try_convert_to_2d"><code class="docutils literal notranslate"><span class="pre">FEMWriter.try_convert_to_2d()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.functions">femio.functions module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.align_nnz"><code class="docutils literal notranslate"><span class="pre">align_nnz()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.calculate_array_from_eigens"><code class="docutils literal notranslate"><span class="pre">calculate_array_from_eigens()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.calculate_principal_components"><code class="docutils literal notranslate"><span class="pre">calculate_principal_components()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.calculate_symmetric_matrices_from_eigens"><code class="docutils literal notranslate"><span class="pre">calculate_symmetric_matrices_from_eigens()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.convert_array2symmetric_matrix"><code class="docutils literal notranslate"><span class="pre">convert_array2symmetric_matrix()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.convert_symmetric_matrix2array"><code class="docutils literal notranslate"><span class="pre">convert_symmetric_matrix2array()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.invert_strain"><code class="docutils literal notranslate"><span class="pre">invert_strain()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.normalize"><code class="docutils literal notranslate"><span class="pre">normalize()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.functions.remove_duplicates"><code class="docutils literal notranslate"><span class="pre">remove_duplicates()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.geometry_processor">femio.geometry_processor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_all_element_normals"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_all_element_normals()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_angles"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_angles()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_edge_lengths"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_edge_lengths()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_element_areas"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_element_areas()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_element_centroids"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_element_centroids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_element_metrics"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_element_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_element_normals"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_element_normals()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_element_volumes"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_element_volumes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_jacobians"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_jacobians()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_normal_incidence_matrix"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_normal_incidence_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.calculate_surface_normals"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.calculate_surface_normals()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.extract_direction_feature"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.extract_direction_feature()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.integrate_node_attribute_over_surface"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.integrate_node_attribute_over_surface()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.make_elements_positive"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.make_elements_positive()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.rotation"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.rotation()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.geometry_processor.GeometryProcessorMixin.translation"><code class="docutils literal notranslate"><span class="pre">GeometryProcessorMixin.translation()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.graph_processor">femio.graph_processor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.build_octree_element"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.build_octree_element()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.build_octree_node"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.build_octree_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_adjacency_matrix"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_adjacency_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_adjacency_matrix_element"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_adjacency_matrix_element()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_adjacency_matrix_node"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_adjacency_matrix_node()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_e2v_matrix"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_e2v_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_edge_gradient_matrix"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_edge_gradient_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_element_degree"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_element_degree()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_euclidean_hop_graph"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_euclidean_hop_graph()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_filter_by_ids"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_filter_by_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_hausdorff_distance_elements"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_hausdorff_distance_elements()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_hausdorff_distance_nodes"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_hausdorff_distance_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_incidence_matrix"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_incidence_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_laplacian_matrix"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_laplacian_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_n_hop_adj"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_n_hop_adj()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.calculate_relative_incidence_metrix_element"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.calculate_relative_incidence_metrix_element()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.collect_element_data_by_ids"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.collect_element_data_by_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.collect_element_indices_by_ids"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.collect_element_indices_by_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.collect_node_indices_by_ids"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.collect_node_indices_by_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.collect_node_positions_by_ids"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.collect_node_positions_by_ids()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.convert_element_data_to_indices"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.convert_element_data_to_indices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.convert_id_elements_to_index_elements"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.convert_id_elements_to_index_elements()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.extract_facets"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.extract_facets()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.extract_surface"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.extract_surface()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.extract_surface_fistr"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.extract_surface_fistr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.filter_first_order_nodes"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.filter_first_order_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.nearest_neighbor_search_from_elements_to_elements"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.nearest_neighbor_search_from_elements_to_elements()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.nearest_neighbor_search_from_elements_to_nodes"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.nearest_neighbor_search_from_elements_to_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.nearest_neighbor_search_from_nodes_to_elements"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.nearest_neighbor_search_from_nodes_to_elements()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.nearest_neighbor_search_from_nodes_to_nodes"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.nearest_neighbor_search_from_nodes_to_nodes()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.graph_processor.GraphProcessorMixin.separate"><code class="docutils literal notranslate"><span class="pre">GraphProcessorMixin.separate()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.io">femio.io module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.convert_to_2d_if_needed"><code class="docutils literal notranslate"><span class="pre">convert_to_2d_if_needed()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.convert_vtk_unstructured_to_femio"><code class="docutils literal notranslate"><span class="pre">convert_vtk_unstructured_to_femio()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.read_directory"><code class="docutils literal notranslate"><span class="pre">read_directory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.read_files"><code class="docutils literal notranslate"><span class="pre">read_files()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.read_npy_directory"><code class="docutils literal notranslate"><span class="pre">read_npy_directory()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.stack_if_needed"><code class="docutils literal notranslate"><span class="pre">stack_if_needed()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.io.update_voxel2hex_if_needed"><code class="docutils literal notranslate"><span class="pre">update_voxel2hex_if_needed()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.mesh_compressor">femio.mesh_compressor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor"><code class="docutils literal notranslate"><span class="pre">MeshCompressor</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.calculate_compressed_fem_data"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.calculate_compressed_fem_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.calculate_conversion_matrix_elemental"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.calculate_conversion_matrix_elemental()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.calculate_conversion_matrix_nodal"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.calculate_conversion_matrix_nodal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.compress"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.compress()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.compress_elemental_data"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.compress_elemental_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.compress_nodal_data"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.compress_nodal_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.decompress_elemental_data"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.decompress_elemental_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.mesh_compressor.MeshCompressor.decompress_nodal_data"><code class="docutils literal notranslate"><span class="pre">MeshCompressor.decompress_nodal_data()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.calc_centers"><code class="docutils literal notranslate"><span class="pre">calc_centers()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.calculate_elemental_knn"><code class="docutils literal notranslate"><span class="pre">calculate_elemental_knn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.calculate_nodal_knn"><code class="docutils literal notranslate"><span class="pre">calculate_nodal_knn()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.check_polyhedron"><code class="docutils literal notranslate"><span class="pre">check_polyhedron()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.collect_vertex"><code class="docutils literal notranslate"><span class="pre">collect_vertex()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.merge_elements"><code class="docutils literal notranslate"><span class="pre">merge_elements()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.merge_polyhedrons"><code class="docutils literal notranslate"><span class="pre">merge_polyhedrons()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.merge_vertices"><code class="docutils literal notranslate"><span class="pre">merge_vertices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.print_stat"><code class="docutils literal notranslate"><span class="pre">print_stat()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.recalc_node_pos"><code class="docutils literal notranslate"><span class="pre">recalc_node_pos()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.reindex"><code class="docutils literal notranslate"><span class="pre">reindex()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.remove_edges"><code class="docutils literal notranslate"><span class="pre">remove_edges()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.remove_one_edge_from_polyhedron"><code class="docutils literal notranslate"><span class="pre">remove_one_edge_from_polyhedron()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.remove_one_vertex_from_polyhedron"><code class="docutils literal notranslate"><span class="pre">remove_one_vertex_from_polyhedron()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.remove_vertices"><code class="docutils literal notranslate"><span class="pre">remove_vertices()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.remove_vertices_2"><code class="docutils literal notranslate"><span class="pre">remove_vertices_2()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.mesh_compressor.shrink"><code class="docutils literal notranslate"><span class="pre">shrink()</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.nodal_data">femio.nodal_data module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.nodal_data.NodalData"><code class="docutils literal notranslate"><span class="pre">NodalData</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.signal_processor">femio.signal_processor module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.add_principal_vectors"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.add_principal_vectors()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.aggregate_edges_to_vertices"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.aggregate_edges_to_vertices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_data_adjs"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_data_adjs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_data_diff_adjs"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_data_diff_adjs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_diffusion_elemental_data"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_diffusion_elemental_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_distance_kernel_adj"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_distance_kernel_adj()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_distance_kernel_adj_chisquare_data"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_distance_kernel_adj_chisquare_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_distance_kernel_adj_exp_data"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_distance_kernel_adj_exp_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_distance_kernel_adj_gauss_data"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_distance_kernel_adj_gauss_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_edge_differences"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_edge_differences()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_elemental_spatial_gradients"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_elemental_spatial_gradients()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_frame_expansion_adjs"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_frame_expansion_adjs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_frame_tensor_adjs"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_frame_tensor_adjs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_median_filter"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_median_filter()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_moving_average_elemental_data"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_moving_average_elemental_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_moving_average_nodal_data"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_moving_average_nodal_data()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_nodal_spatial_gradients"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_nodal_spatial_gradients()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_norm_adj"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_norm_adj()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_spatial_gradient_adjacency_matrices"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_spatial_gradient_adjacency_matrices()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_spatial_gradient_incidence_matrix"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_spatial_gradient_incidence_matrix()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.calculate_tensor_power"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.calculate_tensor_power()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.convert_elemental2nodal"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.convert_elemental2nodal()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.convert_lte_global2local"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.convert_lte_global2local()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.convert_lte_local2global"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.convert_lte_local2global()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.convert_nodal2elemental"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.convert_nodal2elemental()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.convert_vertices_to_edges"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.convert_vertices_to_edges()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.integrate"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.integrate()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.integrate_elements"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.integrate_elements()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.signal_processor.SignalProcessorMixin.multiply_sparse_tensors"><code class="docutils literal notranslate"><span class="pre">SignalProcessorMixin.multiply_sparse_tensors()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.time_series_dataframe">femio.time_series_dataframe module</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesArray"><code class="docutils literal notranslate"><span class="pre">TimeSeriesArray</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.data_frame"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.data_frame</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.iloc"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.iloc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.index"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.index</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.loc"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.loc</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.ndim"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.ndim</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.space_length"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.space_length</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="femio.html#femio.time_series_dataframe.TimeSeriesDataFrame.values"><code class="docutils literal notranslate"><span class="pre">TimeSeriesDataFrame.values</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, RICOS Co. Ltd..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

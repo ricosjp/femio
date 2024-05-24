@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>femio.util package &mdash; femio 0.3.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d5a15cff"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="femio.formats package" href="femio.formats.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            femio
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="femio.html">femio package</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="femio.html#subpackages">Subpackages</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="femio.formats.html">femio.formats package</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">femio.util package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-femio.util.brick_generator">femio.util.brick_generator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-femio.util.random_generator">femio.util.random_generator module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-femio.util.string_parser">femio.util.string_parser module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#module-femio.util">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.config">femio.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_attribute">femio.fem_attribute module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_attributes">femio.fem_attributes module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_data">femio.fem_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_elemental_attribute">femio.fem_elemental_attribute module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_writer">femio.fem_writer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.functions">femio.functions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.geometry_processor">femio.geometry_processor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.graph_processor">femio.graph_processor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.io">femio.io module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.mesh_compressor">femio.mesh_compressor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.nodal_data">femio.nodal_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.signal_processor">femio.signal_processor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.time_series_dataframe">femio.time_series_dataframe module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">femio</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="femio.html">femio package</a></li>
+      <li class="breadcrumb-item active">femio.util package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/femio.util.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="femio-util-package">
+<h1>femio.util package<a class="headerlink" href="#femio-util-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-femio.util.brick_generator">
+<span id="femio-util-brick-generator-module"></span><h2>femio.util.brick_generator module<a class="headerlink" href="#module-femio.util.brick_generator" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="femio.util.brick_generator.generate_brick">
+<span class="sig-prename descclassname"><span class="pre">femio.util.brick_generator.</span></span><span class="sig-name descname"><span class="pre">generate_brick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_x_element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_y_element</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_z_element</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.brick_generator.generate_brick" title="Link to this definition"></a></dt>
+<dd><p>Generate brick mesh.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_type</strong> (<em>str</em>) – Element type selected from [‘tri’, ‘quad’, ‘tet’, ‘hex’].</p></li>
+<li><p><strong>n_x_element</strong> (<em>int</em>) – The number of element in the X direction.</p></li>
+<li><p><strong>n_y_element</strong> (<em>int</em>) – The number of element in the Y direction.</p></li>
+<li><p><strong>n_z_element</strong> (<em>int</em><em>, </em><em>optional</em>) – The number of element in the Z direction.</p></li>
+<li><p><strong>x_length</strong> (<em>float</em><em>, </em><em>optional</em>) – The X length of the brick. The default is 1.</p></li>
+<li><p><strong>y_length</strong> (<em>float</em><em>, </em><em>optional</em>) – The Y length of the brick. The default is 1.</p></li>
+<li><p><strong>z_length</strong> (<em>float</em><em>, </em><em>optional</em>) – The Z length of the brick. The default is 1.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fem_data</strong> – FEMData object of the generated brick mesh.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>femio.FEMData</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-femio.util.random_generator">
+<span id="femio-util-random-generator-module"></span><h2>femio.util.random_generator module<a class="headerlink" href="#module-femio.util.random_generator" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="femio.util.random_generator.generate_random_mesh">
+<span class="sig-prename descclassname"><span class="pre">femio.util.random_generator.</span></span><span class="sig-name descname"><span class="pre">generate_random_mesh</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element_type</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">n_point</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">z_length</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">quality_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_scale</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">strip_epsilon</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.random_generator.generate_random_mesh" title="Link to this definition"></a></dt>
+<dd><p>Generate random mesh.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>element_type</strong> (<em>str</em>) – Element type selected from [‘tri’, ‘quad’, ‘tet’, ‘hex’].</p></li>
+<li><p><strong>n_point</strong> (<em>int</em>) – The number of points.</p></li>
+<li><p><strong>x_length</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum X length of the mesh. The default is 1.</p></li>
+<li><p><strong>y_length</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum Y length of the mesh. The default is 1.</p></li>
+<li><p><strong>z_length</strong> (<em>float</em><em>, </em><em>optional</em>) – The maximum Z length of the mesh. The default is 1.</p></li>
+<li><p><strong>quality_threshold</strong> (<em>float</em><em>, </em><em>optional</em>) – If fed, compute quality of elements and remove some when the quality
+is bad.</p></li>
+<li><p><strong>noise_scale</strong> (<em>float</em><em>, </em><em>optional</em>) – The scale of the noise added to node positions. The default is 0.1.</p></li>
+<li><p><strong>strip_epsilon</strong> (<em>float</em><em>, </em><em>optional</em>) – If True, remove superfacial elements, which tend to have bad quality.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>fem_data</strong> – FEMData object of the generated brick mesh.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>femio.FEMData</p>
+</dd>
+</dl>
+</dd></dl>
+
+</section>
+<section id="module-femio.util.string_parser">
+<span id="femio-util-string-parser-module"></span><h2>femio.util.string_parser module<a class="headerlink" href="#module-femio.util.string_parser" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="femio.util.string_parser.HeaderData">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">femio.util.string_parser.</span></span><span class="sig-name descname"><span class="pre">HeaderData</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">headers</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">list_indices</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.HeaderData" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.HeaderData.extract_data">
+<span class="sig-name descname"><span class="pre">extract_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">concatenate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.HeaderData.extract_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.HeaderData.extract_headers">
+<span class="sig-name descname"><span class="pre">extract_headers</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">key</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.HeaderData.extract_headers" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="femio.util.string_parser.ListStringSeries">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">femio.util.string_parser.</span></span><span class="sig-name descname"><span class="pre">ListStringSeries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_string_series</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.ListStringSeries" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.ListStringSeries.expand_include">
+<span class="sig-name descname"><span class="pre">expand_include</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.ListStringSeries.expand_include" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.ListStringSeries.strip">
+<span class="sig-name descname"><span class="pre">strip</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.ListStringSeries.strip" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">femio.util.string_parser.</span></span><span class="sig-name descname"><span class="pre">StringSeries</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kw</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Series</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.concat">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">concat</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">axis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.concat" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.connect">
+<span class="sig-name descname"><span class="pre">connect</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">other</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.connect" title="Link to this definition"></a></dt>
+<dd><p>Connect two StringSeries objects with specified delimiter.
+Lengths of two objects should be the same.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>other</strong> – Other StringSeries object to be connected.</p></li>
+<li><p><strong>delimiter</strong> – String to appear at the connection.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>StringSeries object after connection.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.connect_all">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">connect_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.connect_all" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.delimit">
+<span class="sig-name descname"><span class="pre">delimit</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.delimit" title="Link to this definition"></a></dt>
+<dd><p>Delimit StringLines object with the specified delimiter to output
+rank-2 ndarray of strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>delimiter</strong> – String of delimiter (default: ‘,’).</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>rank-2 ndarray of string.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.expand_include">
+<span class="sig-name descname"><span class="pre">expand_include</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_name</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.expand_include" title="Link to this definition"></a></dt>
+<dd><p>Expand data like ‘include’ statement. Expanded data is concatenated
+at the end of the non-expanded data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> – Pattern showing include statement. Include file should be
+captured with the first expression.</p></li>
+<li><p><strong>base_name</strong> – Directory name of the include file location.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>StringSeries object after expansion.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.extract_captures">
+<span class="sig-name descname"><span class="pre">extract_captures</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.extract_captures" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.find_match">
+<span class="sig-name descname"><span class="pre">find_match</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_multiple_matches</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">convert_values</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_match</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.find_match" title="Link to this definition"></a></dt>
+<dd><p>Find match to the specified pattern.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>pattern</strong> – Pattern to be used for matching.</p></li>
+<li><p><strong>allow_multiple_matches</strong> – True to accept several matches.
+(Default = True)</p></li>
+<li><p><strong>convert_values</strong> – Bool, [True]
+Flag to convert StringSeries to values</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>StringSeries or ndarray of matches.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.indices_match_clusters">
+<span class="sig-name descname"><span class="pre">indices_match_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_match</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.indices_match_clusters" title="Link to this definition"></a></dt>
+<dd><p>Make cluster of indices of matches. Cluster means a group with
+continuous indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pattern</strong> – Pattern to be used for matching.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>list of ndarrays containing indices of each cluster.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.indices_matches">
+<span class="sig-name descname"><span class="pre">indices_matches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">negative_match</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.indices_matches" title="Link to this definition"></a></dt>
+<dd><p>Return indices of matched lines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>pattern</strong> – Pattern to be used for matching.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Ndarray of ints indicating indices of matched lines.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.read_array">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_array</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">_array</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">str_format</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.read_array" title="Link to this definition"></a></dt>
+<dd><p>Read array to make StringSeries object.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>array</strong> – Ndarray or list of NDarray to make StringSeries object.</p></li>
+<li><p><strong>delimiter</strong> – String indicating delimiter to connect components in
+a raw (default: ‘,’).</p></li>
+<li><p><strong>str_format</strong> – Format string to be passed to numpy.savetxt.</p></li>
+</ul>
+</dd>
+</dl>
+<p>Returns: StringSeries object after reading arrays.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.read_file">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_name</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.read_file" title="Link to this definition"></a></dt>
+<dd><p>Read file and convert to numpy string array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_name</strong> – String of file name.</p></li>
+<li><p><strong>pattern_ignore</strong> – String to be used for ignore unecessary line
+e.g. comment.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>StringDataFrame object. Each component corresponds to each line of
+the input file.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.read_files">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">file_names</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pattern_ignore</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">separate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.read_files" title="Link to this definition"></a></dt>
+<dd><p>Read files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>file_names</strong> – Array of strings indicating file names.</p></li>
+<li><p><strong>pattern_ignore</strong> – String to be used for ignore unecessary line
+e.g. comment.</p></li>
+<li><p><strong>separate</strong> – bool
+If True, return separated contents, namely, ListStringSeries
+object.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>StringDataFrame object. Each component corresponds to each line of
+input files (contents are concatenated).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.split_vertical">
+<span class="sig-name descname"><span class="pre">split_vertical</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index_cut</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.split_vertical" title="Link to this definition"></a></dt>
+<dd><p>Split StringSeries object vertically.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index_cut</strong> – Index (= start index of 2nd obj) to cut the StringLines.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>2-tuple of DataFrame objects after splitting.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.split_vertical_all">
+<span class="sig-name descname"><span class="pre">split_vertical_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.split_vertical_all" title="Link to this definition"></a></dt>
+<dd><p>Split StringSeries object vertically. Output will be n StringSeries
+objects.</p>
+<p>Args:
+:returns: n-tuple of StringSeries objexts after splitting.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.strip">
+<span class="sig-name descname"><span class="pre">strip</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.strip" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.to_dict_fem_attributes">
+<span class="sig-name descname"><span class="pre">to_dict_fem_attributes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">component_nums</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_units</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.to_dict_fem_attributes" title="Link to this definition"></a></dt>
+<dd><p>Generate dict of FEMAttribute objects with parsing the lines.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>names</strong> – List of strings indicating names of the attributes.</p></li>
+<li><p><strong>component_nums</strong> – List of ints indicating # of components of each
+attributes.</p></li>
+<li><p><strong>data_units</strong> – List of strings indicating unit of data.
+(default: ‘unit_unknown’)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict with key = name, value = fem.FEMAttribute.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.to_fem_attribute">
+<span class="sig-name descname"><span class="pre">to_fem_attribute</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">id_column</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">slice_data_columns</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type=&lt;class</span> <span class="pre">'float'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter='</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_unit='unit_unknown'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">generate_id2index=False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.to_fem_attribute" title="Link to this definition"></a></dt>
+<dd><p>Generate FEMAttribute object with parsing the series.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>name</strong> – String indicating name of the attribute.</p></li>
+<li><p><strong>lines</strong> – Ndarray of strings contains data.</p></li>
+<li><p><strong>id_column</strong> – Int indicating the column of ids.</p></li>
+<li><p><strong>slice_data_columns</strong> – Slice object indicating the columns of data.</p></li>
+<li><p><strong>data_type</strong> – Type of the data (default: float)</p></li>
+<li><p><strong>delimiter</strong> – String of delimiter. (default: ‘,’)</p></li>
+<li><p><strong>data_unit</strong> – String indicating unit of data.
+(default: ‘unit_unknown’)</p></li>
+<li><p><strong>generate_id2index</strong> – bool
+If True, generate pandas.DataFrame of IDs and indices.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>femio.FEMAttribute object.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.to_header_data">
+<span class="sig-name descname"><span class="pre">to_header_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pattern</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.to_header_data" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="femio.util.string_parser.StringSeries.to_values">
+<span class="sig-name descname"><span class="pre">to_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">delimiter='</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">data_type=&lt;class</span> <span class="pre">'float'&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">to_rank1=False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">until_column=None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#femio.util.string_parser.StringSeries.to_values" title="Link to this definition"></a></dt>
+<dd><p>Delimit StringLines object with the specified delimiter to output
+ndarray of the specified data_type.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>delimiter</strong> – String of delimiter (default: ‘,’).</p></li>
+<li><p><strong>data_type</strong> – Type of output data (default: float).</p></li>
+<li><p><strong>to_rank1</strong> – Boolean to control output (True: rank-1, False: rank-2,
+default: False)</p></li>
+<li><p><strong>until_column</strong> – int, optional, [None]
+Read until the specified column.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Ndarray of the specified data_type.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-femio.util">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-femio.util" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="femio.formats.html" class="btn btn-neutral float-left" title="femio.formats package" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, RICOS Co. Ltd..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

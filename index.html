@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FEMIO: FEM and mesh I/O tool &mdash; femio 0.3.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d5a15cff"></script>
+        <script src="_static/doctools.js?v=9a2dae69"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Examples" href="examples/index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#" class="icon icon-home">
+            femio
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="femio.html">femio package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">femio</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">FEMIO: FEM and mesh I/O tool</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <a class="reference internal image-reference" href="_images/femio_logo.svg"><img alt="FEMIO" src="_images/femio_logo.svg" width="400" /></a>
+<section id="femio-fem-and-mesh-i-o-tool">
+<h1>FEMIO: FEM and mesh I/O tool<a class="headerlink" href="#femio-fem-and-mesh-i-o-tool" title="Link to this heading"></a></h1>
+<p><em>FEMIO</em> is a tool to handle discretized geometry data and simulation data
+associated with them, e.g., meshes for finite element method, point clouds
+for particle method.
+Using FEMIO, one can perform preprocessing and postprocessing using FEMIO’s
+unified python interface.
+Also, FEMIO provides various data processing tools,
+e.g., geometry processing and graph signal processing.
+So far, FEMIO supports the following file formats:</p>
+<table class="docutils align-default">
+<colgroup>
+<col style="width: 40.0%" />
+<col style="width: 20.0%" />
+<col style="width: 20.0%" />
+<col style="width: 10.0%" />
+<col style="width: 10.0%" />
+</colgroup>
+<thead>
+<tr class="row-odd"><th class="head"><p>File format name</p></th>
+<th class="head"><p>Extension</p></th>
+<th class="head"><p>Name in FEMIO</p></th>
+<th class="head"><p>Read</p></th>
+<th class="head"><p>Write</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>VTK legacy</p></td>
+<td><p>.vtk</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">'vtk'</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-odd"><td><p>AVS UCD</p></td>
+<td><p>.inp</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">'ucd'</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-even"><td><p>FrontISTR</p></td>
+<td><p>.msh, .cnt, .res</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">'fistr'</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-odd"><td><p>Wavefront OBJ</p></td>
+<td><p>.obj</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">'obj'</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+<tr class="row-even"><td><p>Stereolithography</p></td>
+<td><p>.stl</p></td>
+<td><p><code class="code docutils literal notranslate"><span class="pre">'stl'</span></code></p></td>
+<td><p>yes</p></td>
+<td><p>yes</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>FEMIO supports Python 3.8 or newer.
+FEMIO can be installed via pip:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>$<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>femio
+</pre></div>
+</div>
+<div class="toctree-wrapper compound">
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="femio.html">femio package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#subpackages">Subpackages</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.config">femio.config module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_attribute">femio.fem_attribute module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_attributes">femio.fem_attributes module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_data">femio.fem_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_elemental_attribute">femio.fem_elemental_attribute module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.fem_writer">femio.fem_writer module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.functions">femio.functions module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.geometry_processor">femio.geometry_processor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.graph_processor">femio.graph_processor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.io">femio.io module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.mesh_compressor">femio.mesh_compressor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.nodal_data">femio.nodal_data module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.signal_processor">femio.signal_processor module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio.time_series_dataframe">femio.time_series_dataframe module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="femio.html#module-femio">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+<section id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Link to this heading"></a></h1>
+<ul class="simple">
+<li><p><a class="reference internal" href="genindex.html"><span class="std std-ref">Index</span></a></p></li>
+<li><p><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></p></li>
+<li><p><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></p></li>
+</ul>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="examples/index.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, RICOS Co. Ltd..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

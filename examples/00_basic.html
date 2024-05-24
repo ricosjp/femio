@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basic Usage of FEMIO &mdash; femio 0.3.3 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery.css?v=61a4c737" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-binder.css?v=f4aeca0c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-dataframe.css?v=2082cf3c" />
+      <link rel="stylesheet" type="text/css" href="../_static/sg_gallery-rendered-html.css?v=1277b6f3" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=d5a15cff"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="femio package" href="../femio.html" />
+    <link rel="prev" title="Examples" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            femio
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Examples</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Basic Usage of FEMIO</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../femio.html">femio package</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">femio</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Examples</a></li>
+      <li class="breadcrumb-item active">Basic Usage of FEMIO</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/examples/00_basic.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <div class="sphx-glr-download-link-note admonition note">
+<p class="admonition-title">Note</p>
+<p><a class="reference internal" href="#sphx-glr-download-examples-00-basic-py"><span class="std std-ref">Go to the end</span></a>
+to download the full example code.</p>
+</div>
+<section class="sphx-glr-example-title" id="basic-usage-of-femio">
+<span id="sphx-glr-examples-00-basic-py"></span><h1>Basic Usage of FEMIO<a class="headerlink" href="#basic-usage-of-femio" title="Link to this heading"></a></h1>
+<p>FEMIO can be used as a converter, load data in a format, and write data in
+another format.</p>
+<p>Import numpy and <a class="reference internal" href="../femio.html#module-femio" title="femio"><code class="xref py py-mod docutils literal notranslate"><span class="pre">femio</span></code></a>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">femio</span>
+</pre></div>
+</div>
+<p>First, download the
+<a class="reference external" href="https://github.com/ricosjp/femio/examples/hex.vtk">VTK file</a> and
+place it in the same directory as that of this script.
+If you load the file with
+<a class="reference external" href="https://www.paraview.org/">ParaView</a>, it should look as follows.</p>
+<a class="reference internal image-reference" href="../_images/hex_raw.png"><img alt="../_images/hex_raw.png" src="../_images/hex_raw.png" style="width: 400px;" /></a>
+<p>Then, read the file using femio.read_files function.
+It returns a <a class="reference internal" href="../femio.html#femio.fem_data.FEMData" title="femio.fem_data.FEMData"><code class="xref py py-class docutils literal notranslate"><span class="pre">FEMData</span></code></a> object that contains mesh data.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fem_data</span> <span class="o">=</span> <span class="n">femio</span><span class="o">.</span><span class="n">read_files</span><span class="p">(</span><span class="s1">&#39;vtk&#39;</span><span class="p">,</span> <span class="s1">&#39;hex.vtk&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Parsing data
+Creating data: NODE
+Creating data: hex
+</pre></div>
+</div>
+<p>Elsewise, one can generate a simple mesh using FEMIO’s function.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="c1"># fem_data = femio.generate_brick(&#39;hex&#39;, 1, 1, 2)</span>
+</pre></div>
+</div>
+<p>A FEMData object has various attributes, e.g., nodes, elements.</p>
+<p>The attribute <code class="code docutils literal notranslate"><span class="pre">nodes</span></code> has ids and data that means node positions.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Node IDs:</span><span class="se">\n</span><span class="si">{</span><span class="n">fem_data</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">ids</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Node data (positions):</span><span class="se">\n</span><span class="si">{</span><span class="n">fem_data</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Node IDs:
+[ 1  2  3  4  5  6  7  8  9 10 11 12]
+
+Node data (positions):
+[[0.  0.  0. ]
+ [0.1 0.  0. ]
+ [0.1 0.1 0. ]
+ [0.  0.1 0. ]
+ [0.  0.  0.2]
+ [0.1 0.  0.2]
+ [0.1 0.1 0.2]
+ [0.  0.1 0.2]
+ [0.  0.  0.4]
+ [0.1 0.  0.4]
+ [0.1 0.1 0.4]
+ [0.  0.1 0.4]]
+</pre></div>
+</div>
+<p>The attribute <code class="code docutils literal notranslate"><span class="pre">elements</span></code> has ids and data that means node
+connectivities based on node IDs.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Element IDs:</span><span class="se">\n</span><span class="si">{</span><span class="n">fem_data</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">ids</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Element data (positions):</span><span class="se">\n</span><span class="si">{</span><span class="n">fem_data</span><span class="o">.</span><span class="n">elements</span><span class="o">.</span><span class="n">data</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Element IDs:
+[1 2]
+
+Element data (positions):
+[[ 1  2  3  4  5  6  7  8]
+ [ 5  6  7  8  9 10 11 12]]
+</pre></div>
+</div>
+<p>Here, please note that the term ‘ID’ differs from the array’s index.
+Array’s index always starts from zero and is consecutive.
+However, ID does not necessarily start from zero and is consecutive.
+By default, ID starts from one even if the original format’s ID starts
+from zero (like VTK).</p>
+<p>Please be aware that they correspond to <code class="code docutils literal notranslate"><span class="pre">loc</span></code> and <code class="code docutils literal notranslate"><span class="pre">iloc</span></code> in
+<a class="reference external" href="https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html">pandas</a>,
+and one can actually use them to access data.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">fem_data</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">loc</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>  <span class="c1"># Access with ID</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">fem_data</span><span class="o">.</span><span class="n">nodes</span><span class="o">.</span><span class="n">iloc</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">values</span><span class="p">)</span>  <span class="c1"># Access with index</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>[[0.1 0.1 0. ]]
+[[0.1 0.1 0. ]]
+</pre></div>
+</div>
+<p>Now, let’s add analysis conditions to perform heat analysis using
+<a class="reference external" href="https://github.com/FrontISTR/FrontISTR">FrontISTR</a>.</p>
+<p>To add boundary conditions, we first create <code class="xref py py-class docutils literal notranslate"><span class="pre">FEMAttribute</span></code> objects,
+then add them to the <code class="code docutils literal notranslate"><span class="pre">fem_data</span></code>.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fixtemp</span> <span class="o">=</span> <span class="n">femio</span><span class="o">.</span><span class="n">FEMAttribute</span><span class="p">(</span><span class="s1">&#39;fixtemp&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">12</span><span class="p">]),</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">]))</span>
+<span class="n">fem_data</span><span class="o">.</span><span class="n">constraints</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;fixtemp&#39;</span><span class="p">:</span> <span class="n">fixtemp</span><span class="p">})</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Creating data: fixtemp
+</pre></div>
+</div>
+<p>If you want to add several data with the same IDs, you can use the
+<a class="reference internal" href="../femio.html#femio.fem_attributes.FEMAttributes.update_data" title="femio.fem_attributes.FEMAttributes.update_data"><code class="xref py py-meth docutils literal notranslate"><span class="pre">femio.fem_attributes.FEMAttributes.update_data()</span></code></a> method.
+Here, <code class="code docutils literal notranslate"><span class="pre">'MAT_ALL'</span></code> is the ID (can be multiple).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fem_data</span><span class="o">.</span><span class="n">materials</span><span class="o">.</span><span class="n">update_data</span><span class="p">(</span>
+    <span class="s1">&#39;MAT_ALL&#39;</span><span class="p">,</span> <span class="p">{</span>
+        <span class="s1">&#39;density&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]),</span>
+        <span class="s1">&#39;specific_heat&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]]),</span>
+        <span class="s1">&#39;thermal_conductivity&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([[</span><span class="mf">1.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]])})</span>
+<span class="n">fem_data</span><span class="o">.</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;solution_type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;HEAT&#39;</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Creating data: density
+Creating data: specific_heat
+Creating data: thermal_conductivity
+</pre></div>
+</div>
+<p>Next, we add the section’s information to connect the material defined above
+to the element group (<code class="code docutils literal notranslate"><span class="pre">'ALL'</span></code> here means all elements in the mesh).</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fem_data</span><span class="o">.</span><span class="n">sections</span><span class="o">.</span><span class="n">update_data</span><span class="p">(</span>
+    <span class="s1">&#39;MAT_ALL&#39;</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;TYPE&#39;</span><span class="p">:</span> <span class="s1">&#39;SOLID&#39;</span><span class="p">,</span> <span class="s1">&#39;EGRP&#39;</span><span class="p">:</span> <span class="s1">&#39;ALL&#39;</span><span class="p">})</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Creating data: TYPE
+Creating data: EGRP
+</pre></div>
+</div>
+<p>Then, we write a FrontISTR data directory.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">fem_data</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s1">&#39;fistr&#39;</span><span class="p">,</span> <span class="s1">&#39;00_basic_out/mesh&#39;</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Start writing data
+Start msh header
+2024-05-24 10:59:37.605248
+Start nodes
+2024-05-24 10:59:37.605443
+Start element
+2024-05-24 10:59:37.607563
+Start element group
+2024-05-24 10:59:37.611627
+Start section
+2024-05-24 10:59:37.611684
+Start material
+2024-05-24 10:59:37.615834
+Start cnt header
+2024-05-24 10:59:37.620747
+Start fixtemp
+2024-05-24 10:59:37.620962
+Start cnt setting
+2024-05-24 10:59:37.621764
+File written in: 00_basic_out/mesh.msh
+File written in: 00_basic_out/mesh.cnt
+File written in: 00_basic_out/hecmw_ctrl.dat
+</pre></div>
+</div>
+<p>Finally, run FrontISTR like a bash script shown below (Docker required).</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>00_basic_out
+docker<span class="w"> </span>pull<span class="w"> </span>registry.gitlab.com/frontistr-commons/frontistr/fistr1:master
+docker<span class="w"> </span>run<span class="w"> </span>-it<span class="w"> </span>--sig-proxy<span class="o">=</span><span class="nb">false</span><span class="w"> </span>--rm<span class="w"> </span>-u<span class="w"> </span><span class="nv">$UID</span><span class="w"> </span>-v<span class="w"> </span><span class="nv">$PWD</span>:<span class="nv">$PWD</span><span class="w"> </span>-w<span class="w"> </span><span class="nv">$PWD</span><span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>registry.gitlab.com/frontistr-commons/frontistr/fistr1:master<span class="w"> </span>fistr1<span class="w"> </span>-t<span class="w"> </span><span class="m">1</span>
+</pre></div>
+</div>
+<p>If you load the resultant file <code class="code docutils literal notranslate"><span class="pre">00_basic_out/mesh_vis_psf.0001.inp</span></code>
+in ParaView, it will look as follows.</p>
+<a class="reference internal image-reference" href="../_images/res.png"><img alt="../_images/res.png" src="../_images/res.png" style="width: 400px;" /></a>
+<p>In addition, you can load that file and analyze the data.</p>
+<div class="highlight-Python notranslate"><div class="highlight"><pre><span></span><span class="n">res_fem_data</span> <span class="o">=</span> <span class="n">femio</span><span class="o">.</span><span class="n">read_files</span><span class="p">(</span><span class="s1">&#39;ucd&#39;</span><span class="p">,</span> <span class="s1">&#39;00_basic_out/mesh_vis_psf.0001.inp&#39;</span><span class="p">)</span>
+<span class="n">temperature</span> <span class="o">=</span> <span class="n">res_fem_data</span><span class="o">.</span><span class="n">nodal_data</span><span class="p">[</span><span class="s1">&#39;TEMPERATURE&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">data</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">Calculated temperature:</span><span class="se">\n</span><span class="si">{</span><span class="n">temperature</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Mean temperature:</span><span class="se">\n</span><span class="si">{</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">temperature</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="sphx-glr-script-out highlight-none notranslate"><div class="highlight"><pre><span></span>Parsing data
+Reading file: 00_basic_out/mesh_vis_psf.0001.inp
+Creating data: NODE
+Creating data: ELEMENT
+Creating data: TEMPERATURE
+
+Calculated temperature:
+[[0.        ]
+ [0.3002334 ]
+ [0.22448547]
+ [0.32102695]
+ [0.57033736]
+ [0.48016126]
+ [0.51983874]
+ [0.42966264]
+ [0.67897305]
+ [0.77551453]
+ [0.6997666 ]
+ [1.        ]]
+
+Mean temperature:
+0.5
+</pre></div>
+</div>
+<p class="sphx-glr-timing"><strong>Total running time of the script:</strong> (0 minutes 0.498 seconds)</p>
+<div class="sphx-glr-footer sphx-glr-footer-example docutils container" id="sphx-glr-download-examples-00-basic-py">
+<div class="sphx-glr-download sphx-glr-download-jupyter docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/27a6be9ceb8322f00fefe2cc4d6bc003/00_basic.ipynb"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Jupyter</span> <span class="pre">notebook:</span> <span class="pre">00_basic.ipynb</span></code></a></p>
+</div>
+<div class="sphx-glr-download sphx-glr-download-python docutils container">
+<p><a class="reference download internal" download="" href="../_downloads/495a0625ce80023c801ee93b5016050a/00_basic.py"><code class="xref download docutils literal notranslate"><span class="pre">Download</span> <span class="pre">Python</span> <span class="pre">source</span> <span class="pre">code:</span> <span class="pre">00_basic.py</span></code></a></p>
+</div>
+</div>
+<p class="sphx-glr-signature"><a class="reference external" href="https://sphinx-gallery.github.io">Gallery generated by Sphinx-Gallery</a></p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Examples" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../femio.html" class="btn btn-neutral float-right" title="femio package" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2020, RICOS Co. Ltd..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
